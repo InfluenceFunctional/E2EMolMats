@@ -1,7 +1,7 @@
 import os
-os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures\test_1')
-original = r"test_cluster_ovito.data"  # '#input()
-New = 'test_cluster_prepped.data'  # input()
+os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures\test_2')
+original = r"1.data"  # '#input()
+New = '2.data'  # input()
 data = open(original, 'r')
 # data = open("nicotinamide_initial_08.data",'r')
 New_data = open(New, 'w')

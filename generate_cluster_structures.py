@@ -27,7 +27,7 @@ seed = 0
 np.random.seed(seed=seed)
 
 # move to working directory
-os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures\test_1')
+os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures\test_2')
 
 # get original structure
 if structure_identifier == "NICOAM07":
@@ -169,7 +169,9 @@ if defect_rate > 0:  # sub nicotinamides for benzamides
     supercell_coordinates = np.concatenate(defected_supercell_coordinates)
     supercell_atoms = np.asarray(defected_supercell_atoms)
 
-cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=100 * np.eye(3))  # cell = T_fc)
+cell = np.ptp(supercell_coordinates)*10 * np.eye(3)
+supercell_coordinates += cell.sum(0) / 2
+cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)  # cell = T_fc)
 
 io.write('test_cluster.xyz', cluster)
 

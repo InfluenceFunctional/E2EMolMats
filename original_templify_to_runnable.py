@@ -1,21 +1,21 @@
-print("Enter the file name you just created: ")
-original = input()
-New = "new_" + original
+import os
+os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures\test_2')
+
+original = r"4.lt"  # '#input()
+New = r"5.lt"
+ori_data_file = r"3.data" #input()
+
 data = open(original,'r')
-#data = open("nicotinamide_initial_08.data",'r')
 New_data = open(New,'w')
-#New_data = open("nicotinamide_python_08.data",'w')
 lines = data.readlines()
 
-print("Enter the the name of the data file: ")
-ori_data_file = input()
 data_file = open(ori_data_file,'r');
 system = open("system.lt",'w');
 system.write("import \"" + New + "\"  # <- defines the \"Urea\" molecule type.\n\n\n")
 system.write("# Periodic boundary conditions:\nwrite_once(\"Data Boundary\") {\n")
 ortho = 0;
 print("Is it in orthogonal box?Press 1 if it is. 0 if it is not: ")
-ortho = input();
+ortho = 1  # input();
 data_file_line = data_file.readline()
 data_file_line = data_file.readline()
 data_file_line = data_file.readline()
