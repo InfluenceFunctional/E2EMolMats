@@ -12,18 +12,22 @@ from ase import Atoms
 from ase.visualize import view
 from ase import io
 from scipy.spatial.distance import cdist, pdist
+from scipy.spatial.transform import Rotation
 
 # options
-structure_identifier = "NICOAM013"
+structure_identifier = "NICOAM07"
 cluster_type = "supercell"  # "supercell" or "spherical"
-cluster_size = [3, 3, 3]  # size of supercell to be generated [a,b,c]
-defect_rate = 0.5  # fraction of molecules which will be switched from nicotinamide to benzamide
+max_sphere_radius = 20
+cluster_size = [1, 1, 1]  # size of supercell to be generated [a,b,c]
+defect_rate = 0  # fraction of molecules which will be switched from nicotinamide to benzamide
+scramble_rate = 0  # fraction of molecules with scrambled orientations
+gap_rate = 0  # fraction of molecules deleted
 seed = 0
 
 np.random.seed(seed=seed)
 
 # move to working directory
-os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures')
+os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures\test_1')
 
 # get original structure
 if structure_identifier == "NICOAM07":
@@ -31,7 +35,7 @@ if structure_identifier == "NICOAM07":
     space_group = "P21"
     z_value = 2
     crystal_path = r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures\NICOAM07_renumbered_1x1x1.pdb'
-if structure_identifier == "NICOAM013":
+elif structure_identifier == "NICOAM013":
     atoms_in_molecule = 15
     space_group = "P21/c"
     z_value = 2
@@ -70,8 +74,11 @@ elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
     dists = cdist(centroid[None, :], mol_centroids)[0, :]
 
     # find maximal spherical radius
-    supercell_lengths = cell_lengths * cluster_size
-    max_radius = min(supercell_lengths)
+    if max_sphere_radius is None:
+        supercell_lengths = cell_lengths * cluster_size
+        max_radius = min(supercell_lengths)
+    else:
+        max_radius = max_sphere_radius
 
     mols_to_keep = np.argwhere(dists < max_radius)[:, 0]
 
@@ -79,6 +86,46 @@ elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
 
     supercell_coordinates = keeper_molecule_coordinates
     supercell_atoms = np.concatenate([single_mol_atoms for _ in range(len(mols_to_keep))])
+
+if scramble_rate > 0:
+    num_mols = len(supercell_coordinates) // atoms_in_molecule
+    num_defect_molecules = int(scramble_rate * num_mols)
+    defect_molecule_indices = np.random.choice(np.arange(num_mols), size=num_defect_molecules)
+
+    molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
+
+    # apply defect
+    defected_supercell_coordinates = []
+    defected_supercell_atoms = []
+    for i in range(len(molwise_supercell_coordinates)):
+        if i in defect_molecule_indices:  # yes defect
+            original_mol_coords = molwise_supercell_coordinates[i]
+            random_rotation = Rotation.random().as_matrix()
+            centroid = original_mol_coords.mean(0)
+            rotated_mol_coords = np.inner(random_rotation, original_mol_coords - centroid).T + centroid
+            defected_supercell_coordinates.append(rotated_mol_coords)
+        else:  # no defect
+            defected_supercell_coordinates.append(molwise_supercell_coordinates[i])
+
+    supercell_coordinates = np.concatenate(defected_supercell_coordinates)
+
+if gap_rate > 0:
+    num_mols = len(supercell_coordinates) // atoms_in_molecule
+    num_defect_molecules = int(gap_rate * num_mols)
+    defect_molecule_indices = np.random.choice(np.arange(num_mols), size=num_defect_molecules)
+
+    molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
+
+    # apply defect
+    defected_supercell_coordinates = []
+    defected_supercell_atoms = []
+    for i in range(len(molwise_supercell_coordinates)):
+        if i in defect_molecule_indices:  # yes defect
+            pass
+        else:  # no defect
+            defected_supercell_coordinates.append(molwise_supercell_coordinates[i])
+
+    supercell_coordinates = np.concatenate(defected_supercell_coordinates)
 
 if defect_rate > 0:  # sub nicotinamides for benzamides
     benzamide_atoms = np.concatenate((single_mol_atoms, np.ones(1))).astype(int)  # add a hydrogen # TODO get this in a non-hardcoded fashion
@@ -100,7 +147,6 @@ if defect_rate > 0:  # sub nicotinamides for benzamides
             original_mol_coords = molwise_supercell_coordinates[i]
 
             # append a proton in the correct spot
-
             new_carbon_coord = original_mol_coords[atom_switch_coord]
             neighboring_carbon_inds = list(np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
             neighboring_carbon_inds.remove(2)  # remove self
@@ -123,6 +169,8 @@ if defect_rate > 0:  # sub nicotinamides for benzamides
     supercell_coordinates = np.concatenate(defected_supercell_coordinates)
     supercell_atoms = np.asarray(defected_supercell_atoms)
 
-cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=T_fc)
+cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=100 * np.eye(3))  # cell = T_fc)
+
+io.write('test_cluster.xyz', cluster)
 
 aa = 1
