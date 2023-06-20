@@ -31,7 +31,7 @@ def generate_structure(workdir, structure_identifier, cluster_type, max_sphere_r
 
     # move to working directory
     os.chdir(workdir)
-    crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures'
+    crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
 
     # get original structure
     if structure_identifier == "NICOAM07":
