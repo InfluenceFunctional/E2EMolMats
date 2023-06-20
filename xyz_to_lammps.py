@@ -14,7 +14,7 @@ from shutil import copyfile
 os.chdir(r'/home/mk8347/scratch/molecule_clusters/battery_2')
 
 # options
-workdir = r'/home/mk8347/scratch/molecule_clusters/battery_2\1'
+workdir = r'/home/mk8347/scratch/molecule_clusters/battery_2/1'
 structure_identifier = "NICOAM13"
 cluster_type = "supercell"  # "supercell" or "spherical"
 max_sphere_radius = 20
@@ -32,7 +32,7 @@ if not os.path.exists(workdir):
 '''copy in common elements'''
 files = os.listdir('common')
 for file in files:
-    copyfile("common/" + file,workdir + '/' + file)
+    copyfile("common/" + file, workdir + '/' + file)
 
 xyz_filename = generate_structure(workdir, structure_identifier, cluster_type, max_sphere_radius, cluster_size, defect_rate, scramble_rate, gap_rate, seed, min_inter_cluster_distance)
 
@@ -50,7 +50,7 @@ pipeline.source.load('2.data')
 export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
 '''ltemplify'''
-os.system('ltemplify 3.data > 4.lt')
+os.system('ltemplify.py 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
 
 '''make runnable'''
 templify_to_runnable(workdir, "4.lt", "3.data", "5.lt")
