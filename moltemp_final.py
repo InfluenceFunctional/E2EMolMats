@@ -35,6 +35,3 @@ while(data_file_line):
     New_data.write(data_file_line)
 New_data.close();
 data.close();
-
-
-    
