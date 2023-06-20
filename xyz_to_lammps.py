@@ -11,28 +11,31 @@ import os
 from shutil import copyfile
 
 '''set head directory'''
-os.chdir(r'/home/mk8347/scratch/molecule_clusters/battery_2')
+head_dir = r'/home/mk8347/scratch/molecule_clusters/battery_3'
+os.chdir(head_dir)
 
 # options
-workdir = r'/home/mk8347/scratch/molecule_clusters/battery_2/1'
+run_num = 1
+workdir = head_dir + '/' + str(run_num)
 structure_identifier = "NICOAM13"
 cluster_type = "supercell"  # "supercell" or "spherical"
 max_sphere_radius = 20
-cluster_size = [3, 3, 3]  # size of supercell to be generated [a,b,c]
+cluster_size = [5, 5, 5]  # size of supercell to be generated [a,b,c]
 defect_rate = 0  # fraction of molecules which will be switched from nicotinamide to benzamide
 scramble_rate = 0  # fraction of molecules with scrambled orientations
 gap_rate = 0  # fraction of molecules deleted
 seed = 0
-min_inter_cluster_distance = 100
+min_inter_cluster_distance = 200  # angstroms
 
 '''make new workdir'''
-if not os.path.exists(workdir):
-    os.mkdir(workdir)
+if workdir is not None:
+    if not os.path.exists(workdir):
+        os.mkdir(workdir)
 
-'''copy in common elements'''
-files = os.listdir('common')
-for file in files:
-    copyfile("common/" + file, workdir + '/' + file)
+    '''copy in common elements'''
+    files = os.listdir('common')
+    for file in files:
+        copyfile("common/" + file, workdir + '/' + file)
 
 xyz_filename = generate_structure(workdir, structure_identifier, cluster_type, max_sphere_radius, cluster_size, defect_rate, scramble_rate, gap_rate, seed, min_inter_cluster_distance)
 

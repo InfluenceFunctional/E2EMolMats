@@ -30,8 +30,9 @@ def generate_structure(workdir, structure_identifier, cluster_type, max_sphere_r
     np.random.seed(seed=seed)
 
     # move to working directory
-    os.chdir(workdir)
-    crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
+    if workdir is not None:
+        os.chdir(workdir)
+    crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'# r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures/' #
 
     # get original structure
     if structure_identifier == "NICOAM07":
@@ -179,9 +180,10 @@ def generate_structure(workdir, structure_identifier, cluster_type, max_sphere_r
         supercell_atoms = np.asarray(defected_supercell_atoms)
 
     cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
-    supercell_coordinates += cell.sum(0) / 2
+    supercell_coordinates += cell.sum(0) / 2 - supercell_coordinates.mean(0)
     cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)  # cell = T_fc)
 
     filename = f'{structure_identifier}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
     io.write(filename, cluster)
+
     return filename
