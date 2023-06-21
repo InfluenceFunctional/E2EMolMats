@@ -46,10 +46,10 @@ for run_num, temperature in zip(run_nums, temps):
     if workdir is not None:
         if not os.path.exists(workdir):
             os.mkdir(workdir)
+        os.chdir(workdir)
         '''copy in common elements'''
         copy_tree('../common', './')
-
-    os.chdir(workdir)
+    else:
 
     '''set temperature, run time, and print step in lmp file'''
     with open("run_MD.lmp") as f:
