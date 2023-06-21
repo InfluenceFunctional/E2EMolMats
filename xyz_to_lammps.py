@@ -21,7 +21,8 @@ if not os.path.exists(head_dir):
     os.mkdir(head_dir)
 os.chdir(head_dir)
 if not os.path.exists('common'):
-    copy_tree('../common', './')
+    os.mkdir('common')
+    copy_tree('../common', './common/')
 
 run_nums = [1, 2, 3, 4, 5]
 temps = [100, 200, 300, 400, 500]
