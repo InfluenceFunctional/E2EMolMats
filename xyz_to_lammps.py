@@ -50,6 +50,7 @@ for run_num, temperature in zip(run_nums, temps):
         '''copy in common elements'''
         copy_tree('../common', './')
     else:
+        os.chdir(workdir)
 
     '''set temperature, run time, and print step in lmp file'''
     with open("run_MD.lmp") as f:
