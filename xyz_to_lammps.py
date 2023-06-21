@@ -42,6 +42,15 @@ for run_num, temperature in zip(run_nums, temps):
     run_time = 1000000
     print_steps = 100
 
+    '''make new workdir'''
+    if workdir is not None:
+        if not os.path.exists(workdir):
+            os.mkdir(workdir)
+        '''copy in common elements'''
+        copy_tree('../common', './')
+
+    os.chdir(workdir)
+
     '''set temperature, run time, and print step in lmp file'''
     with open("run_MD.lmp") as f:
         newText = f.read().replace('_TEMP', str(temperature))
@@ -51,15 +60,6 @@ for run_num, temperature in zip(run_nums, temps):
 
     with open("run_MD.lmp", "w") as f:
         f.write(newText)
-
-    '''make new workdir'''
-    if workdir is not None:
-        if not os.path.exists(workdir):
-            os.mkdir(workdir)
-        '''copy in common elements'''
-        copy_tree('../common', './')
-
-    os.chdir(workdir)
 
     '''generate cluster structure'''
     xyz_filename = generate_structure(workdir, crystals_path, structure_identifier, cluster_type, max_sphere_radius,
