@@ -36,7 +36,7 @@ for run_num, temperature in zip(run_nums, temps):
     defect_rate = 0  # fraction of molecules which will be switched from nicotinamide to benzamide
     scramble_rate = 0  # fraction of molecules with scrambled orientations
     gap_rate = 0  # fraction of molecules deleted
-    seed = 0
+    seed = 1 # must be positive integer
     min_inter_cluster_distance = 200  # angstroms
     temperature = temperature
     run_time = 1000000
