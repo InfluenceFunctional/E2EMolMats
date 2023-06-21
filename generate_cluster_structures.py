@@ -26,13 +26,12 @@ from scipy.spatial.transform import Rotation
 # seed = 0
 # min_inter_cluster_distance = 100
 
-def generate_structure(workdir, structure_identifier, cluster_type, max_sphere_radius, cluster_size, defect_rate, scramble_rate, gap_rate, seed, min_inter_cluster_distance):
+def generate_structure(crystals_path, workdir, structure_identifier, cluster_type, max_sphere_radius, cluster_size, defect_rate, scramble_rate, gap_rate, seed, min_inter_cluster_distance):
     np.random.seed(seed=seed)
 
     # move to working directory
     if workdir is not None:
         os.chdir(workdir)
-    crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'# r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures/' #
 
     # get original structure
     if structure_identifier == "NICOAM07":
