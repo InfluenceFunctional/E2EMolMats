@@ -116,6 +116,7 @@ def generate_structure(workdir, crystals_path, structure_identifier, cluster_typ
             else:  # no defect
                 defected_supercell_coordinates.append(molwise_supercell_coordinates[i])
 
+        supercell_atoms = np.concatenate([single_mol_atoms for _ in range(len(defected_supercell_coordinates))])
         supercell_coordinates = np.concatenate(defected_supercell_coordinates)
 
     if gap_rate > 0:
@@ -134,6 +135,7 @@ def generate_structure(workdir, crystals_path, structure_identifier, cluster_typ
             else:  # no defect
                 defected_supercell_coordinates.append(molwise_supercell_coordinates[i])
 
+        supercell_atoms = np.concatenate([single_mol_atoms for _ in range(len(defected_supercell_coordinates))])
         supercell_coordinates = np.concatenate(defected_supercell_coordinates)
 
     if defect_rate > 0:  # sub nicotinamides for benzamides
