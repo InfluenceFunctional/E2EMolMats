@@ -59,7 +59,8 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
                               defect_rate=0, scramble_rate=0, gap_rate=0,
                               seed=1, min_inter_cluster_distance=200,
                               temperature=300, run_time=int(1e6),
-                              print_steps=100, box_type='p'):
+                              print_steps=100, box_type='s',
+                              integrator='langevin', damping: str = str(100.0)):
     # options
     if cluster_size is None:
         cluster_size = [3, 3, 3]
@@ -83,6 +84,11 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
         newText = newText.replace('_PRINTSTEPS', str(print_steps))
         newText = newText.replace('_SEED', str(seed))
         newText = newText.replace('_BOUND', str(box_type))
+        newText = newText.replace('_DAMP', damping)
+        if integrator == 'langevin':
+            newText = newText.replace('#_LANGEVIN', damping)
+        elif integrator == 'nosehoover':
+            newText = newText.replace('#_NOSE', damping)
 
     with open("run_MD.lmp", "w") as f:
         f.write(newText)

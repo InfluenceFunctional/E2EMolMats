@@ -2,16 +2,19 @@ import MDAnalysis as mda
 import os
 import wandb
 from cluster_figs import \
-    (plot_rdf_series, plot_intermolecular_rdf_series, plot_cluster_stability, plot_cluster_centroids_drift)
+    (plot_rdf_series, plot_intermolecular_rdf_series,
+     plot_cluster_stability, plot_cluster_centroids_drift, process_thermo_data)
 from utils import (dict2namespace, names_dict, ff_names_dict)
 import numpy as np
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
 
 params = {
-    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\battery_6/',
+    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\battery_7/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
-    'write_trajectory': True,
-    'make_figs': False,
+    'write_trajectory': False,
+    'make_figs': True,
 }
 config = dict2namespace(params)
 
@@ -42,6 +45,24 @@ with wandb.init(config=params, project="nicotinamide_clusters",
                         W.write(cluster)
 
         if config.make_figs:
+            results_dict = process_thermo_data()
+            fig = make_subplots(rows=2, cols=3)
+            ind = 0
+            for i, key in enumerate(results_dict.keys()):
+                if key != 'time step':
+                    ind += 1
+                    row = ind // 3 + 1
+                    col = ind % 3 + 1
+                    fig.add_trace(
+                        go.Scattergl(x=results_dict['time step'],
+                                     y=results_dict[key],name=key),
+                        row=row, col=col
+                    )
+            if config.show_figs:
+                fig.show()
+            wandb.log({'Thermo Data': fig})
+            fig.write_image('Thermo Data.png')
+
             atom_types = u.atoms.types
             atom_names = np.asarray([ff_names_dict[atype] for atype in atom_types])
             u.add_TopologyAttr('name', atom_names)

@@ -6,6 +6,7 @@ from scipy.stats import mode
 from MDAnalysis.analysis import rdf
 import MDAnalysis as mda
 from scipy.spatial import distance_matrix
+import os
 
 
 def plot_rdf_series(u):
@@ -144,3 +145,39 @@ def plot_cluster_centroids_drift(u: mda.Universe):
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Normed Intermolecular Centroids Drift')
 
     return fig
+
+
+def process_thermo_data():
+
+    f = open('screen.log', "r")
+    text = f.read()
+    lines = text.split('\n')
+    f.close()
+
+    skip = True
+    results_dict = {'time step':[],
+                    'temp':[],
+                    'E_pair':[],
+                    'E_mol':[],
+                    'E_tot':[],
+                    'Press':[]}
+    for ind, line in enumerate(lines):
+        if skip:
+            if "Step" in line:
+                skip = False
+                #print(ind)
+        else:
+            if "Loop" in line:
+                skip = True
+                #print(ind)
+
+            if not skip:
+                split_line = line.split(' ')
+                entries = [float(entry) for entry in split_line if entry != '']
+                for ind2, key in enumerate(results_dict.keys()):
+                    results_dict[key].append(entries[ind2])
+
+    for key in results_dict.keys():
+        results_dict[key] = np.asarray(results_dict[key])
+
+    return results_dict
