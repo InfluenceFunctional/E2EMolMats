@@ -55,7 +55,7 @@ def dict2namespace(data_dict: dict):
 
 def create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
                               cluster_type="supercell", structure_identifier="NICOAM13",
-                              max_sphere_radius=20, cluster_size=None,
+                              max_sphere_radius=None, cluster_size=None,
                               defect_rate=0, scramble_rate=0, gap_rate=0,
                               seed=1, min_inter_cluster_distance=200,
                               temperature=300, run_time=int(1e6),
@@ -94,8 +94,11 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
         f.write(newText)
 
     '''generate cluster structure'''
-    xyz_filename = generate_structure(workdir, crystals_path, structure_identifier, cluster_type, max_sphere_radius,
-                                      cluster_size, defect_rate, scramble_rate, gap_rate, seed, min_inter_cluster_distance)
+    xyz_filename = generate_structure(
+        workdir, crystals_path, structure_identifier,
+        cluster_type, max_sphere_radius,
+        cluster_size, defect_rate, scramble_rate,
+        gap_rate, seed, min_inter_cluster_distance)
 
     '''convert from .xyz to lammps datafile'''
     pipeline = import_file(xyz_filename)

@@ -35,9 +35,9 @@ def plot_rdf_series(u):
     return fig
 
 
-def plot_intermolecular_rdf_series(u):
-    n_molecules = 50
-    randints = np.random.randint(0, len(u.residues), size=n_molecules)
+def plot_intermolecular_rdf_series(u, atom_type1 = None, atom_type2=None, n_frames_avg = 1):
+    n_molecules = min((100,len(u.residues)))
+    randints = np.random.choice(len(u.residues), size=n_molecules, replace=False)
 
     rdfs_list = []
     total_time = u.trajectory.totaltime
@@ -46,13 +46,19 @@ def plot_intermolecular_rdf_series(u):
     for mol_ind in randints:
         mol = u.residues[mol_ind].atoms
         inter_mols = sum([u.residues[ind] for ind in range(len(u.residues)) if ind != mol_ind]).atoms
+
+        if atom_type1 is not None:
+            mol = mol.select_atoms("name " + atom_type1)
+        if atom_type2 is not None:
+            inter_mols = inter_mols.select_atoms("name " + atom_type2)
+
         rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False)
         n_frames = u.trajectory.n_frames
         rdf_step = n_frames // n_steps
 
         rdfs = []
         for step in range(0, n_frames, rdf_step):  # range(0, n_frames - 1, rdf_step):
-            rdf_analysis.run(start=step, stop=step + 1, step=1, verbose=False)
+            rdf_analysis.run(start=step, stop=step + n_frames_avg, step=1, verbose=False)
             rdfs.append(rdf_analysis.results.rdf)
         rdfs = np.asarray(rdfs)
         rdfs_list.append(rdfs)
