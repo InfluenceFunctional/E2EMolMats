@@ -8,11 +8,11 @@ from distutils.dir_util import copy_tree
 from utils import create_xyz_and_run_lammps
 
 '''set head directory'''
-# head_dir = r'/home/mk8347/scratch/molecule_clusters/battery_7'
-head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/battery_7'
+head_dir = r'/home/mk8347/scratch/molecule_clusters/battery_7'
+#head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/battery_7'
 
-# crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
-crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures/'  #
+crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
+#crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures/'  #
 
 if not os.path.exists(head_dir):
     os.mkdir(head_dir)
