@@ -5,6 +5,7 @@ from sklearn.cluster import AgglomerativeClustering
 from scipy.stats import mode
 from MDAnalysis.analysis import rdf
 import MDAnalysis as mda
+from scipy.spatial import distance_matrix
 
 
 def plot_rdf_series(u):
@@ -73,12 +74,17 @@ def plot_cluster_stability(u: mda.Universe):
     majority_cluster_list = []
     majority_proportion_list = []
     radii = [4, 5, 6, 7, 8, 10, 12]
+
+    ps_step = 100
+    total_time = u.trajectory.totaltime
+    times = np.arange(0, total_time + 1, ps_step)
+
     for cluster_threshold in radii:  # try different cutoffs
         '''identify molecules and assign to inside or outside cluster'''
         clusters_list = []
         majority_cluster = []
         for ts in u.trajectory:
-            if ts.time % 1 == 0:
+            if ts.time % ps_step == 0:
                 molecules = u.residues
                 centroids = np.asarray([molecules[i].atoms.centroid() for i in range(len(molecules))])
                 clustering = AgglomerativeClustering(linkage='single', metric='euclidean', distance_threshold=cluster_threshold, n_clusters=None).fit(centroids)
@@ -95,9 +101,9 @@ def plot_cluster_stability(u: mda.Universe):
         ])
 
         majority_proportion_list.append(majority_proportion)
-
-    clusters_list_list = np.asarray(clusters_list_list)
-    majority_cluster_list = np.asarray(majority_cluster_list)
+    #
+    # clusters_list_list = np.asarray(clusters_list_list)
+    # majority_cluster_list = np.asarray(majority_cluster_list)
     majority_proportion_list_list = np.asarray(majority_proportion_list)
 
     colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', len(majority_proportion_list_list), colortype='rgb')
@@ -105,10 +111,36 @@ def plot_cluster_stability(u: mda.Universe):
     fig = go.Figure()
     for i, radius in enumerate(radii):
         fig.add_trace(go.Scattergl(
-            x=np.arange(len(clusters_list)) * 10, y=majority_proportion_list_list[i],
+            x=times, y=majority_proportion_list_list[i],
             name=f'Cutoff {radius:.1f} (A)', fill='tonexty', marker=dict(color=colors[i])
         ))
     fig.update_yaxes(range=[-0.05, 1.05])
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Proportion in Majority Cluster')
+
+    return fig
+
+
+def plot_cluster_centroids_drift(u: mda.Universe):
+
+    ps_step = 100
+    total_time = u.trajectory.totaltime
+    times = np.arange(0, total_time + 1, ps_step)
+
+    distmat_list = []
+    for ts in u.trajectory:
+        if ts.time % ps_step == 0:
+            molecules = u.residues
+            centroids = np.asarray([molecules[i].atoms.centroid() for i in range(len(molecules))])
+            distmat_list.append(distance_matrix(centroids, centroids))
+    distmat_list = np.asarray(distmat_list)
+
+    distmat_drift = np.zeros(len(distmat_list))
+    for i in range(len(distmat_list)):
+        distmat_drift[i] = np.abs(np.sum((distmat_list[i] - distmat_list[0]))) / distmat_list[0].sum()
+
+    fig = go.Figure()
+    fig.add_trace(go.Scattergl(x=times, y=distmat_drift))
+    fig.update_yaxes(range=[-0.05, 1.05])
+    fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Normed Intermolecular Centroids Drift')
 
     return fig
