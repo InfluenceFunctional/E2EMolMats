@@ -105,7 +105,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
     export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
     '''ltemplify'''
-    os.system('ltemplify 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
+    os.system('ltemplify.py 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
 
     '''make runnable'''
     templify_to_runnable(workdir, "4.lt", "3.data", "5.lt")
