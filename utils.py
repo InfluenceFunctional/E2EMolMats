@@ -86,9 +86,9 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
         newText = newText.replace('_BOUND', str(box_type))
         newText = newText.replace('_DAMP', damping)
         if integrator == 'langevin':
-            newText = newText.replace('#_LANGEVIN', damping)
+            newText = newText.replace('#_LANGEVIN', '')
         elif integrator == 'nosehoover':
-            newText = newText.replace('#_NOSE', damping)
+            newText = newText.replace('#_NOSE', '')
 
     with open("run_MD.lmp", "w") as f:
         f.write(newText)
