@@ -14,6 +14,7 @@ from ase import io
 from scipy.spatial.distance import cdist, pdist
 from scipy.spatial.transform import Rotation
 
+
 # # options
 # structure_identifier = "NICOAM13"
 # cluster_type = "supercell"  # "supercell" or "spherical"
@@ -26,7 +27,10 @@ from scipy.spatial.transform import Rotation
 # seed = 0
 # min_inter_cluster_distance = 100
 
-def generate_structure(workdir, crystals_path, structure_identifier, cluster_type, max_sphere_radius, cluster_size, defect_rate, scramble_rate, gap_rate, seed, min_inter_cluster_distance):
+def generate_structure(workdir, crystals_path, structure_identifier,
+                       cluster_type, max_sphere_radius, cluster_size,
+                       defect_rate, scramble_rate, gap_rate, seed,
+                       min_inter_cluster_distance, periodic_structure=False):
     np.random.seed(seed=seed)
 
     # move to working directory
@@ -180,8 +184,13 @@ def generate_structure(workdir, crystals_path, structure_identifier, cluster_typ
         supercell_coordinates = np.concatenate(defected_supercell_coordinates)
         supercell_atoms = np.asarray(defected_supercell_atoms)
 
-    cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
+    if periodic_structure:
+        cell = T_fc  # cell parameters are the same as the fractional->cartesian transition matrix (or sometimes its transpose)
+    else:
+        cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
+
     supercell_coordinates += cell.sum(0) / 2 - supercell_coordinates.mean(0)
+
     cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)  # cell = T_fc)
 
     filename = f'{structure_identifier}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'

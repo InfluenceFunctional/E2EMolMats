@@ -7,6 +7,7 @@ from MDAnalysis.analysis import rdf
 import MDAnalysis as mda
 from scipy.spatial import distance_matrix
 import os
+from utils import compute_rdf_distance, compute_principal_axes_np
 
 
 def plot_rdf_series(u):
@@ -15,7 +16,7 @@ def plot_rdf_series(u):
     n_steps = 10
     times = np.arange(0, total_time + 1, total_time // n_steps)
 
-    rdf_analysis = rdf.InterRDF(u.atoms, u.atoms, range=(0.5, 6), nbins=200, verbose=False)
+    rdf_analysis = rdf.InterRDF(u.atoms, u.atoms, range=(0.5, 10), nbins=200, verbose=False, norm='density')
     n_frames = u.trajectory.n_frames
     rdf_step = n_frames // n_steps
 
@@ -32,11 +33,11 @@ def plot_rdf_series(u):
 
     fig.update_layout(xaxis_title='Range (A)', yaxis_title='Full RDF')
 
-    return fig
+    return fig, rdf_analysis.results.bins, rdfs
 
 
-def plot_intermolecular_rdf_series(u, atom_type1 = None, atom_type2=None, n_frames_avg = 1):
-    n_molecules = min((100,len(u.residues)))
+def plot_intermolecular_rdf_series(u, atom_type1=None, atom_type2=None, n_frames_avg=1):
+    n_molecules = min((100, len(u.residues)))
     randints = np.random.choice(len(u.residues), size=n_molecules, replace=False)
 
     rdfs_list = []
@@ -52,7 +53,7 @@ def plot_intermolecular_rdf_series(u, atom_type1 = None, atom_type2=None, n_fram
         if atom_type2 is not None:
             inter_mols = inter_mols.select_atoms("name " + atom_type2)
 
-        rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False)
+        rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False, norm='density')
         n_frames = u.trajectory.n_frames
         rdf_step = n_frames // n_steps
 
@@ -72,7 +73,7 @@ def plot_intermolecular_rdf_series(u, atom_type1 = None, atom_type2=None, n_fram
 
     fig.update_layout(xaxis_title='Range (A)', yaxis_title='Intermolecular RDF')
 
-    return fig
+    return fig, rdf_analysis.results.bins, combined_rdfs
 
 
 def plot_cluster_stability(u: mda.Universe):
@@ -124,7 +125,7 @@ def plot_cluster_stability(u: mda.Universe):
     fig.update_yaxes(range=[-0.05, 1.05])
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Proportion in Majority Cluster')
 
-    return fig
+    return fig, times, majority_proportion_list_list
 
 
 def plot_cluster_centroids_drift(u: mda.Universe):
@@ -143,14 +144,14 @@ def plot_cluster_centroids_drift(u: mda.Universe):
 
     distmat_drift = np.zeros(len(distmat_list))
     for i in range(len(distmat_list)):
-        distmat_drift[i] = np.abs(np.sum((distmat_list[i] - distmat_list[0]))) / distmat_list[0].sum()
+        distmat_drift[i] = np.sum(np.abs((distmat_list[i] - distmat_list[0]))) / distmat_list[0].sum()
 
     fig = go.Figure()
     fig.add_trace(go.Scattergl(x=times, y=distmat_drift))
-    fig.update_yaxes(range=[-0.05, 1.05])
+    fig.update_yaxes(range=[-0.05, max(1.05, max(distmat_drift))])
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Normed Intermolecular Centroids Drift')
 
-    return fig
+    return fig, times, distmat_drift
 
 
 def process_thermo_data():
@@ -161,21 +162,21 @@ def process_thermo_data():
     f.close()
 
     skip = True
-    results_dict = {'time step':[],
-                    'temp':[],
-                    'E_pair':[],
-                    'E_mol':[],
-                    'E_tot':[],
-                    'Press':[]}
+    results_dict = {'time step': [],
+                    'temp': [],
+                    'E_pair': [],
+                    'E_mol': [],
+                    'E_tot': [],
+                    'Press': []}
     for ind, line in enumerate(lines):
         if skip:
             if "Step" in line:
                 skip = False
-                #print(ind)
+                # print(ind)
         else:
             if "Loop" in line:
                 skip = True
-                #print(ind)
+                # print(ind)
 
             if not skip:
                 split_line = line.split(' ')
@@ -187,3 +188,67 @@ def process_thermo_data():
         results_dict[key] = np.asarray(results_dict[key])
 
     return results_dict
+
+
+def plot_atomwise_rdf_drift(u, atomwise_rdfs, bins):
+    t0_atomwise_rdfs = np.asarray([
+        rdf[0] for rdf in atomwise_rdfs
+    ])
+    num_traj_points = len(atomwise_rdfs[0])
+    trajectory_atomwise_rdfs = [
+        np.asarray([
+            rdf[i] for rdf in atomwise_rdfs
+        ]) for i in range(1, num_traj_points)
+    ]
+    rdf_drift = np.zeros(num_traj_points)
+    for i in range(1, num_traj_points):
+        rdf_drift[i] = compute_rdf_distance(t0_atomwise_rdfs, trajectory_atomwise_rdfs[i - 1], bins)
+
+    ps_step = 100
+    total_time = u.trajectory.totaltime
+    times = np.arange(0, total_time + 1, ps_step)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scattergl(x=times, y=rdf_drift))
+    fig.update_yaxes(range=[-0.05, max(1.05, max(rdf_drift))])
+    fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Intermolecular Atomwise RDF Drift')
+
+    return fig, times, rdf_drift
+
+
+def plot_alignment_fingerprint(u):
+    ps_step = 100
+    total_time = u.trajectory.totaltime
+    times = np.arange(0, total_time + 1, ps_step)
+
+    Ip_overlaps_list = []
+    for ts in u.trajectory:
+        if ts.time % ps_step == 0:
+            molecules = u.residues
+            coords = np.asarray([molecules[i].atoms.positions for i in range(len(molecules))])
+            Ip_list = []
+            for j in range(len(molecules)):
+                Ip, _, _ = compute_principal_axes_np(coords[j])
+                Ip_list.append(Ip)
+            Ip_list = np.stack(Ip_list)
+
+            # source mol, target mol, source Ip, target Ip
+            Ip_overlaps = np.zeros((len(molecules), len(molecules), 3, 3))
+            for j in range(len(molecules)):
+                for k in range(3):
+                    Ip_overlaps[j, :, k, :] = Ip_list[j, k].dot(np.transpose(Ip_list, axes=[0, 2, 1]))
+
+            Ip_overlaps_list.append(Ip_overlaps)
+
+    Ip_overlaps_list = np.stack(Ip_overlaps_list)
+
+    Ip_overlaps_drift = np.zeros(len(Ip_overlaps_list))
+    for i in range(len(Ip_overlaps_list)):
+        Ip_overlaps_drift[i] = np.sum(np.abs((Ip_overlaps_list[i] - Ip_overlaps_list[0]))) / np.prod(list(Ip_overlaps_list[0].shape))  # norm by maximum possible values
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=times, y=Ip_overlaps_drift))
+    fig.update_yaxes(range=[-0.05, max(1.05, max(Ip_overlaps_drift))])
+    fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Normed Molecule Principal Axes Overlap Drift')
+
+    return fig, Ip_overlaps_drift, times
