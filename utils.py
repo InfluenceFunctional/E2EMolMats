@@ -107,6 +107,8 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             newText = newText.replace('#_LANGEVIN', '')
         elif integrator == 'nosehoover':
             newText = newText.replace('#_NOSE', '')
+        elif integrator == 'npt':
+            newText = newText.replace('#_NPT', '')
 
     with open("run_MD.lmp", "w") as f:
         f.write(newText)
