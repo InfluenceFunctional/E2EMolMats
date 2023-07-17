@@ -87,7 +87,7 @@ for run_dir in dirs:  # loop over run directories in the battery
                         row=row, col=col
                     )
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'Thermo Data': fig})
             fig.write_image('Thermo Data.png')
 
@@ -97,14 +97,14 @@ for run_dir in dirs:  # loop over run directories in the battery
             u.add_TopologyAttr('name', atom_names)
             fig, bins, full_rdf = plot_rdf_series(u)
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'RDF Series': fig})
             fig.write_image('RDF_series.png')
 
             '''intermolecular df'''
             fig, bins, intermolecular_rdf = plot_intermolecular_rdf_series(u)
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'Intermolecular RDF Series': fig})
             fig.write_image('intermolecular_RDF_series.png')
 
@@ -114,7 +114,7 @@ for run_dir in dirs:  # loop over run directories in the battery
                 if 'h' not in atom_type:
                     fig, bins, atom_type_rdf = plot_intermolecular_rdf_series(u, atom_type, atom_type, n_frames_avg=1)
                     if config.show_figs:
-                        fig.show()
+                        fig.show(renderer="browser")
                     wandb.log({atom_type + ' Intermolecular RDF Series': fig})
                     fig.write_image(atom_type + ' intermolecular_RDF_series.png')
                     atomwise_rdfs.append(atom_type_rdf)
@@ -122,28 +122,28 @@ for run_dir in dirs:  # loop over run directories in the battery
             '''cluster stability'''
             fig, stability_times, majority_proportion_fractions = plot_cluster_stability(u)
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'Cluster Stability': fig})
             fig.write_image('cluster_stability.png')
 
             '''intramolecular centroids fingerprint'''
             fig, distmat_times, distmat_drift = plot_cluster_centroids_drift(u)
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'Cluster Centroids Drift': fig})
             fig.write_image('cluster_centroids_drift.png')
 
             '''intermolecular atomwise rdf distances'''
             fig, rdf_times, rdf_drift = plot_atomwise_rdf_drift(u, atomwise_rdfs, bins)
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'Intermolecular Atomwise RDF Drift': fig})
             fig.write_image('cluster_rdf_shift.png')
 
             '''molecule alignment fingerprint'''
             fig, Ip_overlaps_drift, Ip_overlaps_times = plot_alignment_fingerprint(u)
             if config.show_figs:
-                fig.show()
+                fig.show(renderer="browser")
             wandb.log({'Molecule Alignment Drift': fig})
             fig.write_image('cluster_alignment_shift.png')
 
@@ -238,7 +238,7 @@ fig.update_layout(yaxis2=dict(
     ticktext=cluster_sizes
 ))
 fig.update_layout(title="Cluster Stability")
-fig.show()
+fig.show(renderer="browser")
 fig.write_image("overall_cluster_stability.png")
 
 '''distmat shift'''
@@ -280,7 +280,7 @@ fig.update_layout(yaxis2=dict(
     ticktext=cluster_sizes
 ))
 fig.update_layout(title="log Intermolecular Distances Shift")
-fig.show()
+fig.show(renderer="browser")
 fig.write_image("overall_distances_shift.png")
 
 
@@ -323,7 +323,7 @@ fig.update_layout(yaxis2=dict(
     ticktext=cluster_sizes
 ))
 fig.update_layout(title="RDF Shift")
-fig.show()
+fig.show(renderer="browser")
 fig.write_image("rdf_shift_heatmap.png")
 
 '''Ip_overlaps'''
@@ -365,5 +365,5 @@ fig.update_layout(yaxis2=dict(
     ticktext=cluster_sizes
 ))
 fig.update_layout(title="Ip Overlap Shift")
-fig.show()
+fig.show(renderer="browser")
 fig.write_image("Ip_overlaps_shift_heatmap.png")

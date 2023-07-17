@@ -7,7 +7,8 @@ from MDAnalysis.analysis import rdf
 import MDAnalysis as mda
 from scipy.spatial import distance_matrix
 import os
-from utils import compute_rdf_distance, compute_principal_axes_np
+from utils import compute_rdf_distance, compute_principal_axes_np, ff_names_dict
+from plotly.subplots import make_subplots
 
 
 def plot_rdf_series(u):
@@ -16,7 +17,7 @@ def plot_rdf_series(u):
     n_steps = 10
     times = np.arange(0, total_time + 1, total_time // n_steps)
 
-    rdf_analysis = rdf.InterRDF(u.atoms, u.atoms, range=(0.5, 10), nbins=200, verbose=False, norm='density')
+    rdf_analysis = rdf.InterRDF(u.atoms, u.atoms, range=(0.5, 10), nbins=200, verbose=False, norm='rdf')
     n_frames = u.trajectory.n_frames
     rdf_step = n_frames // n_steps
 
@@ -53,7 +54,7 @@ def plot_intermolecular_rdf_series(u, atom_type1=None, atom_type2=None, n_frames
         if atom_type2 is not None:
             inter_mols = inter_mols.select_atoms("name " + atom_type2)
 
-        rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False, norm='density')
+        rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False, norm='rdf')
         n_frames = u.trajectory.n_frames
         rdf_step = n_frames // n_steps
 
@@ -64,7 +65,7 @@ def plot_intermolecular_rdf_series(u, atom_type1=None, atom_type2=None, n_frames
         rdfs = np.asarray(rdfs)
         rdfs_list.append(rdfs)
     rdfs_list = np.asarray(rdfs_list)  # [molecules, time_steps, rdf_bins]
-    combined_rdfs = rdfs_list.sum(0)  # average over molecules
+    combined_rdfs = rdfs_list.mean(0)  # average over molecules
 
     colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', len(combined_rdfs), colortype='rgb')
     fig = go.Figure()
@@ -216,6 +217,40 @@ def plot_atomwise_rdf_drift(u, atomwise_rdfs, bins):
     return fig, times, rdf_drift
 
 
+def plot_atomwise_rdf_ref_dist(u, atomwise_rdfs, ref_atomwise_rdfs, bins):
+    num_traj_points = len(atomwise_rdfs[0])
+    trajectory_atomwise_rdfs = [
+        np.asarray([
+            rdf[i] for rdf in atomwise_rdfs
+        ]) for i in range(num_traj_points)
+    ]
+
+    num_ref_points = len(ref_atomwise_rdfs[0]) - 1 # give the reference time to equilibrade
+    reference_atomwise_rdfs = [
+        np.asarray([
+            rdf[i] for rdf in ref_atomwise_rdfs
+        ]) for i in range(1, num_ref_points)
+    ]
+
+    rdf_drift = np.zeros((num_traj_points, num_ref_points))
+    for i in range(num_traj_points):
+        for j in range(num_ref_points - 1):
+            rdf_drift[i, j] = compute_rdf_distance(reference_atomwise_rdfs[j], trajectory_atomwise_rdfs[i], bins)
+
+    mean_rdf_drift = rdf_drift.mean(1)  # average over reference trajectory
+
+    ps_step = 100
+    total_time = u.trajectory.totaltime
+    times = np.arange(0, total_time + 1, ps_step)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scattergl(x=times, y=mean_rdf_drift))
+    fig.update_yaxes(range=[-0.05, max(1.05, max(mean_rdf_drift))])
+    fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Intermolecular Atomwise RDF Drift')
+
+    return fig, times, mean_rdf_drift
+
+
 def plot_alignment_fingerprint(u):
     ps_step = 100
     total_time = u.trajectory.totaltime
@@ -252,3 +287,53 @@ def plot_alignment_fingerprint(u):
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Normed Molecule Principal Axes Overlap Drift')
 
     return fig, Ip_overlaps_drift, times
+
+
+def plot_thermodynamic_data(thermo_results_dict):
+    fig = make_subplots(rows=2, cols=3)
+    ind = 0
+    for i, key in enumerate(thermo_results_dict.keys()):
+        if key != 'time step':
+            ind += 1
+            row = ind // 3 + 1
+            col = ind % 3 + 1
+            fig.add_trace(
+                go.Scattergl(x=thermo_results_dict['time step'],
+                             y=thermo_results_dict[key], name=key),
+                row=row, col=col
+            )
+    return fig
+
+
+def trajectory_rdf_analysis(u):
+    ""
+    '''full rdf'''
+    atom_types = u.atoms.types
+    atom_names = np.asarray([ff_names_dict[atype] for atype in atom_types])
+    u.add_TopologyAttr('name', atom_names)
+    fig, bins, full_rdf = plot_rdf_series(u)
+    # if config.show_figs:
+    #     fig.show(renderer="browser")
+    # wandb.log({'RDF Series': fig})
+    # fig.write_image('RDF_series.png')
+
+    '''intermolecular df'''
+    fig, bins, intermolecular_rdf = plot_intermolecular_rdf_series(u)
+    # if config.show_figs:
+    #     fig.show(renderer="browser")
+    # wandb.log({'Intermolecular RDF Series': fig})
+    # fig.write_image('intermolecular_RDF_series.png')
+
+    '''atom-type-wise intermolecular rdf'''
+    atomwise_rdfs = []
+    for atom_type in ff_names_dict.values():
+        if 'h' not in atom_type:
+            fig, bins, atom_type_rdf = plot_intermolecular_rdf_series(u, atom_type, atom_type, n_frames_avg=1)
+            atomwise_rdfs.append(atom_type_rdf)
+
+    #         if config.show_figs:
+    #             fig.show(renderer="browser")
+    #         wandb.log({atom_type + ' Intermolecular RDF Series': fig})
+    #         fig.write_image(atom_type + ' intermolecular_RDF_series.png')
+    #
+    return full_rdf, intermolecular_rdf, atomwise_rdfs, bins
