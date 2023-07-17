@@ -24,7 +24,7 @@ if not os.path.exists('common'):
 cluster_sizes = [[4,4,4]]
 temperatures = [200, 300, 400]
 crystal_structures = ["NICOAM13", "NICOAM17"]
-gap_rates = {0, 0.05, 0.1, 0.15, 0.2,0.25, 0.3}
+gap_rates = [0, 0.05, 0.1, 0.15, 0.2,0.25, 0.3]
 
 n_runs = len(cluster_sizes) * len(temperatures) * len(crystal_structures) * len(gap_rates)
 run_nums = list(np.arange(1, n_runs + 1))
