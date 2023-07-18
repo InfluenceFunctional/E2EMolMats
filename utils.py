@@ -238,3 +238,18 @@ def compute_Ip_handedness(Ip):
         return np.sign(np.dot(Ip[0], np.cross(Ip[1], Ip[2])).sum())
     elif Ip.ndim == 3:
         return np.sign(np.dot(Ip[:, 0], np.cross(Ip[:, 1], Ip[:, 2], axis=1).T).sum(1))
+
+
+def cell_vol(v, a, units='natural'):
+    ''' Calculate cos and sin of cell angles '''
+    if units == 'degrees':
+        a = a * np.pi / 180
+    else:
+        pass
+    cos_a = np.cos(a)
+
+    ''' Calculate volume of the unit cell '''
+    val = 1.0 - cos_a[0] ** 2 - cos_a[1] ** 2 - cos_a[2] ** 2 + 2.0 * cos_a[0] * cos_a[1] * cos_a[2]
+    vol = v[0] * v[1] * v[2] * np.sqrt(np.abs(val))  # technically a signed quanitity
+
+    return vol

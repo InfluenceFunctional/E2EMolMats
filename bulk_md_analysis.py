@@ -7,15 +7,16 @@ from cluster_figs import \
      process_thermo_data, plot_atomwise_rdf_drift, plot_alignment_fingerprint,
      plot_thermodynamic_data, trajectory_rdf_analysis,
      plot_atomwise_rdf_ref_dist)
-from utils import (dict2namespace, names_dict, ff_names_dict)
+from utils import (dict2namespace, names_dict, ff_names_dict, cell_vol)
 import numpy as np
 from plotly.subplots import make_subplots
+from scipy.spatial.distance import cdist, pdist
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
 
 params = {
-    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference2/',
+    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference3/',
     'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\battery_10/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
@@ -101,8 +102,14 @@ for run_dir in dirs:  # loop over run directories in the battery
         ref_path = params['reference_path'] + str(ref_index + 1)
         ref_u = mda.Universe(ref_path + "/system.data", ref_path + "/traj.dcd", format="LAMMPS")
 
-        density = len(u.atoms) / (np.ptp(u.atoms.positions[:, 0]) * np.ptp(u.atoms.positions[:, 1]) * np.ptp(u.atoms.positions[:, 2]))
-        ref_density = len(ref_u.atoms) / (np.ptp(ref_u.atoms.positions[:, 0]) * np.ptp(ref_u.atoms.positions[:, 1]) * np.ptp(ref_u.atoms.positions[:, 2]))
+        # subsample a small portion about center of cluster
+        coords = u.atoms.positions
+        coords -= coords.mean(0)
+        dists = cdist(np.asarray((0, 0, 0))[None, :], coords)
+        subbox_size = u.dimensions[:3].min() / 4
+        density = np.sum(dists < subbox_size) / ((4/3) * np.pi * subbox_size**3)
+
+        ref_density = len(ref_u.atoms) / cell_vol(ref_u.dimensions[:3],ref_u.dimensions[3:], units='degrees')
 
         print(run_dir)
 
