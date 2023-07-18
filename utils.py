@@ -148,7 +148,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
     os.system("sbatch sub_job.slurm")
 
 
-def compute_rdf_distance(rdf1, rdf2, rr):
+def compute_rdf_distance(rdf1, rdf2, rr, envelope=None):
     """
     compute a distance metric between two radial distribution functions with shapes
     [num_sub_rdfs, num_bins] where sub_rdfs are e.g., particular interatomic RDFS within a certain sample (elementwise or atomwise modes)
@@ -159,11 +159,21 @@ def compute_rdf_distance(rdf1, rdf2, rr):
     range rr can be independently either np.array or torch.tensor
     will return same format as given
     """
-    emd = earth_movers_distance_np(rdf1, rdf2)
+    if envelope is None:
+        tempering_func = np.ones(rdf1.shape)
+    elif envelope == 'tanh':
+        x = np.linspace(-10, 2, rdf1.shape[-1])
+        tempering_func = (np.tanh(-x) / 2) + 0.5
+        tempering_func = tempering_func[None, :]
+
+    smoothed_rdf1 = rdf1 * tempering_func
+    smoothed_rdf2 = rdf2 * tempering_func
+
+    emd = earth_movers_distance_np(smoothed_rdf1, smoothed_rdf2)
 
     range_normed_emd = emd * (rr[1] - rr[0])  # rescale the distance from units of bins to the real physical range
 
-    distance = range_normed_emd.mean()
+    distance = range_normed_emd.mean()  # rescale by respective densities?
 
     assert np.sum(np.isnan(distance)) == 0
 

@@ -1,6 +1,6 @@
 import os
 
-def templify_to_runnable(workdir, original, ori_data_file, New, ortho=0):
+def templify_to_runnable(workdir, original, ori_data_file, New):
     os.chdir(workdir)
 
     # original = r"4.lt"  # '#input()
@@ -34,9 +34,10 @@ def templify_to_runnable(workdir, original, ori_data_file, New, ortho=0):
     data_file_line = data_file.readline()
     system.write("   " + data_file_line)
 
-    if(ortho =="1"):
-        data_file_line = data_file.readline()
+    data_file_line = data_file.readline()
+    if 'xy xz yz' in data_file_line: # if there is a non-orthogonal component, write it
         system.write("   " + data_file_line)
+
     system.write("}\n\n")
     system.write("# Create 1 \"nicotinamide\" molecules\n# rotated and moved to give polymorph Inic1 = new Nicotinamide\n")
     system.write("nic1 = new Nicotinamide")

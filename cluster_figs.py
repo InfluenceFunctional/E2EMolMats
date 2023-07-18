@@ -17,7 +17,7 @@ def plot_rdf_series(u):
     n_steps = 10
     times = np.arange(0, total_time + 1, total_time // n_steps)
 
-    rdf_analysis = rdf.InterRDF(u.atoms, u.atoms, range=(0.5, 10), nbins=200, verbose=False, norm='rdf')
+    rdf_analysis = rdf.InterRDF(u.atoms, u.atoms, range=(0.5, 10), nbins=200, verbose=False, norm='density')
     n_frames = u.trajectory.n_frames
     rdf_step = n_frames // n_steps
 
@@ -54,7 +54,7 @@ def plot_intermolecular_rdf_series(u, atom_type1=None, atom_type2=None, n_frames
         if atom_type2 is not None:
             inter_mols = inter_mols.select_atoms("name " + atom_type2)
 
-        rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False, norm='rdf')
+        rdf_analysis = rdf.InterRDF(mol, inter_mols, range=(0.5, 10), nbins=200, verbose=False, norm='density')
         n_frames = u.trajectory.n_frames
         rdf_step = n_frames // n_steps
 

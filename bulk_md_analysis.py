@@ -16,20 +16,13 @@ import pandas as pd
 
 params = {
     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference2/',
-    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\battery_9/',
+    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\battery_10/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
     'make_run_wise_figs': True,
 }
 config = dict2namespace(params)
-
-wandb.init(config=params, project="nicotinamide_clusters",
-           entity="mkilgour", tags=["bulk_reference_test"],
-           settings=wandb.Settings(code_dir="."))
-
-wandb.run.name = config.battery_path
-wandb.run.save()
 
 os.chdir(config.battery_path)
 
@@ -57,31 +50,38 @@ for j in range(len(temperatures)):
         ref_temp_list.append(temperatures[j])
         ref_crystal_list.append(crystal_structures[k])
 
-'''run indexes'''
-cluster_sizes = [[2, 2, 2],
-                 [3, 3, 3],
-                 [4, 4, 4],
-                 [2, 2, 4],
-                 [2, 4, 2],
-                 [4, 2, 2]]
-temperatures = [150, 300, 450]
+'''run indices'''
+cluster_sizes = [[4, 4, 4]]
+temperatures = [200, 300, 400]
 crystal_structures = ["NICOAM13", "NICOAM17"]
+gap_rates = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
 
-n_runs = len(cluster_sizes) * len(temperatures) * len(crystal_structures)
+n_runs = len(cluster_sizes) * len(temperatures) * len(crystal_structures) * len(gap_rates)
 run_nums = list(np.arange(1, n_runs + 1))
 
 ind = 0
 size_list = []
 temp_list = []
 crystal_list = []
+gap_list = []
 for i in range(len(cluster_sizes)):
     for j in range(len(temperatures)):
         for k in range(len(crystal_structures)):
-            size_list.append(cluster_sizes[i])
-            temp_list.append(temperatures[j])
-            crystal_list.append(crystal_structures[k])
+            for l in range(len(gap_rates)):
+                size_list.append(cluster_sizes[i])
+                temp_list.append(temperatures[j])
+                crystal_list.append(crystal_structures[k])
+                gap_list.append(gap_rates[l])
 
 dirs = os.listdir()
+
+wandb.init(config=params, project="nicotinamide_clusters",
+           entity="mkilgour", tags=["bulk_reference_test"],
+           settings=wandb.Settings(code_dir="."))
+
+wandb.run.name = config.battery_path
+wandb.run.save()
+
 for run_dir in dirs:  # loop over run directories in the battery
     os.chdir(config.battery_path)
 
@@ -93,13 +93,16 @@ for run_dir in dirs:  # loop over run directories in the battery
         # do the analysis
         u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
         # find the reference system for comparison
-        current_structure = crystal_list[int(run_dir)-1]
-        current_temperature = temp_list[int(run_dir)-1]
+        current_structure = crystal_list[int(run_dir) - 1]
+        current_temperature = temp_list[int(run_dir) - 1]
 
         # index for relevant reference system
         ref_index = np.argwhere((np.asarray(ref_temp_list) == current_temperature) * (np.asarray(ref_crystal_list) == current_structure))[0][0]
         ref_path = params['reference_path'] + str(ref_index + 1)
         ref_u = mda.Universe(ref_path + "/system.data", ref_path + "/traj.dcd", format="LAMMPS")
+
+        density = len(u.atoms) / (np.ptp(u.atoms.positions[:, 0]) * np.ptp(u.atoms.positions[:, 1]) * np.ptp(u.atoms.positions[:, 2]))
+        ref_density = len(ref_u.atoms) / (np.ptp(ref_u.atoms.positions[:, 0]) * np.ptp(ref_u.atoms.positions[:, 1]) * np.ptp(ref_u.atoms.positions[:, 2]))
 
         print(run_dir)
 
@@ -151,31 +154,6 @@ for run_dir in dirs:  # loop over run directories in the battery
             results_df.to_pickle('../results_df')
 
 aa = 0
-
-
-n_runs = 36
-cluster_sizes = [[2, 2, 2],
-                 [3, 3, 3],
-                 [4, 4, 4],
-                 [2, 2, 4],
-                 [2, 4, 2],
-                 [4, 2, 2]]
-temperatures = [150, 300, 450]
-crystal_structures = ["NICOAM13", "NICOAM17"]
-
-n_runs = len(cluster_sizes) * len(temperatures) * len(crystal_structures)
-run_nums = list(np.arange(1, n_runs + 1))
-
-ind = 0
-size_list = []
-temp_list = []
-crystal_list = []
-for i in range(len(cluster_sizes)):
-    for j in range(len(temperatures)):
-        for k in range(len(crystal_structures)):
-            size_list.append(cluster_sizes[i])
-            temp_list.append(temperatures[j])
-            crystal_list.append(crystal_structures[k])
 
 results_df['run size'] = [size_list[int(val) - 1] for val in results_df['run_num'].values]
 results_df['run crystal'] = [crystal_list[int(val) - 1] for val in results_df['run_num'].values]
