@@ -9,7 +9,7 @@ import sys
 
 import numpy as np
 from ase import Atoms
-from ase.visualize import view
+#from ase.visualize import view
 from ase import io
 from scipy.spatial.distance import cdist, pdist
 from scipy.spatial.transform import Rotation
