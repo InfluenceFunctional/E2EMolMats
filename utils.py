@@ -1,12 +1,7 @@
 from argparse import Namespace
-from generate_cluster_structures import generate_structure
-from ovito.io import import_file, export_file
-from template_scripts.initial_setup_for_ovito import initial_setup
-from template_scripts.original_templify_to_runnable import templify_to_runnable
-import ovito
-from distutils.dir_util import copy_tree
 import os
 import numpy as np
+import MDAnalysis as mda
 
 names_dict = {'1': 'H',  # rename for xyz export
               '8': 'H',
@@ -54,100 +49,6 @@ def dict2namespace(data_dict: dict):
     return data_namespace
 
 
-def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
-                              cluster_type="supercell", structure_identifier="NICOAM13",
-                              max_sphere_radius=None,
-                              defect_rate=0, scramble_rate=0, gap_rate=0,
-                              seed=1, min_inter_cluster_distance=200,
-                              temperature=300, run_time=int(1e6),
-                              print_steps=100, box_type='s',
-                              integrator='langevin', damping: str = str(100.0)):
-    """
-    :param head_dir:
-    :param run_num:
-    :param crystals_path:
-    :param cluster_size:
-    :param cluster_type:
-    :param structure_identifier:
-    :param max_sphere_radius:
-    :param defect_rate:
-    :param scramble_rate:
-    :param gap_rate:
-    :param seed:
-    :param min_inter_cluster_distance:
-    :param temperature:
-    :param run_time:
-    :param print_steps:
-    :param box_type:
-    :param integrator:
-    :param damping:
-    :return:
-    """
-
-    '''make new workdir'''
-    workdir = head_dir + '/' + str(run_num)
-    if workdir is not None:
-        if not os.path.exists(workdir):
-            os.mkdir(workdir)
-        os.chdir(workdir)
-        '''copy in common elements'''
-        copy_tree('../common', './')
-    else:
-        os.chdir(workdir)
-
-    '''set temperature, run time, and print step in lmp file'''
-    with open("run_MD.lmp") as f:
-        newText = f.read().replace('_TEMP', str(temperature))
-        newText = newText.replace('_RUNTIME', str(run_time))
-        newText = newText.replace('_PRINTSTEPS', str(print_steps))
-        newText = newText.replace('_SEED', str(seed))
-        newText = newText.replace('_BOUND', str(box_type))
-        newText = newText.replace('_DAMP', damping)
-        if integrator == 'langevin':
-            newText = newText.replace('#_LANGEVIN', '')
-        elif integrator == 'nosehoover':
-            newText = newText.replace('#_NOSE', '')
-        elif integrator == 'npt':
-            newText = newText.replace('#_NPT', '')
-
-    with open("run_MD.lmp", "w") as f:
-        f.write(newText)
-
-    '''generate cluster structure'''
-    xyz_filename = generate_structure(
-        workdir, crystals_path, structure_identifier,
-        cluster_type, max_sphere_radius,
-        cluster_size, defect_rate, scramble_rate,
-        gap_rate, seed, min_inter_cluster_distance,
-        periodic_structure=box_type == 'p')
-
-    '''convert from .xyz to lammps datafile'''
-    pipeline = import_file(xyz_filename)
-    export_file(pipeline, '1.data', 'lammps/data', atom_style='full')
-
-    '''prep for ovito bonds'''
-    initial_setup(workdir, '1.data', '2.data')
-
-    '''add bonds via ovito'''
-    ovito.scene.load("nicotinamide_bond_session.ovito")
-    pipeline = ovito.scene.pipelines[0]
-    pipeline.source.load('2.data')
-    export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
-
-    '''ltemplify'''
-    os.system('ltemplify.py 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
-
-    '''make runnable'''
-    templify_to_runnable(workdir, "4.lt", "3.data", "5.lt")
-
-    '''run moltemplate and cleanup'''
-    os.system("moltemplate.sh system.lt")
-    os.system("cleanup_moltemplate.sh")
-    #
-    # '''optionally - directly run MD'''
-    os.system("sbatch sub_job.slurm")
-
-
 def compute_rdf_distance(rdf1, rdf2, rr, envelope=None):
     """
     compute a distance metric between two radial distribution functions with shapes
@@ -171,7 +72,7 @@ def compute_rdf_distance(rdf1, rdf2, rr, envelope=None):
 
     emd = earth_movers_distance_np(smoothed_rdf1, smoothed_rdf2)
 
-    range_normed_emd = emd * (rr[1] - rr[0])  # rescale the distance from units of bins to the real physical range
+    range_normed_emd = emd * (rr[1] - rr[0]) ** 2  # rescale the distance from units of bins to the real physical range
 
     distance = range_normed_emd.mean()  # rescale by respective densities?
 
@@ -253,3 +154,32 @@ def cell_vol(v, a, units='natural'):
     vol = v[0] * v[1] * v[2] * np.sqrt(np.abs(val))  # technically a signed quanitity
 
     return vol
+
+
+def rewrite_trajectory(u: mda.Universe, run_dir: str):
+    if not os.path.exists(f"{run_dir}_traj.xyz"):
+        atom_types = u.atoms.types
+        atom_names = np.asarray([names_dict[atype] for atype in atom_types])
+        u.add_TopologyAttr('name', atom_names)
+        cluster = u.select_atoms("all")
+        with mda.Writer(f"{run_dir}_traj.xyz", cluster.n_atoms) as W:
+            for ts in u.trajectory:
+                W.write(cluster)
+
+
+def tile_universe(universe, tiling):
+    n_x, n_y, n_z = tiling
+    box = universe.dimensions[:3]
+    copied = []
+    for x in range(n_x):
+        for y in range(n_y):
+            for z in range(n_z):
+                u_ = universe.copy()
+                move_by = box * (x, y, z)
+                u_.atoms.translate(move_by)
+                copied.append(u_.atoms)
+
+    new_universe = mda.Merge(*copied)
+    new_box = box * (n_x, n_y, n_z)
+    new_universe.dimensions = list(new_box) + [90] * 3
+    return new_universe

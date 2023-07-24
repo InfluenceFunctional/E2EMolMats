@@ -1,22 +1,25 @@
 import MDAnalysis as mda
 import os
 import wandb
-from cluster_figs import \
+from reporting.cluster_figs import \
     (plot_rdf_series, plot_intermolecular_rdf_series,
      plot_cluster_stability, plot_cluster_centroids_drift,
      process_thermo_data, plot_atomwise_rdf_drift, plot_alignment_fingerprint,
      plot_thermodynamic_data, trajectory_rdf_analysis,
      plot_atomwise_rdf_ref_dist)
-from utils import (dict2namespace, names_dict, ff_names_dict, cell_vol)
+from utils import (dict2namespace, names_dict, ff_names_dict, cell_vol, rewrite_trajectory, tile_universe)
 import numpy as np
 from plotly.subplots import make_subplots
 from scipy.spatial.distance import cdist, pdist
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd
+import plotly.io as pio
+
+pio.renderers.default = 'browser'
 
 params = {
-    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference3/',
+    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference4/',
     'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\battery_10/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
@@ -76,12 +79,12 @@ for i in range(len(cluster_sizes)):
 
 dirs = os.listdir()
 
-wandb.init(config=params, project="nicotinamide_clusters",
-           entity="mkilgour", tags=["bulk_reference_test"],
-           settings=wandb.Settings(code_dir="."))
-
-wandb.run.name = config.battery_path
-wandb.run.save()
+# wandb.init(config=params, project="nicotinamide_clusters",
+#            entity="mkilgour", tags=["bulk_reference_test"],
+#            settings=wandb.Settings(code_dir="."))
+#
+# wandb.run.name = config.battery_path
+# wandb.run.save()
 
 for run_dir in dirs:  # loop over run directories in the battery
     os.chdir(config.battery_path)
@@ -89,60 +92,74 @@ for run_dir in dirs:  # loop over run directories in the battery
     if (run_dir != 'common') and \
             (run_dir not in results_df["run_num"].values) and \
             ('results_df' not in run_dir) and \
-            ('png' not in run_dir):
+            ('png' not in run_dir) and \
+            ('wandb' not in run_dir):
         os.chdir(run_dir)
-        # do the analysis
-        u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
-        # find the reference system for comparison
-        current_structure = crystal_list[int(run_dir) - 1]
-        current_temperature = temp_list[int(run_dir) - 1]
 
-        # index for relevant reference system
-        ref_index = np.argwhere((np.asarray(ref_temp_list) == current_temperature) * (np.asarray(ref_crystal_list) == current_structure))[0][0]
-        ref_path = params['reference_path'] + str(ref_index + 1)
-        ref_u = mda.Universe(ref_path + "/system.data", ref_path + "/traj.dcd", format="LAMMPS")
+        # check if the run crashed
+        files = os.listdir()
+        for file in files:
+            if 'slurm-' in file:
+                slurm_filename = file
+                break
+        reader = open(slurm_filename,'r')
+        text = reader.read()
+        reader.close()
 
-        # subsample a small portion about center of cluster
-        coords = u.atoms.positions
-        coords -= coords.mean(0)
-        dists = cdist(np.asarray((0, 0, 0))[None, :], coords)
-        subbox_size = u.dimensions[:3].min() / 4
-        density = np.sum(dists < subbox_size) / ((4/3) * np.pi * subbox_size**3)
+        if 'oom' in text: # run crashed
+            '''save results'''
+            new_row = {"run_num": run_dir,
+                       "temperature": [np.zeros(1)],
+                       "pressure": [np.zeros(1)],
+                       "E_pair": [np.zeros(1)],
+                       "E_mol": [np.zeros(1)],
+                       "E_tot": [np.zeros(1)],
+                       "atomwise_intermolecular_rdfs": [np.zeros(1)],
+                       "rdf_drift": [np.zeros(1)],
+                       "rdf_times": [np.zeros(1)],
+                       }
+        else:
+            # do the analysis
+            u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
 
-        ref_density = len(ref_u.atoms) / cell_vol(ref_u.dimensions[:3],ref_u.dimensions[3:], units='degrees')
+            # find the reference system for comparison
+            current_size = size_list[int(run_dir) - 1]
+            current_structure = crystal_list[int(run_dir) - 1]
+            current_temperature = temp_list[int(run_dir) - 1]
 
-        print(run_dir)
+            # index for relevant reference system
+            ref_index = np.argwhere((np.asarray(ref_temp_list) == current_temperature) * (np.asarray(ref_crystal_list) == current_structure))[0][0]
+            ref_path = params['reference_path'] + str(ref_index + 1)
+            ref_u = mda.Universe(ref_path + "/system.data", ref_path + "/traj.dcd", format="LAMMPS")
 
-        if config.write_trajectory:
-            if not os.path.exists(f"{run_dir}_traj.xyz"):
-                atom_types = u.atoms.types
-                atom_names = np.asarray([names_dict[atype] for atype in atom_types])
-                u.add_TopologyAttr('name', atom_names)
-                cluster = u.select_atoms("all")
-                with mda.Writer(f"{run_dir}_traj.xyz", cluster.n_atoms) as W:
-                    for ts in u.trajectory:
-                        W.write(cluster)
+            # get reference and sample density
+            coords = u.atoms.positions
+            coords -= coords.mean(0)
+            dists = cdist(np.asarray((0, 0, 0))[None, :], coords)
+            subbox_size = min(10, u.dimensions[:3].min() / 4)
 
-        if config.make_run_wise_figs:
+            density = np.sum(dists < subbox_size) / ((4 / 3) * np.pi * subbox_size ** 3)
+            ref_density = len(ref_u.atoms) / cell_vol(ref_u.dimensions[:3], ref_u.dimensions[3:], units='degrees')
+            density_difference = np.abs((ref_density - density)) / ref_density
+
+            print(run_dir)
+            if config.write_trajectory:
+                rewrite_trajectory(u, run_dir)
+
             '''thermodynamic data'''
             thermo_results_dict = process_thermo_data()
-            fig = plot_thermodynamic_data(thermo_results_dict)
-            if config.show_figs:
-                fig.show(renderer="browser")
-            wandb.log({'Thermo Data': fig})
-            fig.write_image('Thermo Data.png')
+            thermo_fig = plot_thermodynamic_data(thermo_results_dict)
+
+            '''reference rdf analysis'''
+            ref_atomwise_rdfs, bins, rdf_times = trajectory_rdf_analysis(
+                ref_u, nbins=200, rrange=[0, 20], core_cutoff=subbox_size, tiling=current_size)
 
             '''rdf analysis'''
-            full_rdf, intermolecular_rdf, atomwise_rdfs, bins = trajectory_rdf_analysis(u)
-            '''reference rdf analysis'''
-            ref_full_rdf, ref_intermolecular_rdf, ref_atomwise_rdfs, bins = trajectory_rdf_analysis(ref_u)
+            atomwise_rdfs, bins, rdf_times = trajectory_rdf_analysis(
+                u, nbins=200, rrange=[0, 20], core_cutoff=subbox_size)
 
             '''intermolecular atomwise rdf distances'''
-            fig, rdf_times, rdf_drift = plot_atomwise_rdf_ref_dist(u, atomwise_rdfs, ref_atomwise_rdfs, bins)
-            if config.show_figs:
-                fig.show(renderer="browser")
-            wandb.log({'Intermolecular Atomwise RDF Drift': fig})
-            fig.write_image('cluster_rdf_shift.png')
+            rdf_drift = plot_atomwise_rdf_ref_dist(u, atomwise_rdfs, ref_atomwise_rdfs, bins)
 
             '''save results'''
             new_row = {"run_num": run_dir,
@@ -151,39 +168,47 @@ for run_dir in dirs:  # loop over run directories in the battery
                        "E_pair": [thermo_results_dict["E_pair"]],
                        "E_mol": [thermo_results_dict["E_mol"]],
                        "E_tot": [thermo_results_dict["E_tot"]],
-                       "full_rdf": [full_rdf],
-                       "full_intermolecular_rdf": [intermolecular_rdf],
                        "atomwise_intermolecular_rdfs": [atomwise_rdfs],
                        "rdf_drift": [rdf_drift],
                        "rdf_times": [rdf_times],
                        }
-            results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
-            results_df.to_pickle('../results_df')
+        results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
+        results_df.to_pickle('../results_df')
+        #
+        # if config.show_figs:
+        #     thermo_fig.show(renderer="browser")
+        # wandb.log({'Thermo Data': thermo_fig})
+        # thermo_fig.write_image('Thermo Data.png')
 
 aa = 0
 
 results_df['run size'] = [size_list[int(val) - 1] for val in results_df['run_num'].values]
 results_df['run crystal'] = [crystal_list[int(val) - 1] for val in results_df['run_num'].values]
 results_df['run temperature'] = [temp_list[int(val) - 1] for val in results_df['run_num'].values]
+results_df['run vacancy rate'] = [gap_list[int(val) - 1] for val in results_df['run_num'].values]
 
 '''RDF shift'''
-shift_heatmap = np.zeros((len(crystal_structures), len(cluster_sizes), len(temperatures)))
+shift_heatmap = np.zeros((len(crystal_structures), len(gap_rates), len(temperatures)))
 for iT, temp in enumerate(temperatures):
-    for iS, cs in enumerate(cluster_sizes):
-        for iC, cr in enumerate(crystal_structures):
+    for iC, cr in enumerate(crystal_structures):
+        for iG, gr in enumerate(gap_rates):
             for ii, row in results_df.iterrows():
-                if row['run size'] == cs:
-                    if row['run crystal'] == cr:
-                        if row['run temperature'] == temp:
-                            shift_heatmap[iC, iS, iT] = (row['rdf_drift'].mean())
+                if row['run crystal'] == cr:
+                    if row['run temperature'] == temp:
+                        if row['run vacancy rate'] == gr:
+                            try:
+                                shift_heatmap[iC, iG, iT] = (row['rdf_drift'].mean())
+                            except:
+                                shift_heatmap[iC, iG, iT] = 0
+
 
 fig = make_subplots(rows=1, cols=2, subplot_titles=crystal_structures)
-fig.add_trace(go.Heatmap(z=np.log10(shift_heatmap[0])), row=1, col=1)
-fig.add_trace(go.Heatmap(z=np.log10(shift_heatmap[1])), row=1, col=2)
+fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
+fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
 fig.update_xaxes(title_text='Temperature', row=1, col=1)
-fig.update_yaxes(title_text='Cluster Size', row=1, col=1)
+fig.update_yaxes(title_text='Gap Rate', row=1, col=1)
 fig.update_xaxes(title_text='Temperature', row=1, col=2)
-fig.update_yaxes(title_text='Cluster Size', row=1, col=2)
+fig.update_yaxes(title_text='Gap Rate', row=1, col=2)
 fig.update_layout(xaxis=dict(
     tickmode='array',
     tickvals=[0, 1, 2],
@@ -192,7 +217,7 @@ fig.update_layout(xaxis=dict(
 fig.update_layout(yaxis=dict(
     tickmode='array',
     tickvals=[0, 1, 2, 3, 4, 5],
-    ticktext=cluster_sizes
+    ticktext=gap_rates
 ))
 fig.update_layout(xaxis2=dict(
     tickmode='array',
@@ -202,8 +227,8 @@ fig.update_layout(xaxis2=dict(
 fig.update_layout(yaxis2=dict(
     tickmode='array',
     tickvals=[0, 1, 2, 3, 4, 5],
-    ticktext=cluster_sizes
+    ticktext=gap_rates
 ))
-fig.update_layout(title="log10 RDF Shift")
+fig.update_layout(title="RDF Shift")
 fig.show(renderer="browser")
 fig.write_image("rdf_shift_heatmap.png")
