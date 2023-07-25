@@ -2,13 +2,16 @@
 generate an .xyz file and automatically prep LAMMPS inputs
 """
 
+import warnings
+warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
+
 import numpy as np
 import os
 from distutils.dir_util import copy_tree
 from run_script import create_xyz_and_run_lammps
 
 '''set head directory'''
-head_dir = r'/home/mk8347/scratch/molecule_clusters/bulk_reference4'
+head_dir = r'/home/mk8347/scratch/molecule_clusters/bulk_reference5'
 # head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/bulk_test'
 
 crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'  #
