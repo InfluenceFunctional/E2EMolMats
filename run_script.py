@@ -103,6 +103,6 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
     '''run moltemplate and cleanup'''
     os.system("moltemplate.sh system.lt")
     os.system("cleanup_moltemplate.sh")
-    #
+
     # '''optionally - directly run MD'''
     os.system("sbatch sub_job.slurm")

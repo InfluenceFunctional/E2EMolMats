@@ -53,7 +53,7 @@ for run_num, size, temp, crystal, gap in zip(run_nums, size_list, temp_list, cry
                               print_steps=1000,
                               run_time=int(1e7),
                               integrator='nosehoover',
-                              box_type='p',
+                              box_type='s',
                               seed=1,
                               damping=str(100.0),
                               structure_identifier=crystal,
