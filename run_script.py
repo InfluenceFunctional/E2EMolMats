@@ -15,7 +15,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               defect_rate=0, scramble_rate=0, gap_rate=0,
                               seed=1, min_inter_cluster_distance=500,
                               temperature=300, run_time=int(1e6),
-                              print_steps=100, box_type='s',
+                              print_steps=100, box_type='s', bulk_crystal=False,
                               integrator='langevin', damping: str = str(100.0)):
     """
     :param head_dir:
@@ -74,7 +74,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         cluster_type, max_sphere_radius,
         cluster_size, defect_rate, scramble_rate,
         gap_rate, seed, min_inter_cluster_distance,
-        periodic_structure=box_type == 'p')
+        periodic_structure=bulk_crystal)
 
     '''convert from .xyz to lammps datafile'''
     pipeline = import_file(xyz_filename)
