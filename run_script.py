@@ -7,7 +7,7 @@ from ovito.io import import_file, export_file
 from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup_for_ovito import initial_setup
 from template_scripts.original_templify_to_runnable import templify_to_runnable
-
+import subprocess
 
 def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               cluster_type="supercell", structure_identifier="NICOAM13",
@@ -90,7 +90,12 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
     export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
     '''ltemplify'''
-    os.system('ltemplify.py 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
+    if r'Users\mikem' in workdir:  # if we are Mike's local windows machine (which
+        ltemplify_path = r"C:\Users\mikem\miniconda3\envs\LAMMPS_runs\lib\site-packages\moltemplate\ltemplify.py"
+    else:  # works on linux
+        ltemplify_path = subprocess.getoutput("which ltemplify.py")
+
+    os.system(f'python {ltemplify_path} 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
 
     '''make runnable'''
     templify_to_runnable(workdir, "4.lt", "3.data", "5.lt")
