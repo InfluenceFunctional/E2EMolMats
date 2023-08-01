@@ -84,7 +84,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
     initial_setup(workdir, '1.data', '2.data')
 
     '''add bonds via ovito'''
-    ovito.scene.load("nicotinamide_bond_session.ovito")
+    ovito.scene.load("nicotinamide_bond_session_nico_ben_iso.ovito")
     pipeline = ovito.scene.pipelines[0]
     pipeline.source.load('2.data')
     export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
