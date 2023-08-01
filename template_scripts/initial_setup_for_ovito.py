@@ -30,12 +30,13 @@ def initial_setup(workdir, original, New):
             hit_atoms = True
 
         if counter == 4:
-            New_data.write("10 atom types\n")
+            New_data.write("8 atom types\n")
         elif not hit_masses:
             New_data.write(i)
         elif hit_masses and not hit_atoms and not printed_masses:
             # elif counter == 11:
-            New_data.write("Masses\n\n1 1.008  # ha\n2 1.008  # h4\n3 1.008  # hn\n4 14.01  # n\n5 14.01  # nb\n6 12.01  # c\n7 12.01  # ca\n8 12.01  # ca1\n9 12.01  # ca2\n10 16.0  # o\n")
+            #New_data.write("Masses\n\n1 1.008  # ha\n2 1.008  # h4\n3 1.008  # hn\n4 14.01  # n\n5 14.01  # nb\n6 12.01  # c\n7 12.01  # ca\n8 12.01  # ca1\n9 12.01  # ca2\n10 16.0  # o\n")
+            New_data.write("Masses\n\n1 1.008  # ha\n2 1.008  # h4\n3 1.008  # hn\n4 14.01  # n\n5 14.01  # nb\n6 12.01  # c\n7 12.01  # ca\n8 16.00  # o\n")
             New_data.write("\n")
             # New_data.write(i)
             printed_masses = True

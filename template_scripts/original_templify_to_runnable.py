@@ -56,7 +56,7 @@ def templify_to_runnable(workdir, original, ori_data_file, New):
             New_data.write("import \"gaff2_nicotinamid_nolong.lt\"\nNicotinamide inherits GAFF2 {\n")
         elif(counter<10):
             New_data.write(i)
-        elif(counter < 19):
+        elif(counter < 20):
             line = i.split()
             if line[0] == "@atom:ca1" or line[0] == "@atom:ca2":
                 continue
