@@ -49,6 +49,27 @@ def dict2namespace(data_dict: dict):
     return data_namespace
 
 
+def rotvec2sph(rotvec):
+    """
+    transform rotation vector with axis rotvec/norm(rotvec) and angle ||rotvec||
+    to spherical coordinates theta, phi and r ||rotvec||
+    """
+    r = np.linalg.norm(rotvec, axis=-1)
+    if rotvec.ndim == 1:
+        rotvec = rotvec[None, :]
+        r = np.asarray(r)[None]
+
+    unit_vector = rotvec / r[:, None]
+
+    # convert unit vector to angles
+    theta = np.arctan2(np.sqrt(unit_vector[:, 0] ** 2 + unit_vector[:, 1] ** 2), unit_vector[:, 2])
+    phi = np.arctan2(unit_vector[:, 1], unit_vector[:, 0])
+    if rotvec.ndim == 1:
+        return np.concatenate((theta, phi, r), axis=-1)  # polar, azimuthal, applied rotation
+    else:
+        return np.concatenate((theta[:, None], phi[:, None], r[:, None]), axis=-1)  # polar, azimuthal, applied rotation
+
+
 def compute_rdf_distance(rdf1, rdf2, rr, envelope=None):
     """
     compute a distance metric between two radial distribution functions with shapes

@@ -1,7 +1,7 @@
 import MDAnalysis as mda
 import os
 import wandb
-from cluster_figs import \
+from reporting.cluster_figs import \
     (plot_rdf_series, plot_intermolecular_rdf_series,
      plot_cluster_stability, plot_cluster_centroids_drift,
      process_thermo_data, plot_atomwise_rdf_drift, plot_alignment_fingerprint)

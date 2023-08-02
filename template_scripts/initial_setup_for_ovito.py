@@ -20,10 +20,17 @@ def initial_setup(workdir, original, New):
     n_benzamide_atoms = 16
     n_nicotinamide_atoms = 15
     new_mol = True
-
+    oxy = -1;
+    nit = -1;
+    car = -1;
     for ind, i in enumerate(lines):
         counter = counter + 1
-
+        if "# C" in i:
+            car = i[0];
+        if "# O" in i:
+            oxy = i[0];
+        if "# N" in i:
+            nit = i[0];
         if 'Masses' in i:
             hit_masses = True
         if 'Atoms' in i:
@@ -53,24 +60,24 @@ def initial_setup(workdir, original, New):
                 mol_lines_4th = lines_rstrip[counter + 2].split()  # checking the 4th atom
                 mol_checker = mol_lines_3rd[1]
                 mol_counter += 1
-
-                if mol_lines_3rd[2] == "2":  # ring nitrogen in Benzamide
+                if mol_lines_3rd[2] == nit:  # ring nitrogen in Benzamide
                     mol_flag = 0
                     mol_atom_num = n_nicotinamide_atoms
-                elif mol_lines_3rd[2] == "1" and mol_lines_4th[2] == "1":  # ring carbons
+                elif mol_lines_3rd[2] == car and mol_lines_4th[2] == car:  # ring carbons
                     mol_flag = 1
                     mol_atom_num = n_benzamide_atoms
-                elif mol_lines_3rd[2] == "1" and mol_lines_4th[2] == "2":  # shifted ring nitrogen
+                elif mol_lines_3rd[2] == car and mol_lines_4th[2] == nit:  # shifted ring nitrogen
                     mol_flag = 2
                     mol_atom_num = n_nicotinamide_atoms
                 else:
+                    print(" mol_lines_3rd[2] = " + mol_lines_3rd[2])
                     print("Something in the atom info is wrong. It is not nicotinamide, benzamide, or isonicotinamide")
                     aa = 1
                     exit()
 
                 atm_counter = 1
                 new_mol = False
-
+            line[1] = mol_counter;
             if atm_counter == mol_atom_num:  # reset and check for new molecule type
                 new_mol = True
 

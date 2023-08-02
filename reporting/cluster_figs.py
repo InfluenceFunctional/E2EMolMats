@@ -163,6 +163,7 @@ def process_thermo_data():
     lines = text.split('\n')
     f.close()
 
+
     skip = True
     results_dict = {'time step': [],
                     'temp': [],
@@ -170,6 +171,12 @@ def process_thermo_data():
                     'E_mol': [],
                     'E_tot': [],
                     'Press': []}
+
+    if "Total wall time" not in text:  # skip analysis if the run crashed
+        for key in results_dict.keys():
+            results_dict[key] = np.zeros(1)
+        return results_dict
+
     for ind, line in enumerate(lines):
         if skip:
             if "Step" in line:
@@ -228,6 +235,40 @@ def plot_atomwise_rdf_ref_dist(u, atomwise_rdfs, ref_atomwise_rdfs, bins):
 
     return mean_rdf_drift
 
+
+def cluster_molecule_alignment(u):
+    """
+    record the principal inertial vectors for molecules in the cluster
+    """
+    n_frames = u.trajectory.n_frames
+    time_step = u.trajectory.dt
+    print_steps = 10
+
+    print_frames = np.arange(n_frames // print_steps, n_frames + 1, step=n_frames // print_steps)
+
+    Ip_trajectory = []
+    Ip_overlaps_trajectory = []
+    for ts in u.trajectory:
+        if ts.frame in print_frames:
+            molecules = u.residues
+            coords = np.asarray([molecules[i].atoms.positions for i in range(len(molecules))])
+            Ip_list = []
+            for j in range(len(molecules)):
+                Ip, _, _ = compute_principal_axes_np(coords[j])
+                Ip_list.append(Ip)
+
+            Ip_list = np.stack(Ip_list)
+            Ip_trajectory.append(Ip_list)
+
+            # source mol, target mol, source Ip, target Ip
+            Ip_overlaps = np.zeros((len(molecules), len(molecules), 3, 3))
+            for j in range(len(molecules)):
+                for k in range(3):
+                    Ip_overlaps[j, :, k, :] = Ip_list[j, k].dot(np.transpose(Ip_list, axes=[0, 2, 1]))
+
+            Ip_overlaps_trajectory.append(Ip_overlaps)
+
+    return Ip_trajectory, Ip_overlaps_trajectory
 
 def plot_alignment_fingerprint(u):
     ps_step = 100
