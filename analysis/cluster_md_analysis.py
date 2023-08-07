@@ -1,6 +1,8 @@
 import MDAnalysis as mda
 import os
 import wandb
+
+from analysis.residue_test import residue_cleanup
 from reporting.cluster_figs import \
     (plot_rdf_series, plot_intermolecular_rdf_series,
      plot_cluster_stability, plot_cluster_centroids_drift,
@@ -79,7 +81,7 @@ for i in range(len(cluster_sizes)):
                 defect_list.append(defect_rates[l])
 
 params_dict = {
-    'defect_ratee': defect_list,
+    'defect_rate': defect_list,
     'size': size_list,
     'temperature': temp_list,
     'crystal': crystal_list,
@@ -130,38 +132,14 @@ for run_dir in dirs:  # loop over run directories in the battery
                        }
         else:
             # do the analysis
-            u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
 
-            # # sort out residues
-            # mol_type_ind = np.zeros(len(u.atoms),dtype=np.int64)
-            # atom_counter = 0
-            # mol_counter = 0
-            #
-            # for ind in range(1, len(u.atoms)):
-            #     atom_counter += 1
-            #     if (u.atoms[ind].type == '5' and u.atoms[ind-1].type == '1'):  # beginning of new molecule - assign indices to previous
-            #         if atom_counter == 16:  # benzamide
-            #             mol_type_ind[ind-16:ind] = mol_counter
-            #         elif atom_counter == 15:  # nicotinamide
-            #             mol_type_ind[ind-15:ind] = mol_counter
-            #
-            #         mol_counter += 1
-            #         atom_counter = 0
-            #
-            # # must also add final molecule
-            # last_index = np.max(np.argwhere(mol_type_ind == mol_counter - 1)[:, 0])
-            # last_mol_len = len(u.atoms) - last_index - 1
-            # if last_mol_len == 16:  # benzamide
-            #     mol_type_ind[-16:] = mol_counter
-            # elif last_mol_len == 15:  # nicotinamide
-            #     mol_type_ind[-15:] = mol_counter
-            #
-            # mol_groups = []  # collect residues
-            # for ind in range(max(mol_type_ind) + 1):
-            #     mol_groups.append(mda.AtomGroup(u.atoms[mol_type_ind == ind]))
-            #
-            # from MDAnalysis.core.universe import Merge
-            # u = Merge(*mol_groups)  # universe with correct molecule numbering
+            # sort out residues manually
+            if 'benzamide_test2' in params['battery_path']:
+                residue_cleanup()
+                u = mda.Universe("fixed_system.data", "traj.dcd", format="LAMMPS")
+            else:
+                #automated residues alignment
+                u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
 
 
             # find the reference system for comparison
@@ -212,11 +190,12 @@ for run_dir in dirs:  # loop over run directories in the battery
 
             '''save results'''
             new_row = {"run_num": run_dir,
-                       #"temperature": [thermo_results_dict['temp']],
-                       #"pressure": [thermo_results_dict['Press']],
-                       #"E_pair": [thermo_results_dict["E_pair"]],
-                       #"E_mol": [thermo_results_dict["E_mol"]],
-                       #"E_tot": [thermo_results_dict["E_tot"]],
+                       "temperature": [thermo_results_dict['temp']],
+                       "pressure": [thermo_results_dict['Press']],
+                       "E_pair": [thermo_results_dict["E_pair"]],
+                       "E_mol": [thermo_results_dict["E_mol"]],
+                       "E_tot": [thermo_results_dict["E_tot"]],
+                       "ns/day": [thermo_results_dict["ns/day"]],
                        "atomwise_intermolecular_rdfs": [atomwise_rdfs],
                        "rdf_drift": [rdf_drift],
                        "rdf_times": [rdf_times],
@@ -261,9 +240,9 @@ if "Ip_alignment" in results_df.columns:
     fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
     fig.update_xaxes(title_text='Temperature', row=1, col=1)
-    fig.update_yaxes(title_text='defect_ratee', row=1, col=1)
+    fig.update_yaxes(title_text='defect_rate', row=1, col=1)
     fig.update_xaxes(title_text='Temperature', row=1, col=2)
-    fig.update_yaxes(title_text='defect_ratee', row=1, col=2)
+    fig.update_yaxes(title_text='defect_rate', row=1, col=2)
     fig.update_layout(xaxis=dict(
         tickmode='array',
         tickvals=np.arange(len(temperatures)),
@@ -307,9 +286,9 @@ if "rdf_drift" in results_df.columns:
     fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
     fig.update_xaxes(title_text='Temperature', row=1, col=1)
-    fig.update_yaxes(title_text='defect_ratee', row=1, col=1)
+    fig.update_yaxes(title_text='defect_rate', row=1, col=1)
     fig.update_xaxes(title_text='Temperature', row=1, col=2)
-    fig.update_yaxes(title_text='defect_ratee', row=1, col=2)
+    fig.update_yaxes(title_text='defect_rate', row=1, col=2)
     fig.update_layout(xaxis=dict(
         tickmode='array',
         tickvals=np.arange(len(temperatures)),
@@ -335,4 +314,81 @@ if "rdf_drift" in results_df.columns:
     fig.write_image("rdf_shift_heatmap.png")
 
 
+if "ns/day" in results_df.columns:
+    '''RDF shift'''
+    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(temperatures)))
+    for iT, temp in enumerate(temperatures):
+        for iC, cr in enumerate(crystal_structures):
+            for iG, gr in enumerate(defect_rates):
+                for ii, row in results_df.iterrows():
+                    if row['run crystal'] == cr:
+                        if row['run temperature'] == temp:
+                            if row['run vacancy rate'] == gr:
+                                try:
+                                    shift_heatmap[iC, iG, iT] = (row['ns/day'])
+                                except:
+                                    shift_heatmap[iC, iG, iT] = 0
+
+    fig = make_subplots(rows=1, cols=2, subplot_titles=crystal_structures)
+    fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
+    fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
+    fig.update_xaxes(title_text='Temperature', row=1, col=1)
+    fig.update_yaxes(title_text='defect_rate', row=1, col=1)
+    fig.update_xaxes(title_text='Temperature', row=1, col=2)
+    fig.update_yaxes(title_text='defect_rate', row=1, col=2)
+    fig.update_layout(xaxis=dict(
+        tickmode='array',
+        tickvals=np.arange(len(temperatures)),
+        ticktext=temperatures
+    ))
+    fig.update_layout(yaxis=dict(
+        tickmode='array',
+        tickvals=np.arange(len(defect_rates)),
+        ticktext=defect_rates
+    ))
+    fig.update_layout(xaxis2=dict(
+        tickmode='array',
+        tickvals=np.arange(len(temperatures)),
+        ticktext=temperatures
+    ))
+    fig.update_layout(yaxis2=dict(
+        tickmode='array',
+        tickvals=np.arange(len(defect_rates)),
+        ticktext=defect_rates
+    ))
+    fig.update_layout(title="ns per day")
+    fig.show(renderer="browser")
+    fig.write_image("ns_day_heatmap.png")
+
 aa = 1
+
+# # sort out residues
+# mol_type_ind = np.zeros(len(u.atoms),dtype=np.int64)
+# atom_counter = 0
+# mol_counter = 0
+#
+# for ind in range(1, len(u.atoms)):
+#     atom_counter += 1
+#     if (u.atoms[ind].type == '5' and u.atoms[ind-1].type == '1'):  # beginning of new molecule - assign indices to previous
+#         if atom_counter == 16:  # benzamide
+#             mol_type_ind[ind-16:ind] = mol_counter
+#         elif atom_counter == 15:  # nicotinamide
+#             mol_type_ind[ind-15:ind] = mol_counter
+#
+#         mol_counter += 1
+#         atom_counter = 0
+#
+# # must also add final molecule
+# last_index = np.max(np.argwhere(mol_type_ind == mol_counter - 1)[:, 0])
+# last_mol_len = len(u.atoms) - last_index - 1
+# if last_mol_len == 16:  # benzamide
+#     mol_type_ind[-16:] = mol_counter
+# elif last_mol_len == 15:  # nicotinamide
+#     mol_type_ind[-15:] = mol_counter
+#
+# mol_groups = []  # collect residues
+# for ind in range(max(mol_type_ind) + 1):
+#     mol_groups.append(mda.AtomGroup(u.atoms[mol_type_ind == ind]))
+#
+# from MDAnalysis.core.universe import Merge
+# u = Merge(*mol_groups)  # universe with correct molecule numbering

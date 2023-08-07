@@ -12,7 +12,7 @@ from distutils.dir_util import copy_tree
 from run_script import create_xyz_and_run_lammps
 
 '''set head directory'''
-head_dir = r'/home/mk8347/scratch/molecule_clusters/benzamide_test3'
+head_dir = r'/home/mk8347/scratch/molecule_clusters/benzamide_test4'
 # head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/battery_11'
 
 crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'  #
@@ -25,7 +25,7 @@ if not os.path.exists('common'):
     os.mkdir('common')
     copy_tree('../common', './common/')
 
-cluster_sizes = [[4, 4, 4]]
+cluster_sizes = [[3, 3, 3], [4, 4, 4]]
 temperatures = [250, 300, 350]
 crystal_structures = ["NICOAM13", "NICOAM17"]
 defect_rates = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5]
@@ -50,8 +50,8 @@ for i in range(len(cluster_sizes)):
 for run_num, size, temp, crystal, defect in zip(run_nums, size_list, temp_list, crystal_list, defect_list):
     create_xyz_and_run_lammps(head_dir, run_num, crystals_path,
                               cluster_size=size,
-                              print_steps=100,
-                              run_time=int(1e5),
+                              print_steps=1000,
+                              run_time=int(1e7),
                               integrator='nosehoover',
                               box_type='p',
                               bulk_crystal=False,

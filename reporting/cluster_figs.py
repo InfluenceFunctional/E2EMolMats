@@ -170,14 +170,21 @@ def process_thermo_data():
                     'E_pair': [],
                     'E_mol': [],
                     'E_tot': [],
-                    'Press': []}
+                    'Press': [],
+                    'ns/day': []}
 
     if "Total wall time" not in text:  # skip analysis if the run crashed
         for key in results_dict.keys():
             results_dict[key] = np.zeros(1)
         return results_dict
 
+
     for ind, line in enumerate(lines):
+        if 'ns/day' in line:
+            text = line.split('ns/day')
+            ns_per_day = float(text[0].split(' ')[1])
+            results_dict['ns/day'] = ns_per_day
+
         if skip:
             if "Step" in line:
                 skip = False
@@ -191,7 +198,8 @@ def process_thermo_data():
                 split_line = line.split(' ')
                 entries = [float(entry) for entry in split_line if entry != '']
                 for ind2, key in enumerate(results_dict.keys()):
-                    results_dict[key].append(entries[ind2])
+                    if key != 'ns/day':
+                        results_dict[key].append(entries[ind2])
 
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
@@ -251,7 +259,7 @@ def cluster_molecule_alignment(u):
     for ts in u.trajectory:
         if ts.frame in print_frames:
             molecules = u.residues
-            coords = np.asarray([molecules[i].atoms.positions for i in range(len(molecules))])
+            coords = np.asarray([molecules[i].atoms.positions[:15] for i in range(len(molecules))])  # omit trailing hydrogen in benzamide
             Ip_list = []
             for j in range(len(molecules)):
                 Ip, _, _ = compute_principal_axes_np(coords[j])
@@ -312,7 +320,7 @@ def plot_thermodynamic_data(thermo_results_dict):
     fig = make_subplots(rows=2, cols=3)
     ind = 0
     for i, key in enumerate(thermo_results_dict.keys()):
-        if key != 'time step':
+        if key != 'time step' and key != 'ns/day':
             ind += 1
             row = ind // 3 + 1
             col = ind % 3 + 1
@@ -358,11 +366,12 @@ def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], c
             else:
                 core_mols = np.random.choice(len(u.residues), size=n_mols_to_sample)
 
-            atomwise_rdfs = np.zeros(((mol_num_atoms ** 2 - mol_num_atoms) // 2 + mol_num_atoms, nbins))
+            mol_num_elements = 9
+            atomwise_rdfs = np.zeros(((mol_num_elements ** 2 - mol_num_elements) // 2 + mol_num_elements, nbins)) # np.zeros(((mol_num_atoms ** 2 - mol_num_atoms) // 2 + mol_num_atoms, nbins))
             n_samples = min(n_mols_to_sample, len(core_mols))
             for mm in range(n_samples):
                 core_inds = new_u.residues[core_mols[mm]].atoms.indices  # one inside molecule at a time
-                outer_inds = np.concatenate([new_u.residues[ii].atoms.indices for ii in range(len(new_u.residues)) if ii != core_mols[mm]])
+                outer_inds = np.concatenate([new_u.residues[ii].atoms.indices for ii in range(len(new_u.residues)) if ii != core_mols[mm]])  # limit to 15 atoms - kill trailing benzamide proton
 
                 atomwise_rdfs_i, bins, rdfs_dict = crystal_rdf(
                     positions=new_u.atoms.positions,
@@ -373,8 +382,8 @@ def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], c
                     rrange=rrange,
                     bins=nbins,
                     raw_density=True,
-                    elementwise=False,
-                    atomwise=True,
+                    elementwise=True,
+                    atomwise=False,
                 )
                 atomwise_rdfs += atomwise_rdfs_i[0] / n_samples  # manual average
 
