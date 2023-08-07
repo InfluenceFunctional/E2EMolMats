@@ -69,7 +69,19 @@ def rotvec2sph(rotvec):
     else:
         return np.concatenate((theta[:, None], phi[:, None], r[:, None]), axis=-1)  # polar, azimuthal, applied rotation
 
+def compute_Ip_alignment(u, Ip_overlap_trajectory):
+    cutoffs = [0.75, 0.8, 0.85, 0.9, 0.95]
+    Ip_alignment_trajectory = np.zeros((len(Ip_overlap_trajectory), len(cutoffs)))
+    for ic in range(len(cutoffs)):
+        alignment_cutoff = cutoffs[ic]
+        for it in range(len(Ip_overlap_trajectory)):
+            alignments = np.zeros((3, len(u.residues), len(u.residues)))
+            for ip in range(3):
+                alignments[ip] = Ip_overlap_trajectory[it][:, :, ip, ip] > alignment_cutoff
+            tot_alignment = np.prod(alignments, axis=0)
+            Ip_alignment_trajectory[it, ic] = tot_alignment.mean()
 
+    return Ip_alignment_trajectory
 def compute_rdf_distance(rdf1, rdf2, rr, envelope=None):
     """
     compute a distance metric between two radial distribution functions with shapes

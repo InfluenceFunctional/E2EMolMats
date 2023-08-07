@@ -12,7 +12,7 @@ from distutils.dir_util import copy_tree
 from run_script import create_xyz_and_run_lammps
 
 '''set head directory'''
-head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/benzamide_test2'
+head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/benzamide_test3'
 
 crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures/'  #
 
