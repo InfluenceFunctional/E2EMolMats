@@ -25,8 +25,8 @@ if not os.path.exists('common'):
     os.mkdir('common')
     copy_tree('../common', './common/')
 
-cluster_sizes = [[3, 3, 3], [4, 4, 4]]
-temperatures = [250, 300, 350]
+cluster_sizes = [[3, 3, 3], [4, 4, 4], [5, 5, 5]]
+temperatures = [300]
 crystal_structures = ["NICOAM13", "NICOAM17"]
 defect_rates = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5]
 
