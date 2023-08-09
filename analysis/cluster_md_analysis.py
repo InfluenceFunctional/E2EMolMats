@@ -22,7 +22,7 @@ pio.renderers.default = 'browser'
 
 params = {
     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference4/',
-    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\benzamide_test2/',
+    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\benzamide_test4/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
@@ -58,8 +58,8 @@ for j in range(len(temperatures)):
 
 '''run indices'''
 
-cluster_sizes = [[4, 4, 4]]
-temperatures = [250, 300, 350]
+cluster_sizes = [[3, 3, 3], [4, 4, 4], [5, 5, 5]]
+temperatures = [300]
 crystal_structures = ["NICOAM13", "NICOAM17"]
 defect_rates = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5]
 
@@ -223,13 +223,13 @@ if "Ip_alignment" in results_df.columns:
     '''
     whether inertial axes are aligned over time - in Z'=4 structure perfect alignment will be 25%
     '''
-    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(temperatures)))
-    for iT, temp in enumerate(temperatures):
+    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(cluster_sizes)))
+    for iT, temp in enumerate(cluster_sizes):
         for iC, cr in enumerate(crystal_structures):
             for iG, gr in enumerate(defect_rates):
                 for ii, row in results_df.iterrows():
                     if row['run crystal'] == cr:
-                        if row['run temperature'] == temp:
+                        if row['run size'] == temp:
                             if row['run vacancy rate'] == gr:
                                 try:
                                     shift_heatmap[iC, iG, iT] = row['Ip_alignment'].mean()# / row['ref_Ip_alignment'].mean()
@@ -239,14 +239,14 @@ if "Ip_alignment" in results_df.columns:
     fig = make_subplots(rows=1, cols=2, subplot_titles=crystal_structures)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
-    fig.update_xaxes(title_text='Temperature', row=1, col=1)
+    fig.update_xaxes(title_text='Cluster Size', row=1, col=1)
     fig.update_yaxes(title_text='defect_rate', row=1, col=1)
-    fig.update_xaxes(title_text='Temperature', row=1, col=2)
+    fig.update_xaxes(title_text='Cluster Size', row=1, col=2)
     fig.update_yaxes(title_text='defect_rate', row=1, col=2)
     fig.update_layout(xaxis=dict(
         tickmode='array',
-        tickvals=np.arange(len(temperatures)),
-        ticktext=temperatures
+        tickvals=np.arange(len(cluster_sizes)),
+        ticktext=cluster_sizes
     ))
     fig.update_layout(yaxis=dict(
         tickmode='array',
@@ -255,8 +255,8 @@ if "Ip_alignment" in results_df.columns:
     ))
     fig.update_layout(xaxis2=dict(
         tickmode='array',
-        tickvals=np.arange(len(temperatures)),
-        ticktext=temperatures
+        tickvals=np.arange(len(cluster_sizes)),
+        ticktext=cluster_sizes
     ))
     fig.update_layout(yaxis2=dict(
         tickmode='array',
@@ -269,13 +269,13 @@ if "Ip_alignment" in results_df.columns:
 
 if "rdf_drift" in results_df.columns:
     '''RDF shift'''
-    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(temperatures)))
-    for iT, temp in enumerate(temperatures):
+    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(cluster_sizes)))
+    for iT, temp in enumerate(cluster_sizes):
         for iC, cr in enumerate(crystal_structures):
             for iG, gr in enumerate(defect_rates):
                 for ii, row in results_df.iterrows():
                     if row['run crystal'] == cr:
-                        if row['run temperature'] == temp:
+                        if row['run size'] == temp:
                             if row['run vacancy rate'] == gr:
                                 try:
                                     shift_heatmap[iC, iG, iT] = (row['rdf_drift'].mean())
@@ -285,14 +285,14 @@ if "rdf_drift" in results_df.columns:
     fig = make_subplots(rows=1, cols=2, subplot_titles=crystal_structures)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
-    fig.update_xaxes(title_text='Temperature', row=1, col=1)
+    fig.update_xaxes(title_text='Cluster Size', row=1, col=1)
     fig.update_yaxes(title_text='defect_rate', row=1, col=1)
-    fig.update_xaxes(title_text='Temperature', row=1, col=2)
+    fig.update_xaxes(title_text='Cluster Size', row=1, col=2)
     fig.update_yaxes(title_text='defect_rate', row=1, col=2)
     fig.update_layout(xaxis=dict(
         tickmode='array',
-        tickvals=np.arange(len(temperatures)),
-        ticktext=temperatures
+        tickvals=np.arange(len(cluster_sizes)),
+        ticktext=cluster_sizes
     ))
     fig.update_layout(yaxis=dict(
         tickmode='array',
@@ -301,8 +301,8 @@ if "rdf_drift" in results_df.columns:
     ))
     fig.update_layout(xaxis2=dict(
         tickmode='array',
-        tickvals=np.arange(len(temperatures)),
-        ticktext=temperatures
+        tickvals=np.arange(len(cluster_sizes)),
+        ticktext=cluster_sizes
     ))
     fig.update_layout(yaxis2=dict(
         tickmode='array',
@@ -316,13 +316,13 @@ if "rdf_drift" in results_df.columns:
 
 if "ns/day" in results_df.columns:
     '''RDF shift'''
-    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(temperatures)))
-    for iT, temp in enumerate(temperatures):
+    shift_heatmap = np.zeros((len(crystal_structures), len(defect_rates), len(cluster_sizes)))
+    for iT, temp in enumerate(cluster_sizes):
         for iC, cr in enumerate(crystal_structures):
             for iG, gr in enumerate(defect_rates):
                 for ii, row in results_df.iterrows():
                     if row['run crystal'] == cr:
-                        if row['run temperature'] == temp:
+                        if row['run size'] == temp:
                             if row['run vacancy rate'] == gr:
                                 try:
                                     shift_heatmap[iC, iG, iT] = (row['ns/day'])
@@ -332,14 +332,14 @@ if "ns/day" in results_df.columns:
     fig = make_subplots(rows=1, cols=2, subplot_titles=crystal_structures)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[0])), row=1, col=1)
     fig.add_trace(go.Heatmap(z=(shift_heatmap[1])), row=1, col=2)
-    fig.update_xaxes(title_text='Temperature', row=1, col=1)
+    fig.update_xaxes(title_text='Cluster Size', row=1, col=1)
     fig.update_yaxes(title_text='defect_rate', row=1, col=1)
-    fig.update_xaxes(title_text='Temperature', row=1, col=2)
+    fig.update_xaxes(title_text='Cluster Size', row=1, col=2)
     fig.update_yaxes(title_text='defect_rate', row=1, col=2)
     fig.update_layout(xaxis=dict(
         tickmode='array',
-        tickvals=np.arange(len(temperatures)),
-        ticktext=temperatures
+        tickvals=np.arange(len(cluster_sizes)),
+        ticktext=cluster_sizes
     ))
     fig.update_layout(yaxis=dict(
         tickmode='array',
@@ -348,8 +348,8 @@ if "ns/day" in results_df.columns:
     ))
     fig.update_layout(xaxis2=dict(
         tickmode='array',
-        tickvals=np.arange(len(temperatures)),
-        ticktext=temperatures
+        tickvals=np.arange(len(cluster_sizes)),
+        ticktext=cluster_sizes
     ))
     fig.update_layout(yaxis2=dict(
         tickmode='array',

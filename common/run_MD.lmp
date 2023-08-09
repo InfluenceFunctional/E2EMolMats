@@ -9,13 +9,13 @@
   variable          nx     equal 1      # System size.
   variable          ny     equal 1      # System size.
   variable          nz     equal 1      # System size.
-  variable          T      equal 500    # Temperature
-  variable          rnd    equal 1     # seed for random velocities
-  variable          t_run  equal 100000     # number of MD steps
-  variable          t_print equal ${t_run}/1000  #how often to print histogram
+  variable          T      equal _TEMP    # Temperature
+  variable          rnd    equal _SEED     # seed for random velocities
+  variable          t_run  equal _RUNTIME     # number of MD steps
+  variable          t_print equal ${t_run}/_PRINTSTEPS  #how often to print histogram
 
 #-------------------------------------------------------------------------------#
-
+  boundary			_BOUND _BOUND _BOUND
 
 #------------------------- Load initial setup ----------------------------------#
   # load function definition
@@ -28,9 +28,9 @@
   include "system.in.settings"
 #-------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------#
-#  minimize          1.0e-5 1.0e-7 1000 10000
+  minimize          1.0e-4 1.0e-6 100 1000
 
-#  write_data        cluster_${nx}x${ny}x${nz}_minimize.data
+  write_data        cluster_${nx}x${ny}x${nz}_minimize.data
   
 #------------------ Computes, variables & modifications ------------------------#
   variable          step    equal step
@@ -49,16 +49,20 @@
   timestep          1.0
   thermo            ${t_print}
 #---------------------- Thermostat & Barostat ----------------------------------#
-#  fix               f2 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt) 
-  fix               f2 all nvt temp $T $T $(100.0*dt)
+#_NPT  fix               f2 all npt temp $T $T $(100.0*dt) iso 1.0 1.0 $(1000.0*dt) 
+#_NOSE  fix               f2 all nvt temp $T $T $(100.0*dt)
+#_LANGEVIN  fix				f2 all langevin $T $T _DAMP ${rnd}
 #-------------------------------------------------------------------------------#
 
   compute	    c1 all pe
   
   velocity          all create $T ${rnd} mom yes rot yes dist gaussian
 
-  dump              d1 all custom ${t_print} traj.dump id mol element x y z vx vy vz
-  dump_modify       d1 element Ha Hn O C Ca N Nb H4
+  dump              d1 all dcd ${t_print} traj.dcd
+  
+  dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz
+  dump_modify       d2 element Ha Hn O C Ca N Nb H4
+  
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
 

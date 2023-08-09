@@ -1,5 +1,6 @@
 import os
 from distutils.dir_util import copy_tree
+import numpy as np
 
 import ovito
 from ovito.io import import_file, export_file
@@ -8,6 +9,7 @@ from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup_for_ovito import initial_setup
 from template_scripts.original_templify_to_runnable import templify_to_runnable
 import subprocess
+
 
 def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               cluster_type="supercell", structure_identifier="NICOAM13",
@@ -49,6 +51,30 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         copy_tree('../common', './')
     else:
         os.chdir(workdir)
+
+    '''save run config'''
+    run_config = {
+        'head_dir': head_dir,
+        'run_num': run_num,
+        'crystals_path': crystals_path,
+        'cluster_size': cluster_size,
+        'cluster_type': cluster_type,
+        'structure_identifier': structure_identifier,
+        'max_sphere_radius': max_sphere_radius,
+        'defect_rate': defect_rate,
+        'scramble_rate': scramble_rate,
+        'gap_rate': gap_rate,
+        'seed': seed,
+        'min_inter_cluster_distance': min_inter_cluster_distance,
+        'temperature': temperature,
+        'run_time': run_time,
+        'print_steps': print_steps,
+        'box_type': box_type,
+        'bulk_crystal': bulk_crystal,
+        'integrator': integrator,
+        'damping': damping
+    }
+    np.save('run_config', run_config)
 
     '''set temperature, run time, and print step in lmp file'''
     with open("run_MD.lmp") as f:
