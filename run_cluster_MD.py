@@ -24,8 +24,10 @@ print(f"Running {int(n_runs)} LAMMPS MD Jobs")
 '''setup working directory'''
 machine = batch_config['machine']  # 'cluster' or 'local'
 if machine == 'local':
-    head_dir = r'/home/mkilgour/cluster_structures/' + batch_config['run_name']
-    crystals_path = r'/home/mkilgour/cluster_structures/CrystalStructures/'
+    #head_dir = r'/home/mkilgour/cluster_structures/' + batch_config['run_name']
+    #crystals_path = r'/home/mkilgour/cluster_structures/CrystalStructures/'
+    head_dir = r'C:\Users\mikem\crystals\clusters/cluster_structures/' + batch_config['run_name']
+    crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie/CrystalStructures/'
 elif machine == 'cluster':
     head_dir = r'/home/mk8347/scratch/molecule_clusters/' + batch_config['run_name']
     crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'

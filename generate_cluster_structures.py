@@ -94,11 +94,24 @@ def generate_structure(workdir, crystals_path, structure_identifier,
             max_radius = max_sphere_radius
 
         mols_to_keep = np.argwhere(dists < max_radius)[:, 0]
+        #keeper_molecule_coordinates = molwise_supercell_coordinates[mols_to_keep].reshape(int(len(mols_to_keep) * atoms_in_molecule), 3)
 
-        keeper_molecule_coordinates = molwise_supercell_coordinates[mols_to_keep].reshape(int(len(mols_to_keep) * atoms_in_molecule), 3)
+        # prune lonely molecules
+        keeper_molwise_coordinates = molwise_supercell_coordinates[mols_to_keep]
+        kept_molecule_centroids = molwise_supercell_coordinates[mols_to_keep].mean(1)
+        kept_dists = cdist(kept_molecule_centroids, kept_molecule_centroids)
+        coordination_number = np.zeros(len(kept_dists))
+        max_mol_radius = np.amax(np.linalg.norm(molwise_supercell_coordinates[0] - molwise_supercell_coordinates[0].mean(0),axis=-1))
+        inter_mol_dist = 2 * max_mol_radius  # 2 radii - empirically decided
+        for ind in range(len(kept_dists)):
+            coordination_number[ind] = np.sum(kept_dists[ind] < inter_mol_dist)
+        non_lonely_inds = np.argwhere(coordination_number > 2)  # 2 - also empirically decided
 
+        keeper_molecule_coordinates = keeper_molwise_coordinates[non_lonely_inds].reshape(int(len(non_lonely_inds) * atoms_in_molecule), 3)
+
+        # assign final coords & atomic numbers
         supercell_coordinates = keeper_molecule_coordinates
-        supercell_atoms = np.concatenate([single_mol_atoms for _ in range(len(mols_to_keep))])
+        supercell_atoms = np.concatenate([single_mol_atoms for _ in range(len(non_lonely_inds))])
 
     if scramble_rate > 0:
         num_mols = len(supercell_coordinates) // atoms_in_molecule
