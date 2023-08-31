@@ -163,7 +163,6 @@ def process_thermo_data():
     lines = text.split('\n')
     f.close()
 
-
     skip = True
     results_dict = {'time step': [],
                     'temp': [],
@@ -171,19 +170,18 @@ def process_thermo_data():
                     'E_mol': [],
                     'E_tot': [],
                     'Press': [],
-                    'ns/day': []}
+                    'ns_per_day': []}
 
     if "Total wall time" not in text:  # skip analysis if the run crashed
         for key in results_dict.keys():
             results_dict[key] = np.zeros(1)
         return results_dict
 
-
     for ind, line in enumerate(lines):
         if 'ns/day' in line:
             text = line.split('ns/day')
             ns_per_day = float(text[0].split(' ')[1])
-            results_dict['ns/day'] = ns_per_day
+            results_dict['ns_per_day'] = ns_per_day
 
         if skip:
             if "Step" in line:
@@ -198,7 +196,7 @@ def process_thermo_data():
                 split_line = line.split(' ')
                 entries = [float(entry) for entry in split_line if entry != '']
                 for ind2, key in enumerate(results_dict.keys()):
-                    if key != 'ns/day':
+                    if key != 'ns_per_day':
                         results_dict[key].append(entries[ind2])
 
     for key in results_dict.keys():
@@ -278,6 +276,7 @@ def cluster_molecule_alignment(u):
 
     return Ip_trajectory, Ip_overlaps_trajectory
 
+
 def plot_alignment_fingerprint(u):
     ps_step = 100
     total_time = u.trajectory.totaltime
@@ -320,7 +319,7 @@ def plot_thermodynamic_data(thermo_results_dict):
     fig = make_subplots(rows=2, cols=3)
     ind = 0
     for i, key in enumerate(thermo_results_dict.keys()):
-        if key != 'time step' and key != 'ns/day':
+        if key != 'time step' and key != 'ns_per_day':
             ind += 1
             row = ind // 3 + 1
             col = ind % 3 + 1
@@ -332,7 +331,7 @@ def plot_thermodynamic_data(thermo_results_dict):
     return fig
 
 
-def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], core_cutoff=None, tiling=None):
+def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], core_cutoff=None, tiling=None, print_steps=10):
     ""
     '''update atom types'''
     atom_types = u.atoms.types
@@ -342,7 +341,6 @@ def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], c
     total_time = u.trajectory.totaltime
     n_frames = u.trajectory.n_frames
     time_step = u.trajectory.dt
-    print_steps = 10
 
     print_frames = np.arange(n_frames // print_steps, n_frames + 1, step=n_frames // print_steps)
 
@@ -367,7 +365,7 @@ def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], c
                 core_mols = np.random.choice(len(u.residues), size=n_mols_to_sample)
 
             mol_num_elements = 9
-            atomwise_rdfs = np.zeros(((mol_num_elements ** 2 - mol_num_elements) // 2 + mol_num_elements, nbins)) # np.zeros(((mol_num_atoms ** 2 - mol_num_atoms) // 2 + mol_num_atoms, nbins))
+            atomwise_rdfs = np.zeros(((mol_num_elements ** 2 - mol_num_elements) // 2 + mol_num_elements, nbins))  # np.zeros(((mol_num_atoms ** 2 - mol_num_atoms) // 2 + mol_num_atoms, nbins))
             n_samples = min(n_mols_to_sample, len(core_mols))
             for mm in range(n_samples):
                 core_inds = new_u.residues[core_mols[mm]].atoms.indices  # one inside molecule at a time
@@ -422,3 +420,75 @@ def old_trajectory_rdf_analysis(u, nbins=200, rrange=[0, 10], core_cutoff=None, 
             atomwise_rdfs.append(atom_type_rdf)
 
     return full_rdf, intermolecular_rdf, atomwise_rdfs, nbins
+
+
+def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, take_mean=False):
+    xaxis = np.unique(results_df[xaxis_title])
+    yaxis = np.unique(results_df[yaxis_title])
+    unique_structures = np.unique(results_df['structure_identifier'])
+
+    n_samples = np.zeros((len(unique_structures), len(xaxis), len(yaxis)))
+
+    for iX, xval in enumerate(xaxis):
+        for iC, struct in enumerate(unique_structures):
+            for iY, yval in enumerate(yaxis):
+                for ii, row in results_df.iterrows():
+                    if row['structure_identifier'] == struct:
+                        if row[xaxis_title] == xval:
+                            if row[yaxis_title] == yval:
+                                try:
+                                    aa = row[property]  # see if it's non-empty
+                                    n_samples[iC, iX, iY] += 1
+                                except:
+                                    pass
+
+    shift_heatmap = np.zeros((len(unique_structures), len(xaxis), len(yaxis)))
+    for iX, xval in enumerate(xaxis):
+        for iC, struct in enumerate(unique_structures):
+            for iY, yval in enumerate(yaxis):
+                for ii, row in results_df.iterrows():
+                    if row['structure_identifier'] == struct:
+                        if row[xaxis_title] == xval:
+                            if row[yaxis_title] == yval:
+                                try:
+                                    if take_mean:
+                                        shift_heatmap[iC, iX, iY] = row[property].mean() / n_samples[iC, iX, iY]  # take mean over seeds
+                                    else:
+                                        shift_heatmap[iC, iX, iY] = row[property] / n_samples[iC, iX, iY]
+                                except:
+                                    shift_heatmap[iC, iX, iY] = 0
+
+    fig = make_subplots(rows=1, cols=len(unique_structures), subplot_titles=unique_structures)
+    max_val = shift_heatmap.max()
+    min_val = shift_heatmap.min()
+    for i in range(1, len(unique_structures) + 1):
+        fig.add_trace(go.Heatmap(z=(shift_heatmap[i - 1].T), colorscale='Viridis', zmax=max_val, zmin=min_val
+                                 ), row=1, col=i)
+
+        fig.update_xaxes(title_text=xaxis_title, row=1, col=i)
+        fig.update_yaxes(title_text=yaxis_title, row=1, col=i)
+
+    fig.update_layout(xaxis=dict(
+        tickmode='array',
+        tickvals=np.arange(len(xaxis)),
+        ticktext=xaxis
+    ))
+    fig.update_layout(yaxis=dict(
+        tickmode='array',
+        tickvals=np.arange(len(yaxis)),
+        ticktext=yaxis
+    ))
+    if len(unique_structures) == 2:
+        fig.update_layout(xaxis2=dict(
+            tickmode='array',
+            tickvals=np.arange(len(xaxis)),
+            ticktext=xaxis
+        ))
+        fig.update_layout(yaxis2=dict(
+            tickmode='array',
+            tickvals=np.arange(len(yaxis)),
+            ticktext=yaxis
+        ))
+    fig.update_layout(title=property)
+    fig.show(renderer="browser")
+    fig.write_image(property + "_heatmap.png")
