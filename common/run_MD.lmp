@@ -16,7 +16,7 @@
 
 #-------------------------------------------------------------------------------#
   boundary			_BOUND _BOUND _BOUND
-
+  thermo_modify lost ignore flush yes
 #------------------------- Load initial setup ----------------------------------#
   # load function definition
   include "system.in.init"
@@ -41,8 +41,8 @@
   variable          ftemp   format temp "%10.3f"
   variable          fpress  format press "%.6e"
   variable          fetot   format etot "%.6e"
-  variable	    tmpt    equal "c_Tmobile"
-  variable	    tmpall  equal "c_Tall"
+  variable	        tmpt    equal "c_Tmobile"
+  variable	        tmpall  equal "c_Tall"
 
 
 #--------------------------- Thermo style and settings -------------------------#

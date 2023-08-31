@@ -3,4 +3,4 @@ nicotinamide only but with options for vacancies, random reorientations and benz
 
 edit paths in generate_cluster_structures and xyz_to_lammps to your local specs, then run xyz_to_lammps
 
-requires ase, numpy, moltemplate
+requires ase, numpy, moltemplate, ovito, scipy
