@@ -58,8 +58,8 @@ for run_num, run_config in enumerate(run_args):
         bulk_crystal=batch_config['bulk_crystal'],
         min_inter_cluster_distance=batch_config['min_inter_cluster_distance'],
         cluster_type=batch_config['cluster_type'],
-        max_sphere_radius=batch_config['max_sphere_radius'],
 
+        max_sphere_radius=run_config[dynamic_arg_keys['max_sphere_radius']],
         cluster_size=run_config[dynamic_arg_keys['cluster_size']],
         seed=run_config[dynamic_arg_keys['seed']],
         damping=run_config[dynamic_arg_keys['damping']],
