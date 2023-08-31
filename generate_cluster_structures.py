@@ -94,23 +94,34 @@ def generate_structure(workdir, crystals_path, structure_identifier,
             max_radius = max_sphere_radius
 
         mols_to_keep = np.argwhere(dists < max_radius)[:, 0]
-        #keeper_molecule_coordinates = molwise_supercell_coordinates[mols_to_keep].reshape(int(len(mols_to_keep) * atoms_in_molecule), 3)
+        keeper_molwise_coordinates = molwise_supercell_coordinates[mols_to_keep]
 
         # prune lonely molecules
-        keeper_molwise_coordinates = molwise_supercell_coordinates[mols_to_keep]
-        kept_molecule_centroids = molwise_supercell_coordinates[mols_to_keep].mean(1)
-        kept_dists = cdist(kept_molecule_centroids, kept_molecule_centroids)
-        coordination_number = np.zeros(len(kept_dists))
-        max_mol_radius = np.amax(np.linalg.norm(molwise_supercell_coordinates[0] - molwise_supercell_coordinates[0].mean(0),axis=-1))
-        inter_mol_dist = 2 * max_mol_radius  # 2 radii - empirically decided
-        for ind in range(len(kept_dists)):
-            coordination_number[ind] = np.sum(kept_dists[ind] < inter_mol_dist)
-        non_lonely_inds = np.argwhere(coordination_number > 2)  # 2 - also empirically decided
+        no_lonely = False
+        loop_ind = 0
+        while not no_lonely:
+            loop_ind += 1
+            # get centroid dists
+            kept_molecule_centroids = keeper_molwise_coordinates.mean(1)
+            kept_dists = cdist(kept_molecule_centroids, kept_molecule_centroids)
 
-        keeper_molecule_coordinates = keeper_molwise_coordinates[non_lonely_inds].reshape(int(len(non_lonely_inds) * atoms_in_molecule), 3)
+            # get coordination number
+            coordination_number = np.zeros(len(kept_dists))
+            max_mol_radius = np.amax(np.linalg.norm(molwise_supercell_coordinates[0] - molwise_supercell_coordinates[0].mean(0),axis=-1))
+            inter_mol_dist = 2 * max_mol_radius  # 2 radii - empirically decided
+            for ind in range(len(kept_dists)):
+                coordination_number[ind] = np.sum(kept_dists[ind] < inter_mol_dist)
+
+            # check if converged
+            non_lonely_inds = np.argwhere(coordination_number > 2)[:,0]  # 2 - also empirically decided
+            if len(non_lonely_inds) == len(kept_molecule_centroids):
+                no_lonely = True
+            else:
+                keeper_molwise_coordinates = keeper_molwise_coordinates[non_lonely_inds]  # update molwise coords
+
 
         # assign final coords & atomic numbers
-        supercell_coordinates = keeper_molecule_coordinates
+        supercell_coordinates = keeper_molwise_coordinates.reshape(int(len(non_lonely_inds) * atoms_in_molecule), 3)
         supercell_atoms = np.concatenate([single_mol_atoms for _ in range(len(non_lonely_inds))])
 
     if scramble_rate > 0:

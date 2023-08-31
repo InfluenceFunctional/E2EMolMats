@@ -3,23 +3,23 @@
 batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
-    'temperature': [100],
+    'temperature': [100, 500],
     'structure_identifier': ["NICOAM13"], #, "NICOAM17"],
     'defect_rate': [0],
     'gap_rate': [0],
     'scramble_rate': [0],
     'seed': [1],
     'damping': [str(100.0)],
-    'max_sphere_radius': [10],
+    'max_sphere_radius': [10, 20],
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'spherical',
-    'run_time': int(1e5),
-    'box_type': 'p',
+    'run_time': int(1e6),
+    'box_type': 'f',
     'integrator': 'nosehoover',
     'print_steps': int(1e2),
     'min_inter_cluster_distance': 100,
     'bulk_crystal': False,
-    'machine': 'local',
-    'run_name': 'dev',
+    'machine': 'cluster',
+    'run_name': 'dev4',
 }
