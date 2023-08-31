@@ -17,6 +17,7 @@
 #-------------------------------------------------------------------------------#
   boundary			_BOUND _BOUND _BOUND
   thermo_modify lost ignore flush yes
+  thermo_modify lost/bond ignore
 #------------------------- Load initial setup ----------------------------------#
   # load function definition
   include "system.in.init"
