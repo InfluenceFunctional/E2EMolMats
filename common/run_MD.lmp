@@ -65,7 +65,7 @@
 
   dump              d1 all dcd ${t_print} traj.dcd
   
-  dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz
+  dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz c2
   dump_modify       d2 element Ha Hn O C Ca N Nb H4
   
   run               ${t_run}
