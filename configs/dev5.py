@@ -14,7 +14,7 @@ batch_config = {
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'spherical',
-    'run_time': int(1e4),
+    'run_time': int(1e5),
     'box_type': 'p',
     'integrator': 'nosehoover',
     'print_steps': int(1e2),
