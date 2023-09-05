@@ -16,8 +16,8 @@
 
 #-------------------------------------------------------------------------------#
   boundary			_BOUND _BOUND _BOUND
-  thermo_modify lost ignore flush yes
-  thermo_modify lost/bond ignore
+  #thermo_modify lost ignore flush yes
+  #thermo_modify lost/bond ignore
 #------------------------- Load initial setup ----------------------------------#
   # load function definition
   include "system.in.init"
@@ -45,7 +45,6 @@
   variable	        tmpt    equal "c_Tmobile"
   variable	        tmpall  equal "c_Tall"
 
-
 #--------------------------- Thermo style and settings -------------------------#
   timestep          1.0
   thermo            ${t_print}
@@ -56,7 +55,10 @@
 #-------------------------------------------------------------------------------#
 
   compute	    c1 all pe
-  
+  compute       cc1 all chunk/atom molecule
+  compute       myChunk all temp/chunk cc1 temp kecom internal
+  fix           1 all ave/time ${t_print} 1 ${t_print} c_myChunk[1] tempfile tmp.out mode vector
+
   velocity          all create $T ${rnd} mom yes rot yes dist gaussian
 
   dump              d1 all dcd ${t_print} traj.dcd
