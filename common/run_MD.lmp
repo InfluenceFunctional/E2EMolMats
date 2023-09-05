@@ -55,7 +55,10 @@
 #-------------------------------------------------------------------------------#
 
   compute	    c1 all pe
+
   compute       c2 all com
+  fix 1 all ave/time ${t_print} 1 ${t_print} c1 file tmp2.out
+
   compute cc1 all chunk/atom molecule
   compute myChunk all temp/chunk cc1 temp kecom internal
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
@@ -65,7 +68,7 @@
 
   dump              d1 all dcd ${t_print} traj.dcd
   
-  dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz c2
+  dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz
   dump_modify       d2 element Ha Hn O C Ca N Nb H4
   
   run               ${t_run}
