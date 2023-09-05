@@ -14,10 +14,10 @@ batch_config = {
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'spherical',
-    'run_time': int(1e5),
+    'run_time': int(1e7),
     'box_type': 'p',
     'integrator': 'nosehoover',
-    'print_steps': int(1e2),
+    'print_steps': int(1e3),
     'min_inter_cluster_distance': 1000,
     'bulk_crystal': False,
     'machine': 'cluster',
