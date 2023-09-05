@@ -56,7 +56,7 @@
 
   compute	    c1 all pe
   compute cc1 all chunk/atom molecule
-  compute myChunk all temp/chunk cc1 temp
+  compute myChunk all temp/chunk cc1 temp kecom internal
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
 
   velocity          all create $T ${rnd} mom yes rot yes dist gaussian
