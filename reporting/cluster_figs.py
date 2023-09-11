@@ -11,6 +11,7 @@ from utils import compute_rdf_distance, compute_principal_axes_np, ff_names_dict
 from plotly.subplots import make_subplots
 from scipy.spatial.distance import cdist, pdist
 from analysis.cluster_rdf import crystal_rdf
+from scipy.ndimage import gaussian_filter1d
 
 
 def plot_rdf_series(u, nbins, rrange, core_inds, rdf_norm='rdf', n_frames_avg=1):
@@ -202,6 +203,35 @@ def process_thermo_data():
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
 
+    if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
+
+        f = open('tmp.out', "r")
+        text = f.read()
+        lines = text.split('\n')
+        f.close()
+
+        frames = {}
+        frame_data = []  # temp kecom internal
+        for ind, line in enumerate(lines):
+            if line == '\n':
+                pass
+            elif len(line.split()) == 0:
+                pass
+            elif line[0] == '#':
+                pass
+            elif len(line.split()) == 2:
+                if len(frame_data) > 0:
+                    frames[frame_num] = frame_data
+                a, b = line.split()
+                frame_num = int(a)
+                n_mols = int(b)
+                frame_data = np.zeros((n_mols, 3))
+            else:
+                mol_num, temp, kecom, internal = np.asarray(line.split()).astype(float)
+                frame_data[int(mol_num) - 1] = temp, kecom, internal
+
+        results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
+
     return results_dict
 
 
@@ -242,20 +272,21 @@ def plot_atomwise_rdf_ref_dist(u, atomwise_rdfs, ref_atomwise_rdfs, bins):
     return mean_rdf_drift
 
 
-def cluster_molecule_alignment(u):
+def cluster_molecule_alignment(u, print_steps=10):
     """
     record the principal inertial vectors for molecules in the cluster
     """
     n_frames = u.trajectory.n_frames
     time_step = u.trajectory.dt
-    print_steps = 10
 
-    print_frames = np.arange(n_frames // print_steps, n_frames + 1, step=n_frames // print_steps)
+    print_frames = np.arange(0, n_frames, step=n_frames // print_steps)
 
-    Ip_trajectory = []
-    Ip_overlaps_trajectory = []
+    Ip_trajectory = np.zeros((len(print_frames), len(u.residues), 3, 3))
+    Ip_overlaps_trajectory = np.zeros((len(print_frames), len(u.residues), len(u.residues), 3, 3))
+    tind = -1
     for ts in u.trajectory:
         if ts.frame in print_frames:
+            tind += 1
             molecules = u.residues
             coords = np.asarray([molecules[i].atoms.positions[:15] for i in range(len(molecules))])  # omit trailing hydrogen in benzamide
             Ip_list = []
@@ -264,7 +295,7 @@ def cluster_molecule_alignment(u):
                 Ip_list.append(Ip)
 
             Ip_list = np.stack(Ip_list)
-            Ip_trajectory.append(Ip_list)
+            Ip_trajectory[tind] = Ip_list
 
             # source mol, target mol, source Ip, target Ip
             Ip_overlaps = np.zeros((len(molecules), len(molecules), 3, 3))
@@ -272,9 +303,9 @@ def cluster_molecule_alignment(u):
                 for k in range(3):
                     Ip_overlaps[j, :, k, :] = Ip_list[j, k].dot(np.transpose(Ip_list, axes=[0, 2, 1]))
 
-            Ip_overlaps_trajectory.append(Ip_overlaps)
+            Ip_overlaps_trajectory[tind] = Ip_overlaps
 
-    return Ip_trajectory, Ip_overlaps_trajectory
+    return Ip_trajectory, Ip_overlaps_trajectory, print_frames
 
 
 def plot_alignment_fingerprint(u):
@@ -316,19 +347,47 @@ def plot_alignment_fingerprint(u):
 
 
 def plot_thermodynamic_data(thermo_results_dict):
+    figs = []
     fig = make_subplots(rows=2, cols=3)
     ind = 0
     for i, key in enumerate(thermo_results_dict.keys()):
-        if key != 'time step' and key != 'ns_per_day':
+        if key != 'time step' and key != 'ns_per_day' and key != 'thermo_trajectory':
             ind += 1
             row = ind // 3 + 1
             col = ind % 3 + 1
             fig.add_trace(
                 go.Scattergl(x=thermo_results_dict['time step'],
-                             y=thermo_results_dict[key], name=key),
+                             y=gaussian_filter1d(thermo_results_dict[key], 5), name=key),
                 row=row, col=col
             )
-    return fig
+    figs.append(fig)
+    if 'thermo_trajectory' in thermo_results_dict.keys():
+        thermo_trajectory = thermo_results_dict['thermo_trajectory']
+        n_mols = thermo_trajectory.shape[1]
+        colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', n_mols+6, colortype='rgb')
+        fig = make_subplots(rows=1, cols=3, subplot_titles=['temp', 'kecom', 'internal'])
+        for ic in range(3):
+            for im in range(n_mols):
+                fig.add_trace(
+                    go.Scattergl(y=gaussian_filter1d(thermo_trajectory[:, im, ic], 5), marker=dict(color=colors[im]), opacity=.5, name=str(im), showlegend=False),
+                    row=1, col=ic + 1)
+            fig.add_trace(
+                go.Scattergl(y=gaussian_filter1d(thermo_trajectory[:, :, ic].mean(-1), 5), marker=dict(color=colors[im + 5]), opacity=1, showlegend=False),
+                row=1, col=ic + 1)
+        figs.append(fig)
+
+        colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', n_mols+6, colortype='rgb')
+        fig = make_subplots(rows=1, cols=3, subplot_titles=['temp', 'kecom', 'internal'])
+        for ic in range(3):
+            for im in range(n_mols):
+                fig.add_trace(
+                    go.Scattergl(y=np.cumsum(thermo_trajectory[:, im, ic])/np.arange(len(thermo_trajectory)), marker=dict(color=colors[im]), name=str(im), opacity=.5, showlegend=False),
+                    row=1, col=ic + 1)
+            fig.add_trace(
+                go.Scattergl(y=np.cumsum(thermo_trajectory[:, :, ic].mean(-1)/np.arange(len(thermo_trajectory))), marker=dict(color=colors[im + 5]), opacity=1, showlegend=False),
+                row=1, col=ic + 1)
+        figs.append(fig)
+    return figs
 
 
 def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], core_cutoff=None, tiling=None, print_steps=10):

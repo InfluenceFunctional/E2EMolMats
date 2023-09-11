@@ -9,7 +9,7 @@ import warnings
 from distutils.dir_util import copy_tree
 
 warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
-from run_script import create_xyz_and_run_lammps
+from main_script import create_xyz_and_run_lammps
 
 '''import run config'''
 from configs.dev import batch_config

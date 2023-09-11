@@ -2,27 +2,23 @@ import MDAnalysis as mda
 import os
 import wandb
 
-from analysis.residue_test import residue_cleanup
-from reporting.cluster_figs import \
-    (plot_rdf_series, plot_intermolecular_rdf_series,
-     plot_cluster_stability, plot_cluster_centroids_drift,
-     process_thermo_data, plot_atomwise_rdf_drift, plot_alignment_fingerprint,
-     plot_thermodynamic_data, trajectory_rdf_analysis,
-     plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap)
-from utils import (dict2namespace, names_dict, ff_names_dict, cell_vol, rewrite_trajectory, tile_universe, compute_Ip_alignment)
+from reporting.cluster_figs import (
+    plot_thermodynamic_data, trajectory_rdf_analysis,
+    plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap, process_thermo_data)
+from utils import (dict2namespace, cell_vol, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment)
 import numpy as np
 from plotly.subplots import make_subplots
 from scipy.spatial.distance import cdist, pdist
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import plotly.io as pio
+from scipy.ndimage import gaussian_filter1d
 
 pio.renderers.default = 'browser'
 
 params = {
-    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference4/',
-    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\benzamide_test5/',
+    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
+    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\dev8/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
@@ -103,9 +99,9 @@ for run_dir in dirs:  # loop over run directories in the battery
             current_temperature = new_row['temperature']
 
             # index for relevant reference system
-            ref_index = np.argwhere((np.asarray(ref_temp_list) == current_temperature) * (np.asarray(ref_crystal_list) == current_structure))[0][0]
-            ref_path = params['reference_path'] + str(ref_index + 1)
-            ref_u = mda.Universe(ref_path + "/system.data", ref_path + "/traj.dcd", format="LAMMPS")
+            # ref_index = np.argwhere((np.asarray(ref_temp_list) == current_temperature) * (np.asarray(ref_crystal_list) == current_structure))[0][0]
+            # ref_path = params['reference_path'] + str(ref_index + 1)
+            # ref_u = mda.Universe(ref_path + "/system.data", ref_path + "/traj.dcd", format="LAMMPS")
 
             # get reference and sample density
             coords = u.atoms.positions
@@ -113,21 +109,26 @@ for run_dir in dirs:  # loop over run directories in the battery
             dists = cdist(np.asarray((0, 0, 0))[None, :], coords)
             subbox_size = min(10, np.ptp(u.atoms.positions) / 4)  # set the 'inside' molecules for which rdfs will be calculated
 
-            density = np.sum(dists < subbox_size) / ((4 / 3) * np.pi * subbox_size ** 3)
-            ref_density = len(ref_u.atoms) / cell_vol(ref_u.dimensions[:3], ref_u.dimensions[3:], units='degrees')
-            density_difference = np.abs((ref_density - density)) / ref_density
+            # density = np.sum(dists < subbox_size) / ((4 / 3) * np.pi * subbox_size ** 3)
+            # ref_density = len(ref_u.atoms) / cell_vol(ref_u.dimensions[:3], ref_u.dimensions[3:], units='degrees')
+            # density_difference = np.abs((ref_density - density)) / ref_density
 
             print(run_dir)
-            if config.write_trajectory:
-                rewrite_trajectory(u, run_dir)
 
             '''thermodynamic data'''
             thermo_results_dict = process_thermo_data()
             thermo_fig = plot_thermodynamic_data(thermo_results_dict)
 
             '''alignment analysis'''
-            Ip_trajectory, Ip_overlap_trajectory = cluster_molecule_alignment(u)
-            ref_Ip_trajectory, ref_Ip_overlap_trajectory = cluster_molecule_alignment(ref_u)
+            Ip_trajectory, Ip_overlap_trajectory = cluster_molecule_alignment(u, print_steps=len(u.trajectory))
+            ref_Ip_trajectory, ref_Ip_overlap_trajectory = cluster_molecule_alignment(ref_u, print_steps=len(ref_u.trajectory))
+            molwise_Ip_trajectory = compute_Ip_molwise_alignment(u, Ip_overlap_trajectory)
+
+            smoothed_Ip_trajectory = gaussian_filter1d(molwise_Ip_trajectory.mean(-1), 5, axis=-1)
+            extra_atomwise_values = smoothed_Ip_trajectory.repeat(15, 1)  # todo update repeat pattern for mixed benzamides
+
+            if config.write_trajectory:
+                rewrite_trajectory(u, run_dir, extra_atomwise_values=extra_atomwise_values)
 
             Ip_alignment_trajectory = compute_Ip_alignment(u, Ip_overlap_trajectory)
             ref_Ip_alignment_trajectory = compute_Ip_alignment(ref_u, ref_Ip_overlap_trajectory)
@@ -209,5 +210,3 @@ aa = 1
 #
 # from MDAnalysis.core.universe import Merge
 # u = Merge(*mol_groups)  # universe with correct molecule numbering
-
-

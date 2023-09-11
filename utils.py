@@ -2,6 +2,7 @@ from argparse import Namespace
 import os
 import numpy as np
 import MDAnalysis as mda
+from scipy.spatial.distance import cdist, pdist
 
 names_dict = {'1': 'H',  # rename for xyz export
               '8': 'H',
@@ -69,6 +70,7 @@ def rotvec2sph(rotvec):
     else:
         return np.concatenate((theta[:, None], phi[:, None], r[:, None]), axis=-1)  # polar, azimuthal, applied rotation
 
+
 def compute_Ip_alignment(u, Ip_overlap_trajectory):
     cutoffs = [0.75, 0.8, 0.85, 0.9, 0.95]
     Ip_alignment_trajectory = np.zeros((len(Ip_overlap_trajectory), len(cutoffs)))
@@ -82,6 +84,40 @@ def compute_Ip_alignment(u, Ip_overlap_trajectory):
             Ip_alignment_trajectory[it, ic] = tot_alignment.mean()
 
     return Ip_alignment_trajectory
+
+
+def compute_Ip_molwise_alignment(u, Ip_overlap_trajectory, print_frames):
+    cutoffs = [0.25, 0.5, 0.75, 0.9, 0.95]
+
+    global_Ip_alignment_trajectory = np.zeros((len(Ip_overlap_trajectory), u.residues.n_residues, len(cutoffs)))
+    local_Ip_alignment_trajectory = np.zeros((len(Ip_overlap_trajectory), u.residues.n_residues))
+
+    it = -1
+    for itt, ts in enumerate(u.trajectory):
+        if itt in print_frames:
+            it += 1
+            mol_centroids = np.asarray([u.residues[ii].atoms.centroid() for ii in range(len(u.residues))])
+            distmat = cdist(mol_centroids, mol_centroids)
+            envelope = -np.tanh((distmat - 10) / 2) / 2 + .5  # a function which prioritizes mols which are nearby to each other
+
+            for icc, cutoff in enumerate(cutoffs):
+                alignments = np.zeros((3, len(u.residues), len(u.residues)))
+
+                for ip in range(3):
+                    alignments[ip] = Ip_overlap_trajectory[it, :, :, ip, ip]
+
+                tot_alignment = np.mean(alignments > cutoff, axis=0)
+                global_Ip_alignment_trajectory[it, :, icc] = (tot_alignment).mean(1)
+
+            local_alignments = np.zeros((3, len(u.residues), len(u.residues)))
+            for ip in range(3):
+                local_alignments[ip] = np.abs(Ip_overlap_trajectory[it, :, :, ip, ip]) * envelope
+
+            local_Ip_alignment_trajectory[it, :] = local_alignments.mean(0).sum(1)
+
+    return global_Ip_alignment_trajectory, local_Ip_alignment_trajectory
+
+
 def compute_rdf_distance(rdf1, rdf2, rr, envelope=None):
     """
     compute a distance metric between two radial distribution functions with shapes
@@ -189,15 +225,40 @@ def cell_vol(v, a, units='natural'):
     return vol
 
 
-def rewrite_trajectory(u: mda.Universe, run_dir: str):
-    if not os.path.exists(f"{run_dir}_traj.xyz"):
-        atom_types = u.atoms.types
-        atom_names = np.asarray([names_dict[atype] for atype in atom_types])
-        u.add_TopologyAttr('name', atom_names)
-        cluster = u.select_atoms("all")
-        with mda.Writer(f"{run_dir}_traj.xyz", cluster.n_atoms) as W:
-            for ts in u.trajectory:
-                W.write(cluster)
+def rewrite_trajectory(u: mda.Universe, run_dir: str, extra_atomwise_values=None):
+
+    #if not os.path.exists(f"{run_dir}_traj.xyz"):
+    # if extra_atomwise_values is not None:
+    #     u.add_TopologyAttr('tempfactors')
+    atom_types = u.atoms.types
+    atom_names = np.asarray([names_dict[atype] for atype in atom_types])
+    u.add_TopologyAttr('name', atom_names)
+    cluster = u.select_atoms("all")
+    with mda.Writer(f"{run_dir}_traj.xyz", cluster.n_atoms) as W:
+        for ts in u.trajectory:
+            # if extra_atomwise_values is not None:
+            #     u.atoms.tempfactors = extra_atomwise_values[ts.frame]
+            W.write(cluster)
+
+        if extra_atomwise_values is not None:
+            newFile = open(f"{run_dir}_traj2.xyz", 'w')
+            with open(f"{run_dir}_traj.xyz") as f:
+                newText = f.readlines()
+                counter = 0
+                frame_num = None
+                for ind, line in enumerate(newText):
+                    if 'frame' in line:
+                        newFile.write(line)
+                        frame_num = int(line.split()[1])
+                        counter = 0
+                    elif len(line.split()) == 1:
+                        newFile.write(line)
+                    elif line == '\n':
+                        newFile.write(line)
+                    else:
+                        coord_line = line.replace('\n', f'  {extra_atomwise_values[frame_num, counter]:.2f}\n')
+                        counter += 1
+                        newFile.write(coord_line)
 
 
 def tile_universe(universe, tiling):
