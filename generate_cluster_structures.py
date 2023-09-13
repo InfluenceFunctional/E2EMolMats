@@ -42,17 +42,26 @@ def generate_structure(workdir, crystals_path, structure_identifier,
         atoms_in_molecule = 15
         space_group = "P21"
         z_value = 2
+        z_prime = 1
         crystal_path = crystals_path + r'NICOAM07_renumbered_1x1x1.pdb'
-    elif structure_identifier == "NICOAM13":
+    elif structure_identifier == "NICOAM13":  # form 1
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 4
+        z_prime = 1
         crystal_path = crystals_path + r'NICOAM13_renumbered_1x1x1.pdb'
-    elif structure_identifier == "NICOAM17":
+    elif structure_identifier == "NICOAM17":  # form 9
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 4
+        z_prime = 1
         crystal_path = crystals_path + r'NICOAM17_renumbered_1x1x1.pdb'
+    elif structure_identifier == "NICOAM16":  # form 4
+        atoms_in_molecule = 15
+        space_group = "P21/c"
+        z_value = 8
+        z_prime = 2
+        crystal_path = crystals_path + r'NICOAM16_renumbered_1x1x1.pdb'
     else:
         print("no such structure!")
         sys.exit()

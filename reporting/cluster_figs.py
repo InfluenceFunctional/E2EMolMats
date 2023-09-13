@@ -481,7 +481,16 @@ def old_trajectory_rdf_analysis(u, nbins=200, rrange=[0, 10], core_cutoff=None, 
     return full_rdf, intermolecular_rdf, atomwise_rdfs, nbins
 
 
-def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, take_mean=False):
+def check_for_extra_values(row, extra_axes, extra_values):
+    if extra_axes is not None:
+        bools = []
+        for iv, axis in enumerate(extra_axes):
+            bools.append(extra_values[iv] == row[axis])
+        return all(bools)
+    else:
+        return True
+
+def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, extra_axes=None, extra_axes_values=None, take_mean=False):
     xaxis = np.unique(results_df[xaxis_title])
     yaxis = np.unique(results_df[yaxis_title])
     unique_structures = np.unique(results_df['structure_identifier'])
@@ -495,11 +504,12 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, tak
                     if row['structure_identifier'] == struct:
                         if row[xaxis_title] == xval:
                             if row[yaxis_title] == yval:
-                                try:
-                                    aa = row[property]  # see if it's non-empty
-                                    n_samples[iC, iX, iY] += 1
-                                except:
-                                    pass
+                                if check_for_extra_values(row, extra_axes, extra_axes_values):
+                                    try:
+                                        aa = row[property]  # see if it's non-empty
+                                        n_samples[iC, iX, iY] += 1
+                                    except:
+                                        pass
 
     shift_heatmap = np.zeros((len(unique_structures), len(xaxis), len(yaxis)))
     for iX, xval in enumerate(xaxis):
@@ -509,19 +519,25 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, tak
                     if row['structure_identifier'] == struct:
                         if row[xaxis_title] == xval:
                             if row[yaxis_title] == yval:
-                                try:
-                                    if take_mean:
-                                        shift_heatmap[iC, iX, iY] = row[property].mean() / n_samples[iC, iX, iY]  # take mean over seeds
-                                    else:
-                                        shift_heatmap[iC, iX, iY] = row[property] / n_samples[iC, iX, iY]
-                                except:
-                                    shift_heatmap[iC, iX, iY] = 0
+                                if check_for_extra_values(row, extra_axes, extra_axes_values):
+                                    try:
+                                        if take_mean:
+                                            shift_heatmap[iC, iX, iY] = row[property].mean() / n_samples[iC, iX, iY]  # take mean over seeds
+                                        else:
+                                            shift_heatmap[iC, iX, iY] = row[property] / n_samples[iC, iX, iY]
+                                    except:
+                                        shift_heatmap[iC, iX, iY] = 0
 
     fig = make_subplots(rows=1, cols=len(unique_structures), subplot_titles=unique_structures)
-    max_val = shift_heatmap.max()
-    min_val = shift_heatmap.min()
+
     for i in range(1, len(unique_structures) + 1):
-        fig.add_trace(go.Heatmap(z=(shift_heatmap[i - 1].T), colorscale='Viridis', zmax=max_val, zmin=min_val
+        max_val = shift_heatmap[i-1].max()
+        min_val = shift_heatmap[i-1].min()
+        fig.add_trace(go.Heatmap(z=(shift_heatmap[i - 1].T),
+                                 text=n_samples[i - 1].T,
+                                 texttemplate="%{text}",
+                                 colorscale='Viridis', zmax=max_val, zmin=min_val,
+                                 colorbar=dict(x=0.5 * (i))
                                  ), row=1, col=i)
 
         fig.update_xaxes(title_text=xaxis_title, row=1, col=i)
@@ -548,6 +564,9 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, tak
             tickvals=np.arange(len(yaxis)),
             ticktext=yaxis
         ))
+
+    if extra_axes is not None:
+        property += ' ' + str(extra_axes) + ' ' + str(extra_axes_values)
     fig.update_layout(title=property)
     fig.show(renderer="browser")
     fig.write_image(property + "_heatmap.png")

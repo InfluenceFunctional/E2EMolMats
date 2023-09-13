@@ -22,6 +22,8 @@ ff_names_dict = {'1': 'ha',  # detailed atom types for analysis
                  '4': 'c',
                  '5': 'ca',
                  '3': 'o',
+                 '9': 'ca',
+                 '10': 'ca',
                  }
 
 
