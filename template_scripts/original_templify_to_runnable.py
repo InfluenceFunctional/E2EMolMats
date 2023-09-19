@@ -53,7 +53,7 @@ def templify_to_runnable(workdir, original, ori_data_file, New):
             New_data.write(i)
         elif(counter==5):
             New_data.write(i)
-            New_data.write("import \"gaff2_nicotinamid_nolong.lt\"\nNicotinamide inherits GAFF2 {\n")
+            New_data.write("import \"gaff2_nicotinamid_long.lt\"\nNicotinamide inherits GAFF2 {\n")
         elif(counter<10):
             New_data.write(i)
         elif(counter < 20):

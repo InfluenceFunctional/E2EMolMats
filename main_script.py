@@ -8,6 +8,7 @@ from ovito.io import import_file, export_file
 from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup_for_ovito import initial_setup
 from template_scripts.original_templify_to_runnable import templify_to_runnable
+from template_scripts.moltemp_final import moltemp_final
 import subprocess
 
 
@@ -129,6 +130,8 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         '''run moltemplate and cleanup'''
         os.system("moltemplate.sh system.lt")
         os.system("cleanup_moltemplate.sh")
+
+        moltemp_final(workdir)  # Daisuke final indexing cleanup
 
         # '''optionally - directly run MD'''
         os.system("sbatch sub_job.slurm")

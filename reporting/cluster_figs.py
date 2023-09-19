@@ -364,7 +364,7 @@ def plot_thermodynamic_data(thermo_results_dict):
     if 'thermo_trajectory' in thermo_results_dict.keys():
         thermo_trajectory = thermo_results_dict['thermo_trajectory']
         n_mols = thermo_trajectory.shape[1]
-        colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', n_mols+6, colortype='rgb')
+        colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', n_mols + 6, colortype='rgb')
         fig = make_subplots(rows=1, cols=3, subplot_titles=['temp', 'kecom', 'internal'])
         for ic in range(3):
             for im in range(n_mols):
@@ -376,15 +376,15 @@ def plot_thermodynamic_data(thermo_results_dict):
                 row=1, col=ic + 1)
         figs.append(fig)
 
-        colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', n_mols+6, colortype='rgb')
+        colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', n_mols + 6, colortype='rgb')
         fig = make_subplots(rows=1, cols=3, subplot_titles=['temp', 'kecom', 'internal'])
         for ic in range(3):
             for im in range(n_mols):
                 fig.add_trace(
-                    go.Scattergl(y=np.cumsum(thermo_trajectory[:, im, ic])/np.arange(len(thermo_trajectory)), marker=dict(color=colors[im]), name=str(im), opacity=.5, showlegend=False),
+                    go.Scattergl(y=np.cumsum(thermo_trajectory[:, im, ic]) / np.arange(len(thermo_trajectory)), marker=dict(color=colors[im]), name=str(im), opacity=.5, showlegend=False),
                     row=1, col=ic + 1)
             fig.add_trace(
-                go.Scattergl(y=np.cumsum(thermo_trajectory[:, :, ic].mean(-1)/np.arange(len(thermo_trajectory))), marker=dict(color=colors[im + 5]), opacity=1, showlegend=False),
+                go.Scattergl(y=np.cumsum(thermo_trajectory[:, :, ic].mean(-1) / np.arange(len(thermo_trajectory))), marker=dict(color=colors[im + 5]), opacity=1, showlegend=False),
                 row=1, col=ic + 1)
         figs.append(fig)
     return figs
@@ -490,7 +490,8 @@ def check_for_extra_values(row, extra_axes, extra_values):
     else:
         return True
 
-def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, extra_axes=None, extra_axes_values=None, take_mean=False):
+
+def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, extra_axes=None, extra_axes_values=None, take_mean=False, norm_against_zero_y=False):
     xaxis = np.unique(results_df[xaxis_title])
     yaxis = np.unique(results_df[yaxis_title])
     unique_structures = np.unique(results_df['structure_identifier'])
@@ -531,13 +532,18 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, ext
     fig = make_subplots(rows=1, cols=len(unique_structures), subplot_titles=unique_structures)
 
     for i in range(1, len(unique_structures) + 1):
-        max_val = shift_heatmap[i-1].max()
-        min_val = shift_heatmap[i-1].min()
-        fig.add_trace(go.Heatmap(z=(shift_heatmap[i - 1].T),
+        if norm_against_zero_y:
+            heatmap = shift_heatmap[i - 1] / shift_heatmap[i - 1][:, 0, None]
+            max_val, min_val = None, None
+        else:
+            heatmap = shift_heatmap[i - 1]
+            max_val = np.amax(shift_heatmap[i - 1])
+            min_val = np.amin(shift_heatmap[i - 1])
+
+        fig.add_trace(go.Heatmap(z=heatmap.T,
                                  text=n_samples[i - 1].T,
                                  texttemplate="%{text}",
                                  colorscale='Viridis', zmax=max_val, zmin=min_val,
-                                 colorbar=dict(x=0.5 * (i))
                                  ), row=1, col=i)
 
         fig.update_xaxes(title_text=xaxis_title, row=1, col=i)
@@ -553,7 +559,7 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, ext
         tickvals=np.arange(len(yaxis)),
         ticktext=yaxis
     ))
-    if len(unique_structures) == 2:
+    if len(unique_structures) > 1:
         fig.update_layout(xaxis2=dict(
             tickmode='array',
             tickvals=np.arange(len(xaxis)),
@@ -564,9 +570,22 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, ext
             tickvals=np.arange(len(yaxis)),
             ticktext=yaxis
         ))
-
+    if len(unique_structures) > 2:
+        fig.update_layout(xaxis3=dict(
+            tickmode='array',
+            tickvals=np.arange(len(xaxis)),
+            ticktext=xaxis
+        ))
+        fig.update_layout(yaxis3=dict(
+            tickmode='array',
+            tickvals=np.arange(len(yaxis)),
+            ticktext=yaxis
+        ))
+    fig.update_traces(showscale=False)
     if extra_axes is not None:
-        property += ' ' + str(extra_axes) + ' ' + str(extra_axes_values)
-    fig.update_layout(title=property)
+        property_name = property + ' ' + str(extra_axes) + ' ' + str(extra_axes_values)
+    else:
+        property_name = property
+    fig.update_layout(title=property_name)
     fig.show(renderer="browser")
     fig.write_image(property + "_heatmap.png")

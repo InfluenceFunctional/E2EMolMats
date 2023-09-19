@@ -23,7 +23,7 @@
   include "system.in.init"
 
   # read system setup (positions, connectivity,...)
-  read_data "system.data"
+  read_data "system.in.data"
 
   # load force field parameters
   include "system.in.settings"
@@ -32,7 +32,9 @@
   minimize          1.0e-4 1.0e-6 100 1000
 
   write_data        cluster_${nx}x${ny}x${nz}_minimize.data
-  
+
+  # compute CNN all nnoutgen/atom 9 24
+
 #------------------ Computes, variables & modifications ------------------------#
   variable          step    equal step
   variable          time    equal time
@@ -64,7 +66,7 @@
   dump              d1 all dcd ${t_print} traj.dcd
   
   dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz
-  dump_modify       d2 element Ha Hn O C Ca N Nb H4
+  dump_modify       d2 element 1 2 3 4 5 6 7 8 9 10
   
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
