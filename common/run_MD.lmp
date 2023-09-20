@@ -23,10 +23,10 @@
   include "system.in.init"
 
   # read system setup (positions, connectivity,...)
-  read_data "system.in.data"
+  read_data "new_system.in.data"
 
   # load force field parameters
-  include "system.in.settings"
+  include "new_system.in.settings"
 #-------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------#
   minimize          1.0e-4 1.0e-6 100 1000

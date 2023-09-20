@@ -12,6 +12,27 @@ from template_scripts.moltemp_final import moltemp_final
 import subprocess
 
 
+def settings_final():
+    file = 'system.in.settings'
+    data = open(file, 'r')
+    New_data = open(f'new_{file}', 'w')
+
+    lines = data.readlines()
+    for i in range(8):
+        line = lines[i]
+        split_line = line.split('/')
+        split_line[3] = split_line[3].replace('charmm', 'long')
+        new_line = '/'.join(split_line)
+        New_data.write(new_line)
+
+    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
+
+    for i in range(8, len(lines)):
+        New_data.write(lines[i])
+
+    New_data.close()
+
+
 def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               cluster_type="supercell", structure_identifier="NICOAM13",
                               max_sphere_radius=None,
@@ -132,6 +153,8 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         os.system("cleanup_moltemplate.sh")
 
         moltemp_final(workdir)  # Daisuke final indexing cleanup
+
+        settings_final()  # adjust pairs to be Daisuke-friendly
 
         # '''optionally - directly run MD'''
         os.system("sbatch sub_job.slurm")
