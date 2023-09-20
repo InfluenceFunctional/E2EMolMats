@@ -18,12 +18,16 @@ copyfile('example/INPUT_nico_cluster2.dat', 'INPUT.dat')
 os.system('make')
 
 for dir_path in run_dirs:
+    try_iter = False
     try:
         print(int(dir_path))
+        try_iter = True
+    except:
+        pass
+
+    if try_iter:
         copyfile(dir_path + 'traj.dump', './')
         os.system('.sa traj.dump lammps_vec INPUT.dat')
         os.system('rm traj.dump')
         os.rename('run_ave_traj.dump', dir_path + 'run_ave_traj.dump')
         os.rename('new_traj.dump', dir_path + 'new_traj.dump')
-    except:
-        pass
