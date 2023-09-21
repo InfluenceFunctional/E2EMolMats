@@ -5,7 +5,7 @@ import wandb
 from reporting.cluster_figs import (
     plot_thermodynamic_data, trajectory_rdf_analysis,
     plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap, process_thermo_data)
-from utils import (dict2namespace, cell_vol, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment)
+from utils import (dict2namespace, cell_vol, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment, process_dump)
 import numpy as np
 from plotly.subplots import make_subplots
 from scipy.spatial.distance import cdist, pdist
@@ -19,17 +19,18 @@ pio.renderers.default = 'browser'
 
 params = {
     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
-    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\defect_clusters_3/',
+    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\dev10/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
     'make_run_wise_figs': True,
-    'do_rdf_analysis': True,
+    'do_rdf_analysis': False,
     'do_alignment_analysis': False,
-    'results_df_path': 'results_df2',
+    'results_df_path': 'results_df',
     'reference_df_path': 'reference_df5',
     'do_reference_analysis': False,
     'do_sample_analysis': True,
+    'do_NN_analysis': True
 }
 config = dict2namespace(params)
 
@@ -46,11 +47,14 @@ if config.do_sample_analysis:
     for run_dir in tqdm.tqdm(dirs):  # loop over run directories in the battery
         os.chdir(config.battery_path)
 
-        if (run_dir != 'common') and \
-                (run_dir not in results_df["run_num"].values.astype(str)) and \
-                ('results_df' not in run_dir) and \
-                ('png' not in run_dir) and \
-                ('wandb' not in run_dir):
+        go_forward = False
+        try:
+            int(run_dir)
+            go_forward=True
+        except:
+            pass
+
+        if go_forward:
 
             os.chdir(run_dir)
 
@@ -104,15 +108,15 @@ if config.do_sample_analysis:
 
                 if config.do_alignment_analysis:
                     '''alignment analysis'''
-                    Ip_trajectory, Ip_overlap_trajectory, alignment_frames = cluster_molecule_alignment(u, print_steps=100) #len(u.trajectory))
+                    Ip_trajectory, Ip_overlap_trajectory, alignment_frames = cluster_molecule_alignment(u, print_steps=100)  # len(u.trajectory))
                     global_molwise_alignment, local_molwise_alignment = compute_Ip_molwise_alignment(u, Ip_overlap_trajectory, alignment_frames)
 
                     if config.write_trajectory:
                         # convert from atomwise to molwise trajectory
-                        atomwise_alignment_trajectory = np.concatenate([local_molwise_alignment[:,rind,None].repeat(u.residues[rind].atoms.n_atoms,1) for rind in range(u.residues.n_residues)], axis=-1)
-                        #local_molwise_alignment.repeat(15, 1)
+                        atomwise_alignment_trajectory = np.concatenate([local_molwise_alignment[:, rind, None].repeat(u.residues[rind].atoms.n_atoms, 1) for rind in range(u.residues.n_residues)], axis=-1)
+                        # local_molwise_alignment.repeat(15, 1)
 
-                        rewrite_trajectory(u, run_dir, extra_atomwise_values=atomwise_alignment_trajectory)# todo update repeat pattern for mixed benzamides
+                        rewrite_trajectory(u, run_dir, extra_atomwise_values=atomwise_alignment_trajectory)  # todo update repeat pattern for mixed benzamides
 
                     new_row["global_Ip_alignment"] = [global_molwise_alignment.mean((1, 2))]
                     new_row["local_Ip_alignment"] = [local_molwise_alignment.mean(1)]
@@ -125,7 +129,46 @@ if config.do_sample_analysis:
                     new_row["rdf_times"] = [rdf_times]
                     new_row["rdf_bins"] = [bins]
 
-            results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)], axis = 0)
+                if config.do_NN_analysis:
+                    NN_output = process_dump('run_ave_traj.dump')
+
+                    '''compute following properties
+                    time and mol wise averages
+                    mol-averaged trajectories
+                    mol-wise variability
+                    '''
+                    all_steps = pd.concat([frame for frame in NN_output.values()])
+
+                    categories = [column for column in all_steps.columns if 'NNout' in column]
+                    avg_probs = [np.mean(all_steps[column]) for column in all_steps.columns if 'NNout' in column]
+                    prob_trajectories = np.asarray([[np.mean(df[column]) for column in df.columns if 'NNout' in column] for df in NN_output.values()])
+
+                    n_mols = len(np.unique(list(NN_output.values())[0]['mol']))
+                    horiz_combo = pd.concat([frame for frame in NN_output.values()], axis=1)
+
+                    atomwise_variance = np.asarray([np.var(horiz_combo[column],axis=1) for column in categories])
+                    #
+                    # '''make figs'''
+                    # fig = make_subplots(rows=1, cols=3, subplot_titles=['Trajectory Mean', 'Variability', 'Trajectory'])
+                    # fig.add_trace(go.Bar(x=categories, y=avg_probs, showlegend=False),
+                    #               row=1, col=1)
+                    # fig.add_trace(go.Bar(x=categories, y=atomwise_variance.mean(1), showlegend=False),
+                    #               row=1, col=2)
+                    # for i in range(len(categories)):
+                    #     fig.add_trace(go.Scattergl(y=prob_trajectories[:, i], name=categories[i]),
+                    #                   row=1, col=3)
+                    # fig.show()
+                    #
+                    # fig.write_image('NNout.png')
+
+                    new_row['NN_classes'] = [categories]
+                    new_row['NN_trajectories'] = [prob_trajectories]
+                    new_row['NN_means'] = [avg_probs]
+                    new_row['NN_variance'] = [atomwise_variance.mean(1)]
+
+                    aa = 1
+
+            results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)], axis=0)
             results_df.to_pickle('../' + config.results_df_path)
 
 aa = 1

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import MDAnalysis as mda
 from scipy.spatial.distance import cdist, pdist
+import pandas as pd
 
 names_dict = {'1': 'H',  # rename for xyz export
               '8': 'H',
@@ -262,6 +263,31 @@ def rewrite_trajectory(u: mda.Universe, run_dir: str, extra_atomwise_values=None
                         counter += 1
                         newFile.write(coord_line)
 
+def process_dump(path):
+    file = open(path, 'r')
+    lines = file.readlines()
+    file.close()
+
+    timestep = None
+    n_atoms = None
+    frame_outputs = {}
+    for ind, line in enumerate(lines):
+        if "ITEM: TIMESTEP" in line:
+            timestep = int(lines[ind + 1])
+        elif "ITEM: NUMBER OF ATOMS" in line:
+            n_atoms = int(lines[ind + 1])
+        elif "ITEM: ATOMS" in line:  # atoms header
+            headers = line.split()[2:]
+            atom_data = np.zeros((n_atoms, len(headers)))
+            for ind2 in range(n_atoms):
+                atom_data[ind2] = np.asarray(lines[1 + ind + ind2].split()).astype(float)
+
+            frame_data = pd.DataFrame(atom_data, columns=headers)
+            frame_outputs[timestep] = frame_data
+        else:
+            pass
+
+    return frame_outputs
 
 def tile_universe(universe, tiling):
     n_x, n_y, n_z = tiling

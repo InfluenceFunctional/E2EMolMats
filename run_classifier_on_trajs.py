@@ -1,6 +1,7 @@
 import os
 from distutils.dir_util import copy_tree
 from shutil import copyfile
+from time import sleep
 
 classifier_source_path = '/scratch/mk8347/daisuke_classifier/molvec_lib/'
 run_path = '/scratch/mk8347/molecule_clusters/dev10/'
@@ -19,6 +20,8 @@ os.system('make')
 
 for dir_path in run_dirs:
     try_iter = False
+    finished = False
+    wait_steps = 0
     try:
         print(int(dir_path))
         try_iter = True
@@ -26,8 +29,15 @@ for dir_path in run_dirs:
         pass
 
     if try_iter:
-        copyfile(dir_path + 'traj.dump', './')
-        os.system('.sa traj.dump lammps_vec INPUT.dat')
-        os.system('rm traj.dump')
-        os.rename('run_ave_traj.dump', dir_path + 'run_ave_traj.dump')
-        os.rename('new_traj.dump', dir_path + 'new_traj.dump')
+        os.system(f'./sa {dir_path}/traj.dump lammps_vec INPUT.dat')
+        sleep(10)
+
+        while (not finished) or (wait_steps < 20): # wait a maximum of 200 seconds before giving up
+            if os.path.exists('run_ave_traj.dump'):
+                finished = True
+                os.rename('run_ave_traj.dump', dir_path + '/run_ave_traj.dump')
+                os.rename('new_traj.dump', dir_path + '/new_traj.dump')
+            else:
+                sleep(10)
+                wait_steps += 1
+
