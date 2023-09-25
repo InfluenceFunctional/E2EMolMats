@@ -33,5 +33,13 @@ for dir_path in run_dirs[:5]:
         os.system('make')
         sleep(20)
         os.system(f'./sa traj.dump lammps_vec INPUT.dat')
+
+        while (not finished) or (wait_steps < 20):  # wait a maximum of 200 seconds before giving up
+            if os.path.exists('run_ave_traj.dump'):
+                finished = True
+            else:
+                sleep(10)
+                wait_steps += 1
+
         os.chdir('../')
 
