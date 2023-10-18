@@ -30,7 +30,7 @@ if machine == 'local':
     crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie/CrystalStructures/'
 elif machine == 'cluster':
     head_dir = r'/vast/mk8347/molecule_clusters/' + batch_config['run_name']
-    crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
+    crystals_path = r'/vast/mk8347/molecule_clusters/CrystalStructures/'
 else:
     print("Machine must be 'local' or 'cluster'")
     sys.exit()
