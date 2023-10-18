@@ -30,7 +30,7 @@ from scipy.spatial.transform import Rotation
 def generate_structure(workdir, crystals_path, structure_identifier,
                        cluster_type, max_sphere_radius, cluster_size,
                        defect_rate, scramble_rate, gap_rate, seed,
-                       min_inter_cluster_distance, periodic_structure=False):
+                       min_inter_cluster_distance, min_lattice_length, periodic_structure=False):
     np.random.seed(seed=seed)
 
     # move to working directory
@@ -87,7 +87,19 @@ def generate_structure(workdir, crystals_path, structure_identifier,
 
     # adjust shape of the cluster
     if cluster_type == "supercell":
-        pass
+        if min_lattice_length is not None:
+            required_repeats = np.ceil(min_lattice_length / cell_lengths).astype(int)
+            supercell_coordinates = []
+            for xs in range(required_repeats[0]):
+                for ys in range(required_repeats[1]):
+                    for zs in range(required_repeats[2]):
+                        supercell_coordinates.extend(crystal_coordinates + T_fc[0] * xs + T_fc[1] * ys + T_fc[2] * zs)
+
+            supercell_coordinates = np.asarray(supercell_coordinates)
+            supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(required_repeats))])
+
+        else:
+            pass
     elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
         num_mols = z_value * np.product(cluster_size)
         molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
@@ -224,7 +236,7 @@ def generate_structure(workdir, crystals_path, structure_identifier,
 
     supercell_coordinates += cell.sum(0) / 2 - supercell_coordinates.mean(0)
 
-    cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)  # cell = T_fc)
+    cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)
 
     filename = f'{structure_identifier}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
     io.write(filename, cluster)

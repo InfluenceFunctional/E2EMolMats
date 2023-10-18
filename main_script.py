@@ -35,7 +35,7 @@ def settings_final():
 
 def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               cluster_type="supercell", structure_identifier="NICOAM13",
-                              max_sphere_radius=None,
+                              max_sphere_radius=None, min_lattice_length=None,
                               defect_rate=0, scramble_rate=0, gap_rate=0,
                               seed=1, min_inter_cluster_distance=500,
                               temperature=300, run_time=int(1e6),
@@ -82,6 +82,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             'cluster_size': cluster_size,
             'cluster_type': cluster_type,
             'structure_identifier': structure_identifier,
+            'min_lattice_length': min_lattice_length,
             'max_sphere_radius': max_sphere_radius,
             'defect_rate': defect_rate,
             'scramble_rate': scramble_rate,
@@ -112,6 +113,8 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                 newText = newText.replace('#_NOSE', '')
             elif integrator == 'npt':
                 newText = newText.replace('#_NPT', '')
+            # if box_type == 'p':
+            #     newText = newText.replace('_KSPACE', '')
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
@@ -122,6 +125,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             cluster_type, max_sphere_radius,
             cluster_size, defect_rate, scramble_rate,
             gap_rate, seed, min_inter_cluster_distance,
+            min_lattice_length,
             periodic_structure=bulk_crystal)
 
         '''convert from .xyz to lammps datafile'''

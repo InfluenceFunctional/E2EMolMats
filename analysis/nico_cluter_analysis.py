@@ -1,31 +1,32 @@
 import MDAnalysis as mda
 import os
-import wandb
+import warnings
+from random import shuffle
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore numpy error
 
 from reporting.cluster_figs import (
     plot_thermodynamic_data, trajectory_rdf_analysis,
-    plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap, process_thermo_data)
-from utils import (dict2namespace, cell_vol, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment, process_dump)
+    cluster_molecule_alignment, process_thermo_data)
+from utils import (dict2namespace, rewrite_trajectory, compute_Ip_molwise_alignment, process_dump)
 import numpy as np
-from plotly.subplots import make_subplots
-from scipy.spatial.distance import cdist, pdist
+
 import plotly.graph_objects as go
 import pandas as pd
 import plotly.io as pio
-from scipy.ndimage import gaussian_filter1d
 import tqdm
 
 pio.renderers.default = 'browser'
 
 params = {
     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
-    'battery_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\dev10/',
+    'battery_path': r'D:\crystals_extra\defect_clusters_5/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
     'make_run_wise_figs': True,
-    'do_rdf_analysis': False,
-    'do_alignment_analysis': False,
+    'do_rdf_analysis': True,
+    'do_alignment_analysis': True,
     'results_df_path': 'results_df',
     'reference_df_path': 'reference_df5',
     'do_reference_analysis': False,
@@ -40,9 +41,11 @@ if config.do_sample_analysis:
     if os.path.exists(config.results_df_path):
         results_df = pd.read_pickle(config.results_df_path)
     else:
-        results_df = pd.DataFrame(columns=["run_num"])  # todo need unique numbering system for runs
+        results_df = pd.DataFrame(columns=["run_num"])
 
     dirs = os.listdir()
+
+    shuffle(dirs)
 
     for run_dir in tqdm.tqdm(dirs):  # loop over run directories in the battery
         os.chdir(config.battery_path)
@@ -50,7 +53,7 @@ if config.do_sample_analysis:
         go_forward = False
         try:
             int(run_dir)
-            go_forward=True
+            go_forward = True
         except:
             pass
 
@@ -75,16 +78,16 @@ if config.do_sample_analysis:
             new_row.update(params_dict)
 
             # check if the run crashed
-            files = os.listdir()
-            for file in files:
-                if 'slurm-' in file:
-                    slurm_filename = file
-                    break
-            reader = open(slurm_filename, 'r')
-            text = reader.read()
-            reader.close()
+            # files = os.listdir()
+            # for file in files:
+            #     if 'slurm-' in file:
+            #         slurm_filename = file
+            #         break
+            # reader = open(slurm_filename, 'r')
+            # text = reader.read()
+            # reader.close()
 
-            if 'oom' not in text:
+            if os.path.exists('new_traj.dump') and (int(run_dir) not in list(results_df['run_num'])):  # 'oom' not in text:
                 # do the analysis
                 u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
 
@@ -108,7 +111,7 @@ if config.do_sample_analysis:
 
                 if config.do_alignment_analysis:
                     '''alignment analysis'''
-                    Ip_trajectory, Ip_overlap_trajectory, alignment_frames = cluster_molecule_alignment(u, print_steps=100)  # len(u.trajectory))
+                    Ip_trajectory, Ip_overlap_trajectory, alignment_frames = cluster_molecule_alignment(u, print_steps=25)  # len(u.trajectory))
                     global_molwise_alignment, local_molwise_alignment = compute_Ip_molwise_alignment(u, Ip_overlap_trajectory, alignment_frames)
 
                     if config.write_trajectory:
@@ -130,7 +133,7 @@ if config.do_sample_analysis:
                     new_row["rdf_bins"] = [bins]
 
                 if config.do_NN_analysis:
-                    NN_output = process_dump('run_ave_traj.dump')
+                    NN_output = process_dump('new_traj.dump')
 
                     '''compute following properties
                     time and mol wise averages
@@ -146,7 +149,7 @@ if config.do_sample_analysis:
                     n_mols = len(np.unique(list(NN_output.values())[0]['mol']))
                     horiz_combo = pd.concat([frame for frame in NN_output.values()], axis=1)
 
-                    atomwise_variance = np.asarray([np.var(horiz_combo[column],axis=1) for column in categories])
+                    atomwise_variance = np.asarray([np.var(horiz_combo[column], axis=1) for column in categories])
                     #
                     # '''make figs'''
                     # fig = make_subplots(rows=1, cols=3, subplot_titles=['Trajectory Mean', 'Variability', 'Trajectory'])
@@ -166,10 +169,11 @@ if config.do_sample_analysis:
                     new_row['NN_means'] = [avg_probs]
                     new_row['NN_variance'] = [atomwise_variance.mean(1)]
 
-                    aa = 1
+                if os.path.exists(config.results_df_path):
+                    results_df = pd.read_pickle(config.results_df_path)
 
-            results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)], axis=0)
-            results_df.to_pickle('../' + config.results_df_path)
+                results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)], axis=0)
+                results_df.to_pickle('../' + config.results_df_path)
 
 aa = 1
 

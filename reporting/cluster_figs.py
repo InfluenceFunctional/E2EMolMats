@@ -491,11 +491,7 @@ def check_for_extra_values(row, extra_axes, extra_values):
         return True
 
 
-def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, extra_axes=None, extra_axes_values=None, take_mean=False, norm_against_zero_y=False):
-    xaxis = np.unique(results_df[xaxis_title])
-    yaxis = np.unique(results_df[yaxis_title])
-    unique_structures = np.unique(results_df['structure_identifier'])
-
+def collate_property_over_multiple_runs(target_property, results_df, xaxis, xaxis_title, yaxis, yaxis_title, unique_structures, extra_axes=None, extra_axes_values=None, take_mean=False):
     n_samples = np.zeros((len(unique_structures), len(xaxis), len(yaxis)))
 
     for iX, xval in enumerate(xaxis):
@@ -507,7 +503,7 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, ext
                             if row[yaxis_title] == yval:
                                 if check_for_extra_values(row, extra_axes, extra_axes_values):
                                     try:
-                                        aa = row[property]  # see if it's non-empty
+                                        aa = row[target_property]  # see if it's non-empty
                                         n_samples[iC, iX, iY] += 1
                                     except:
                                         pass
@@ -523,11 +519,23 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, ext
                                 if check_for_extra_values(row, extra_axes, extra_axes_values):
                                     try:
                                         if take_mean:
-                                            shift_heatmap[iC, iX, iY] = row[property].mean() / n_samples[iC, iX, iY]  # take mean over seeds
+                                            shift_heatmap[iC, iX, iY] = row[target_property].mean() / n_samples[iC, iX, iY]  # take mean over seeds
                                         else:
-                                            shift_heatmap[iC, iX, iY] = row[property] / n_samples[iC, iX, iY]
+                                            shift_heatmap[iC, iX, iY] = row[target_property] / n_samples[iC, iX, iY]
                                     except:
                                         shift_heatmap[iC, iX, iY] = 0
+
+    return shift_heatmap, n_samples
+
+
+def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, extra_axes=None, extra_axes_values=None, take_mean=False, norm_against_zero_y=False):
+    xaxis = np.unique(results_df[xaxis_title])
+    yaxis = np.unique(results_df[yaxis_title])
+    unique_structures = np.unique(results_df['structure_identifier'])
+
+    shift_heatmap, n_samples = collate_property_over_multiple_runs(property,
+        results_df, xaxis, xaxis_title, yaxis, yaxis_title, unique_structures,
+        extra_axes=extra_axes, extra_axes_values=extra_axes_values, take_mean=take_mean)
 
     fig = make_subplots(rows=1, cols=len(unique_structures), subplot_titles=unique_structures)
 
@@ -589,3 +597,55 @@ def cluster_property_heatmap(results_df, property, xaxis_title, yaxis_title, ext
     fig.update_layout(title=property_name)
     fig.show(renderer="browser")
     fig.write_image(property + "_heatmap.png")
+
+
+def plot_classifier_pies(results_df, xaxis_title, yaxis_title, extra_axes=None, extra_axes_values=None):
+    xaxis = np.unique(results_df[xaxis_title])
+    yaxis = np.unique(results_df[yaxis_title])
+    unique_structures = np.unique(results_df['structure_identifier'])
+    heatmaps, samples = [], []
+
+    for classo in results_df['NN_classes'][0]:
+        shift_heatmap, n_samples = collate_property_over_multiple_runs(
+            classo, results_df, xaxis, xaxis_title, yaxis, yaxis_title, unique_structures,
+            extra_axes=extra_axes, extra_axes_values=extra_axes_values, take_mean=False)
+        heatmaps.append(shift_heatmap)
+        samples.append(n_samples)
+    heatmaps = np.stack(heatmaps)
+    samples = np.stack(samples)
+
+    for form_ind, form in enumerate(unique_structures):
+        titles = []
+        ind = 0
+        for i in range(5):
+            for j in range(5):
+                row = len(yaxis) - ind // len(yaxis) - 1
+                col = ind % len(xaxis)
+                titles.append(f"{xaxis_title}={xaxis[col]} <br> {yaxis_title}={yaxis[row]}")
+                ind += 1
+
+        fig = make_subplots(rows=5, cols=5, subplot_titles=titles,
+                            specs=[[{"type": "domain"} for _ in range(5)] for _ in range(5)])
+
+        class_names = ["Form I", "Form II", "Form III", "Form IV", "Form V", "Form VI", "Form VII", "Form VIII", "FormIX", "Liquid"]
+        ind = 0
+        for i in range(5):
+            for j in range(5):
+                row = len(yaxis) - ind // len(yaxis)
+                col = ind % len(xaxis) + 1
+                fig.add_trace(go.Pie(labels=class_names, values=heatmaps[:, form_ind, i, j], sort=False
+                                     ),
+                              row=row, col=col)
+                ind += 1
+        fig.update_traces(hoverinfo='label+percent+name', textinfo='none', hole=0.4)
+        fig.layout.legend.traceorder = 'normal'
+        fig.update_layout(title=form + " Clusters Classifier Outputs")
+        fig.update_annotations(font_size=10)
+
+        if extra_axes is not None:
+            property_name = form + ' ' + str(extra_axes) + ' ' + str(extra_axes_values)
+        else:
+            property_name = form
+        fig.update_layout(title=property_name)
+        fig.show(renderer="browser")
+        fig.write_image(form + "_classifier_pies.png")
