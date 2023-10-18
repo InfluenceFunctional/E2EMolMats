@@ -29,7 +29,7 @@ if machine == 'local':
     head_dir = r'C:\Users\mikem\crystals\clusters/cluster_structures/' + batch_config['run_name']
     crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie/CrystalStructures/'
 elif machine == 'cluster':
-    head_dir = r'/home/mk8347/scratch/molecule_clusters/' + batch_config['run_name']
+    head_dir = r'/vast/mk8347/scratch/molecule_clusters/' + batch_config['run_name']
     crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
 else:
     print("Machine must be 'local' or 'cluster'")
