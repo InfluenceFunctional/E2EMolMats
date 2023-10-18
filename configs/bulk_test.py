@@ -20,7 +20,7 @@ batch_config = {
     'print_steps': int(1e2),
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
-    'machine': 'local',
+    'machine': 'cluster',
     'run_name': 'dev',
     'min_lattice_length': 40,
 }
