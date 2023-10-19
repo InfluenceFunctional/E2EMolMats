@@ -4,7 +4,7 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
     'temperature': [100, 350],
-    'structure_identifier': ["NICOAM07"
+    'structure_identifier': ["NICOAM07",
                              "NICOAM08",
                              "NICOAM09",
                              "NICOAM13",
