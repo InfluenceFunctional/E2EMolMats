@@ -88,6 +88,7 @@ def generate_structure(workdir, crystals_path, structure_identifier,
         sys.exit()
 
     crystal_path = crystals_path + f'{structure_identifier}_renumbered_1x1x1.pdb'
+    print("Loading Crystal" + crystal_path)
     # gather structural information from the crystal file
     unit_cell = io.read(crystal_path)
     crystal_atoms = unit_cell.get_atomic_numbers()
