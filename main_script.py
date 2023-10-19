@@ -119,6 +119,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
 
+
+        print("============================")
+        print("Generating Structure")
+        print("============================")
         '''generate cluster structure'''
         xyz_filename = generate_structure(
             workdir, crystals_path, structure_identifier,
@@ -127,6 +131,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             gap_rate, seed, min_inter_cluster_distance,
             min_lattice_length,
             periodic_structure=bulk_crystal)
+
+        print("============================")
+        print("Converting to lammps and ovito analysis")
+        print("============================")
 
         '''convert from .xyz to lammps datafile'''
         pipeline = import_file(xyz_filename)
@@ -141,6 +149,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         pipeline.source.load('2.data')
         export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
+        print("============================")
+        print("Ltemplifying")
+        print("============================")
+
         '''ltemplify'''
         if r'Users\mikem' in workdir:  # if we are Mike's local windows machine (which
             ltemplify_path = r"C:\Users\mikem\miniconda3\envs\LAMMPS_runs\lib\site-packages\moltemplate\ltemplify.py"
@@ -149,16 +161,37 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
 
         os.system(f'python {ltemplify_path} 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
 
+        print("============================")
+        print("Templify to runnable")
+        print("============================")
+
         '''make runnable'''
         templify_to_runnable(workdir, "4.lt", "3.data", "5.lt")
 
+        print("============================")
+        print("Running Moltemplate")
+        print("============================")
+
         '''run moltemplate and cleanup'''
         os.system("moltemplate.sh system.lt")
+
+        print("============================")
+        print("Moltemplate cleanup")
+        print("============================")
+
         os.system("cleanup_moltemplate.sh")
+
+        print("============================")
+        print("Indexing cleanup")
+        print("============================")
 
         moltemp_final(workdir)  # Daisuke final indexing cleanup
 
         settings_final()  # adjust pairs to be Daisuke-friendly
+
+        print("============================")
+        print("Submitting LAMMPS run")
+        print("============================")
 
         # '''optionally - directly run MD'''
         os.system("sbatch sub_job.slurm")
