@@ -38,34 +38,56 @@ def generate_structure(workdir, crystals_path, structure_identifier,
         os.chdir(workdir)
 
     # get original structure
-    if structure_identifier == "NICOAM07":
+    if structure_identifier == "NICOAM07":  # form 5
         atoms_in_molecule = 15
         space_group = "P21"
         z_value = 2
         z_prime = 1
-        crystal_path = crystals_path + r'NICOAM07_renumbered_1x1x1.pdb'
+    elif structure_identifier == "NICOAM08":  # form 7
+        atoms_in_molecule = 15
+        space_group = "P-1"
+        z_value = 4
+        z_prime = 2
+    elif structure_identifier == "NICOAM09":  # form 8
+        atoms_in_molecule = 15
+        space_group = "P21"
+        z_value = 40
+        z_prime = 20
     elif structure_identifier == "NICOAM13":  # form 1
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 4
         z_prime = 1
-        crystal_path = crystals_path + r'NICOAM13_renumbered_1x1x1.pdb'
-    elif structure_identifier == "NICOAM17":  # form 9
+    elif structure_identifier == "NICOAM14":  # form 2
+        atoms_in_molecule = 15
+        space_group = "P2/n"
+        z_value = 16
+        z_prime = 4
+    elif structure_identifier == "NICOAM15":  # form 3
         atoms_in_molecule = 15
         space_group = "P21/c"
-        z_value = 4
-        z_prime = 1
-        crystal_path = crystals_path + r'NICOAM17_renumbered_1x1x1.pdb'
+        z_value = 16
+        z_prime = 4
     elif structure_identifier == "NICOAM16":  # form 4
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 8
         z_prime = 2
-        crystal_path = crystals_path + r'NICOAM16_renumbered_1x1x1.pdb'
+    elif structure_identifier == "NICOAM17":  # form 9
+        atoms_in_molecule = 15
+        space_group = "P21/c"
+        z_value = 4
+        z_prime = 1
+    elif structure_identifier == "NICOAM18":  # form 6
+        atoms_in_molecule = 15
+        space_group = "P-1"
+        z_value = 4
+        z_prime = 2
     else:
         print("no such structure!")
         sys.exit()
 
+    crystal_path = crystals_path + f'{structure_identifier}_renumbered_1x1x1.pdb'
     # gather structural information from the crystal file
     unit_cell = io.read(crystal_path)
     crystal_atoms = unit_cell.get_atomic_numbers()
