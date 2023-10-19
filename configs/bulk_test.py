@@ -22,5 +22,5 @@ batch_config = {
     'bulk_crystal': True,
     'machine': 'cluster',
     'run_name': 'bulk_test',
-    'min_lattice_length': 40,
+    'min_lattice_length': 20,
 }
