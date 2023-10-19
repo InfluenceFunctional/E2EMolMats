@@ -21,6 +21,6 @@ batch_config = {
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
     'machine': 'cluster',
-    'run_name': 'bulk_test',
-    'min_lattice_length': 20,
+    'run_name': 'bulk_test3',
+    'min_lattice_length': 40,
 }

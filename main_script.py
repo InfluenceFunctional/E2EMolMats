@@ -113,12 +113,11 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                 newText = newText.replace('#_NOSE', '')
             elif integrator == 'npt':
                 newText = newText.replace('#_NPT', '')
-            # if box_type == 'p':
-            #     newText = newText.replace('_KSPACE', '')
+            if bulk_crystal:
+                newText = newText.replace('_KSPACE', '')
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
-
 
         print("============================")
         print("Generating Structure")
