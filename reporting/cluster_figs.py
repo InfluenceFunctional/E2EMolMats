@@ -32,7 +32,7 @@ def plot_rdf_series(u, nbins, rrange, core_inds, rdf_norm='rdf', n_frames_avg=1)
     colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', len(rdfs), colortype='rgb')
     fig = go.Figure()
     for i in range(len(rdfs)):
-        fig.add_trace(go.Scattergl(x=rdf_analysis.results.bins, y=rdfs[i], name=f'{times[i]:.0f} ps', marker=dict(color=colors[i])))
+        fig.add_scattergl(x=rdf_analysis.results.bins, y=rdfs[i], name=f'{times[i]:.0f} ps', marker=dict(color=colors[i])))
 
     fig.update_layout(xaxis_title='Range (A)', yaxis_title='Full RDF')
 
@@ -72,7 +72,7 @@ def plot_intermolecular_rdf_series(u, nbins, rrange, core_inds, atom_type1=None,
     colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', len(combined_rdfs), colortype='rgb')
     fig = go.Figure()
     for i in range(len(combined_rdfs)):
-        fig.add_trace(go.Scattergl(x=rdf_analysis.results.bins, y=combined_rdfs[i], name=f'{times[i]:.0f} ps', marker=dict(color=colors[i])))
+        fig.add_scattergl(x=rdf_analysis.results.bins, y=combined_rdfs[i], name=f'{times[i]:.0f} ps', marker=dict(color=colors[i])))
 
     fig.update_layout(xaxis_title='Range (A)', yaxis_title='Intermolecular RDF')
 
@@ -121,7 +121,7 @@ def plot_cluster_stability(u: mda.Universe):
 
     fig = go.Figure()
     for i, radius in enumerate(radii):
-        fig.add_trace(go.Scattergl(
+        fig.add_scattergl(
             x=times, y=majority_proportion_list_list[i],
             name=f'Cutoff {radius:.1f} (A)', fill='tonexty', marker=dict(color=colors[i])
         ))
@@ -150,7 +150,7 @@ def plot_cluster_centroids_drift(u: mda.Universe):
         distmat_drift[i] = np.sum(np.abs((distmat_list[i] - distmat_list[0]))) / distmat_list[0].sum()
 
     fig = go.Figure()
-    fig.add_trace(go.Scattergl(x=times, y=distmat_drift))
+    fig.add_scattergl(x=times, y=distmat_drift))
     fig.update_yaxes(range=[-0.05, max(1.05, max(distmat_drift))])
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Normed Intermolecular Centroids Drift')
 
@@ -254,7 +254,7 @@ def plot_atomwise_rdf_drift(u, atomwise_rdfs, bins):
     times = np.arange(0, total_time + 1, ps_step)
 
     fig = go.Figure()
-    fig.add_trace(go.Scattergl(x=times, y=rdf_drift))
+    fig.add_scattergl(x=times, y=rdf_drift))
     fig.update_yaxes(range=[-0.05, max(1.05, max(rdf_drift))])
     fig.update_layout(xaxis_title='Time (ps)', yaxis_title='Intermolecular Atomwise RDF Drift')
 

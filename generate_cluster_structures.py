@@ -98,6 +98,8 @@ def generate_structure(workdir, crystals_path, structure_identifier,
             supercell_coordinates = np.asarray(supercell_coordinates)
             supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(required_repeats))])
 
+            cluster_size = required_repeats
+
         else:
             pass
     elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
@@ -230,7 +232,7 @@ def generate_structure(workdir, crystals_path, structure_identifier,
         supercell_atoms = np.asarray(defected_supercell_atoms)
 
     if periodic_structure:
-        cell = T_fc  # cell parameters are the same as the fractional->cartesian transition matrix (or sometimes its transpose)
+        cell = T_fc * np.asarray(cluster_size)  # cell parameters are the same as the fractional->cartesian transition matrix (or sometimes its transpose)
     else:
         cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
 

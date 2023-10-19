@@ -158,7 +158,7 @@ if config.do_sample_analysis:
                     # fig.add_trace(go.Bar(x=categories, y=atomwise_variance.mean(1), showlegend=False),
                     #               row=1, col=2)
                     # for i in range(len(categories)):
-                    #     fig.add_trace(go.Scattergl(y=prob_trajectories[:, i], name=categories[i]),
+                    #     fig.add_scattergl(y=prob_trajectories[:, i], name=categories[i]),
                     #                   row=1, col=3)
                     # fig.show()
                     #
