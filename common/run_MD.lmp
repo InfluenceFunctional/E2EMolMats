@@ -32,8 +32,8 @@
 #-------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------#
   minimize          1.0e-4 1.0e-6 100 1000
-
   write_data        cluster_${nx}x${ny}x${nz}_minimize.data
+  reset_timestep    0
 
 #------------------ Computes, variables & modifications ------------------------#
   variable          step    equal step
@@ -60,6 +60,7 @@
   compute cc1 all chunk/atom molecule
   compute myChunk all temp/chunk cc1 temp kecom internal
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
+  fix 2 all momentum 100 linear 1 1 1 angular rescale
 
   velocity          all create $T ${rnd} mom yes rot yes dist gaussian
 

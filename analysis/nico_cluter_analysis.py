@@ -5,9 +5,8 @@ from random import shuffle
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore numpy error
 
-from reporting.cluster_figs import (
-    plot_thermodynamic_data, trajectory_rdf_analysis,
-    cluster_molecule_alignment, process_thermo_data)
+from reporting.cluster_figs import (plot_thermodynamic_data, trajectory_rdf_analysis,
+                                    cluster_molecule_alignment, process_thermo_data)
 from utils import (dict2namespace, rewrite_trajectory, compute_Ip_molwise_alignment, process_dump)
 import numpy as np
 
@@ -20,7 +19,7 @@ pio.renderers.default = 'browser'
 
 params = {
     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
-    'battery_path': r'D:\crystals_extra\defect_clusters_5/',
+    'battery_path': r'D:\crystals_extra\defect_clusters_5_rerun/',
     'machine': 'local',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
@@ -87,7 +86,7 @@ if config.do_sample_analysis:
             # text = reader.read()
             # reader.close()
 
-            if os.path.exists('new_traj.dump') and (int(run_dir) not in list(results_df['run_num'])):  # 'oom' not in text:
+            if os.path.exists('new_traj.dump') and (int(run_dir) not in list(results_df['run_num'])):
                 # do the analysis
                 u = mda.Universe("system.data", "traj.dcd", format="LAMMPS")
 

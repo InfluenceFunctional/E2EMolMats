@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 
 os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures')
 
-results_df = pd.read_pickle('D:\crystals_extra\defect_clusters_5/results_df')
+results_df = pd.read_pickle('D:\crystals_extra\defect_clusters_5_rerun/results_df')
 reference_df = pd.read_pickle('bulk_reference/reference_df5')
 results_df = results_df.reset_index()
 reference_df = reference_df.reset_index()
