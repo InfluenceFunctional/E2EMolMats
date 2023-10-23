@@ -22,4 +22,5 @@ batch_config = {
     'bulk_crystal': False,
     'machine': 'cluster',
     'run_name': 'defect_clusters_6',
+    'min_lattice_length': None,
 }
