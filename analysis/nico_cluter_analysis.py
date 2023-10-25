@@ -10,17 +10,32 @@ from reporting.cluster_figs import (plot_thermodynamic_data, trajectory_rdf_anal
 from utils import (dict2namespace, rewrite_trajectory, compute_Ip_molwise_alignment, process_dump)
 import numpy as np
 
-import plotly.graph_objects as go
 import pandas as pd
 import plotly.io as pio
 import tqdm
 
 pio.renderers.default = 'browser'
 
+# params = {
+#     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
+#     'battery_path': r'D:\crystals_extra\defect_clusters_5_rerun/',
+#     'machine': 'local',  # or 'cluster'  ### doesn't do anything
+#     'show_figs': False,
+#     'write_trajectory': False,
+#     'make_run_wise_figs': True,
+#     'do_rdf_analysis': True,
+#     'do_alignment_analysis': True,
+#     'results_df_path': 'results_df',
+#     'reference_df_path': 'reference_df5',
+#     'do_reference_analysis': False,
+#     'do_sample_analysis': True,
+#     'do_NN_analysis': True
+# }
+
 params = {
     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
-    'battery_path': r'D:\crystals_extra\defect_clusters_5_rerun/',
-    'machine': 'local',  # or 'cluster'  ### doesn't do anything
+    'battery_path': r'/vast/mk8347/molecule_clusters/defect_clusters_6',
+    'machine': 'cluster',  # or 'cluster'  ### doesn't do anything
     'show_figs': False,
     'write_trajectory': False,
     'make_run_wise_figs': True,
