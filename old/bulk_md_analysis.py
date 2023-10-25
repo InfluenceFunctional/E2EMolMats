@@ -5,8 +5,8 @@ from reporting.cluster_figs import \
     (plot_rdf_series, plot_intermolecular_rdf_series,
      plot_cluster_stability, plot_cluster_centroids_drift,
      process_thermo_data, plot_atomwise_rdf_drift, plot_alignment_fingerprint,
-     plot_thermodynamic_data, trajectory_rdf_analysis,
-     plot_atomwise_rdf_ref_dist)
+     plot_thermodynamic_data, plot_atomwise_rdf_ref_dist)
+from reporting.rdf_figs import trajectory_rdf_analysis
 from utils import (dict2namespace, names_dict, ff_names_dict, cell_vol, rewrite_trajectory, tile_universe)
 import numpy as np
 from plotly.subplots import make_subplots

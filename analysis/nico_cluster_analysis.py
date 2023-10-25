@@ -5,8 +5,7 @@ from random import shuffle
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore numpy error
 
-from reporting.cluster_figs import (plot_thermodynamic_data, trajectory_rdf_analysis,
-                                    cluster_molecule_alignment, process_thermo_data)
+from reporting.cluster_figs import (plot_thermodynamic_data, cluster_molecule_alignment, process_thermo_data)
 from utils import (dict2namespace, rewrite_trajectory, compute_Ip_molwise_alignment, process_dump)
 import numpy as np
 
@@ -16,10 +15,30 @@ import tqdm
 
 pio.renderers.default = 'browser'
 
+params = {
+    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
+    'battery_path': r'D:\crystals_extra\defect_clusters_6/',
+    'machine': 'local',  # or 'cluster'  ### doesn't do anything
+    'show_figs': False,
+    'write_trajectory': False,
+    'make_run_wise_figs': True,
+    'do_rdf_analysis': False,
+    'do_alignment_analysis': True,
+    'results_df_path': 'results_df',
+    'reference_df_path': 'reference_df5',
+    'do_reference_analysis': False,
+    'do_sample_analysis': True,
+    'do_NN_analysis': True
+}
+
+if params['do_rdf_analysis']:
+    from reporting.rdf_figs import trajectory_rdf_analysis
+
+
 # params = {
 #     'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
-#     'battery_path': r'D:\crystals_extra\defect_clusters_5_rerun/',
-#     'machine': 'local',  # or 'cluster'  ### doesn't do anything
+#     'battery_path': r'/vast/mk8347/molecule_clusters/defect_clusters_6',
+#     'machine': 'cluster',  # or 'cluster'  ### doesn't do anything
 #     'show_figs': False,
 #     'write_trajectory': False,
 #     'make_run_wise_figs': True,
@@ -31,22 +50,6 @@ pio.renderers.default = 'browser'
 #     'do_sample_analysis': True,
 #     'do_NN_analysis': True
 # }
-
-params = {
-    'reference_path': r'C:\Users\mikem\crystals\clusters\cluster_structures\bulk_reference/',
-    'battery_path': r'/vast/mk8347/molecule_clusters/defect_clusters_6',
-    'machine': 'cluster',  # or 'cluster'  ### doesn't do anything
-    'show_figs': False,
-    'write_trajectory': False,
-    'make_run_wise_figs': True,
-    'do_rdf_analysis': True,
-    'do_alignment_analysis': True,
-    'results_df_path': 'results_df',
-    'reference_df_path': 'reference_df5',
-    'do_reference_analysis': False,
-    'do_sample_analysis': True,
-    'do_NN_analysis': True
-}
 config = dict2namespace(params)
 
 if config.do_sample_analysis:

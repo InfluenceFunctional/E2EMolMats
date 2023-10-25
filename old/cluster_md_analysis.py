@@ -3,8 +3,8 @@ import os
 import wandb
 
 from reporting.cluster_figs import (
-    plot_thermodynamic_data, trajectory_rdf_analysis,
-    plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap, process_thermo_data)
+    plot_thermodynamic_data, plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap, process_thermo_data)
+from reporting.rdf_figs import trajectory_rdf_analysis
 from utils import (dict2namespace, cell_vol, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment)
 import numpy as np
 from plotly.subplots import make_subplots
