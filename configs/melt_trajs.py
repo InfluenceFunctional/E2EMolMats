@@ -20,7 +20,7 @@ batch_config = {
     'box_type': 'p',
     'integrator': 'nosehoover',
     'print_steps': int(1e3),
-    'min_inter_cluster_distance': None,
+    'min_inter_cluster_distance': 100,
     'bulk_crystal': False,
     'machine': 'cluster',
     'run_name': 'melt_trajs',
