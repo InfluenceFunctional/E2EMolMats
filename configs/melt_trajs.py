@@ -3,7 +3,7 @@
 batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
-    'temperature': [500, 700, 900],
+    'temperature': [350, 400],
     'structure_identifier': ["NICOAM13",
                              "NICOAM16",
                              "NICOAM17"],
@@ -16,7 +16,7 @@ batch_config = {
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'supercell',
-    'run_time': int(1e6),
+    'run_time': int(1e5),
     'box_type': 'p',
     'integrator': 'nosehoover',
     'print_steps': int(1e3),
