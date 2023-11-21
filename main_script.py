@@ -107,11 +107,11 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             newText = newText.replace('_SEED', str(seed))
             newText = newText.replace('_BOUND', str(box_type))
             newText = newText.replace('_DAMP', damping)
-            if integrator == 'langevin':
+            if integrator.lower() == 'langevin':
                 newText = newText.replace('#_LANGEVIN', '')
-            elif integrator == 'nosehoover':
+            elif integrator.lower() == 'nosehoover':
                 newText = newText.replace('#_NOSE', '')
-            elif integrator == 'npt':
+            elif integrator.lower() == 'npt':
                 newText = newText.replace('#_NPT', '')
             if bulk_crystal:
                 newText = newText.replace('#_KSPACE', '')

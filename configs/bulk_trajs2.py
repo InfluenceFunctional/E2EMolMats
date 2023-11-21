@@ -24,11 +24,11 @@ batch_config = {
     'cluster_type': 'supercell',
     'run_time': int(1e6),
     'box_type': 'p',
-    'integrator': 'NPT',
+    'integrator': 'npt',
     'print_steps': int(1e2),
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
     'machine': 'cluster',
-    'run_name': 'bulk_trajs1',
+    'run_name': 'bulk_trajs2',
     'min_lattice_length': 40,
 }

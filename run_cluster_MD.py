@@ -12,7 +12,7 @@ warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
 from main_script import create_xyz_and_run_lammps
 
 '''import run config'''
-from configs.bulk_trajs1 import batch_config
+from configs.bulk_trajs1 import batch_config  # todo convert to command line arg
 
 dynamic_configs = {key: value for key, value in batch_config.items() if isinstance(value, list)}
 run_args = list(itertools.product(*list(dynamic_configs.values())))
