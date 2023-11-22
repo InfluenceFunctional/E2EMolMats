@@ -3,7 +3,7 @@
 batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
-    'temperature': [900],
+    'temperature': [100, 350, 800],
     'structure_identifier': ["NICOAM07",
                              "NICOAM08",
                              "NICOAM09",
@@ -29,6 +29,6 @@ batch_config = {
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
     'machine': 'cluster',
-    'run_name': 'liquid_trajs2',
+    'run_name': 'bulk_trajs3',
     'min_lattice_length': 40,
 }
