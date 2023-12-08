@@ -20,7 +20,7 @@ batch_config = {
     'print_steps': int(1e2),
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
-    'machine': 'cluste',
+    'machine': 'cluster',
     'run_name': 'melt_cluster_dev_test1',
     'min_lattice_length': 60,
     'prep_crystal_in_melt': True,
