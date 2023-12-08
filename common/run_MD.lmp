@@ -76,7 +76,7 @@
 #_MELT_PREP fix f13 melt nvt temp ${T_melt} $T $(100.0*dt)
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f13
-#_MELT_PREP  reset_timestep    0
+#_MELT_PREP reset_timestep    0
 
 #---------------------- Thermostat & Barostat ----------------------------------#
 #_NPT  fix               f2 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
