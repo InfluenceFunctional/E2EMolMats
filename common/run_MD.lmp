@@ -77,24 +77,17 @@
 #_MELT_PREP dump_modify       d12 element 1 2 3 4 5 6 7 8 9 10
 #_MELT_PREP run ${t_equil}  # equilibrate
 #_MELT_PREP unfix f11
-#_MELT_PREP reset_timestep    0
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #_MELT_PREP fix f12 melt nvt temp ${T_melt} ${T_melt} $(100.0*dt)
 #_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
-#_MELT_PREP dump              d22 all custom ${t_print} traj.dump id mol element x y z vx vy vz
-#_MELT_PREP dump_modify       d22 element 1 2 3 4 5 6 7 8 9 10
 #_MELT_PREP run ${t_equil}  # melt
 #_MELT_PREP unfix f12
-#_MELT_PREP reset_timestep    0
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_melted.data
 
 #_MELT_PREP fix f13 melt nvt temp ${T_melt} $T $(100.0*dt)
-#_MELT_PREP dump              d32 all custom ${t_print} traj.dump id mol element x y z vx vy vz
-#_MELT_PREP dump_modify       d32 element 1 2 3 4 5 6 7 8 9 10
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f13
-#_MELT_PREP reset_timestep    0
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled.data
 
 
