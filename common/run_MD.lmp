@@ -63,18 +63,18 @@
 
 #_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
-#_MELT_PREP run $t_equil  # equilibrate
+#_MELT_PREP run ${t_equil}  # equilibrate
 #_MELT_PREP unfix f11
 #_MELT_PREP reset_timestep    0
 
-#_MELT_PREP fix f12 melt nvt temp $T_melt $T_melt $(100.0*dt)
-#_MELT_PREP velocity          melt create $T_melt ${rnd} mom yes rot yes dist gaussian
-#_MELT_PREP run $t_equil  # melt
+#_MELT_PREP fix f12 melt nvt temp ${T_melt} ${T_melt} $(100.0*dt)
+#_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP run ${t_equil}  # melt
 #_MELT_PREP unfix f12
 #_MELT_PREP reset_timestep    0
 
-#_MELT_PREP fix f13 melt nvt temp $T_melt $T $(100.0*dt)
-#_MELT_PREP run $t_equil  # cool
+#_MELT_PREP fix f13 melt nvt temp ${T_melt} $T $(100.0*dt)
+#_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f13
 #_MELT_PREP  reset_timestep    0
 
