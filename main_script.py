@@ -97,13 +97,9 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             prep_crystal_in_melt=prep_crystal_in_melt)
 
         '''set temperature, run time, and print step in lmp file'''
-        with open("run_MD.lmp") as f:
-            newText = f.read().replace('_TEMP', str(temperature))
-            newText = newText.replace('_RUNTIME', str(run_time))
-            newText = newText.replace('_PRINTSTEPS', str(print_steps))
-            newText = newText.replace('_SEED', str(seed))
-            newText = newText.replace('_BOUND', str(box_type))
-            newText = newText.replace('_DAMP', damping)
+        with (open("run_MD.lmp") as f):
+            newText = f.read()
+
             if integrator.lower() == 'langevin':
                 newText = newText.replace('#_LANGEVIN', '')
             elif integrator.lower() == 'nosehoover':
@@ -120,6 +116,14 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                 newText = newText.replace('_MELT_END_IND', str(melt_inds.melt_end_ind))
                 newText = newText.replace('_CRYSTAL_START_IND', str(melt_inds.crystal_start_ind))
                 newText = newText.replace('_CRYSTAL_END_IND', str(melt_inds.crystal_end_ind))
+
+            newText = newText.replace('_TEMP', str(temperature))
+            newText = newText.replace('_RUNTIME', str(run_time))
+            newText = newText.replace('_PRINTSTEPS', str(print_steps))
+            newText = newText.replace('_SEED', str(seed))
+            newText = newText.replace('_BOUND', str(box_type))
+            newText = newText.replace('_DAMP', damping)
+
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)

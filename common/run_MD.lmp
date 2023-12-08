@@ -58,8 +58,8 @@
   thermo            ${t_print}
 
 #--------------------------- Crystal-in-Melt preparation------------------------#
-#_MELT_PREP group crystal molecule $crystal_start_ind:$crystal_end_ind
-#_MELT_PREP group melt molecule $melt_start_ind:$melt_end_ind
+#_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
+#_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
 #_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
