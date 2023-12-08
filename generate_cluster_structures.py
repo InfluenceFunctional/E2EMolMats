@@ -165,8 +165,8 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     molwise_supercell_coordinates = np.concatenate([molwise_supercell_coordinates[crystal_mol_inds], molwise_supercell_coordinates[melt_mol_inds]], axis=0)
     # supercell atom indexing doesn't change
     supercell_coordinates = molwise_supercell_coordinates.reshape(int(len(molwise_supercell_coordinates) * atoms_in_molecule), 3)
-    melt_inds = {'melt_start_ind': len(molwise_supercell_coordinates),
-                 'melt_end_ind': len(crystal_mol_inds) + 1,
+    melt_inds = {'melt_start_ind': len(crystal_mol_inds) + 1,
+                 'melt_end_ind': len(molwise_supercell_coordinates),
                  'crystal_start_ind': 1,
                  'crystal_end_ind': len(crystal_mol_inds)}
     melt_inds = dict2namespace(melt_inds)

@@ -14,16 +14,16 @@ batch_config = {
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'supercell',
-    'run_time': int(1e5),
+    'run_time': int(1e4),
     'box_type': 'p',
     'integrator': 'nosehoover',
     'print_steps': int(1e2),
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
     'machine': 'cluster',
-    'run_name': 'melt_cluster_dev_test5',
+    'run_name': 'melt_cluster_dev_test6',
     'min_lattice_length': 40,
     'prep_crystal_in_melt': True,
-    'equil_time': int(1e5),
+    'equil_time': int(1e4),
     'melt_temperature': 2000,
 }

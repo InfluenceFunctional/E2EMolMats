@@ -57,32 +57,7 @@
   timestep          1.0
   thermo            ${t_print}
 
-#--------------------------- Crystal-in-Melt preparation------------------------#
-#_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
-#_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
-
-#_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
-#_MELT_PREP run ${t_equil}  # equilibrate
-#_MELT_PREP unfix f11
-#_MELT_PREP reset_timestep    0
-
-#_MELT_PREP fix f12 melt nvt temp ${T_melt} ${T_melt} $(100.0*dt)
-#_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
-#_MELT_PREP run ${t_equil}  # melt
-#_MELT_PREP unfix f12
-#_MELT_PREP reset_timestep    0
-
-#_MELT_PREP fix f13 melt nvt temp ${T_melt} $T $(100.0*dt)
-#_MELT_PREP run ${t_equil}  # cool
-#_MELT_PREP unfix f13
-#_MELT_PREP reset_timestep    0
-
-#---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_NOSE  fix               f2 all nvt temp $T $T $(100.0*dt)
-#_LANGEVIN  fix				f2 all langevin $T $T _DAMP ${rnd}
-#-------------------------------------------------------------------------------#
+#--------------------------- Computes ------------------------------------------#
 
   compute	    c1 all pe
   compute       cc1 all chunk/atom molecule
@@ -91,10 +66,47 @@
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
 
+
+#--------------------------- Crystal-in-Melt preparation------------------------#
+#_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
+#_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
+
+#_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP dump              d12 all custom ${t_print} traj.dump id mol element x y z vx vy vz
+#_MELT_PREP dump_modify       d12 element 1 2 3 4 5 6 7 8 9 10
+#_MELT_PREP run ${t_equil}  # equilibrate
+#_MELT_PREP unfix f11
+#_MELT_PREP reset_timestep    0
+#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
+
+#_MELT_PREP fix f12 melt nvt temp ${T_melt} ${T_melt} $(100.0*dt)
+#_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP dump              d22 all custom ${t_print} traj.dump id mol element x y z vx vy vz
+#_MELT_PREP dump_modify       d22 element 1 2 3 4 5 6 7 8 9 10
+#_MELT_PREP run ${t_equil}  # melt
+#_MELT_PREP unfix f12
+#_MELT_PREP reset_timestep    0
+#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_melted.data
+
+#_MELT_PREP fix f13 melt nvt temp ${T_melt} $T $(100.0*dt)
+#_MELT_PREP dump              d32 all custom ${t_print} traj.dump id mol element x y z vx vy vz
+#_MELT_PREP dump_modify       d32 element 1 2 3 4 5 6 7 8 9 10
+#_MELT_PREP run ${t_equil}  # cool
+#_MELT_PREP unfix f13
+#_MELT_PREP reset_timestep    0
+#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled.data
+
+
+#---------------------- Thermostat & Barostat ----------------------------------#
+#_NPT  fix               f2 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_NOSE  fix               f2 all nvt temp $T $T $(100.0*dt)
+#_LANGEVIN  fix				f2 all langevin $T $T _DAMP ${rnd}
+#-------------------------------------------------------------------------------#
+
   velocity          all create $T ${rnd} mom yes rot yes dist gaussian
 
   dump              d1 all dcd ${t_print} traj.dcd
-  
   dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz
   dump_modify       d2 element 1 2 3 4 5 6 7 8 9 10
   
