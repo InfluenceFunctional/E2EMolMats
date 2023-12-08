@@ -12,7 +12,7 @@ warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
 from main_script import create_xyz_and_run_lammps
 
 '''import run config'''
-from configs.bulk_trajs1 import batch_config  # todo convert to command line arg
+from configs.dev import batch_config  # todo convert to command line arg
 
 dynamic_configs = {key: value for key, value in batch_config.items() if isinstance(value, list)}
 run_args = list(itertools.product(*list(dynamic_configs.values())))
@@ -59,6 +59,9 @@ for run_num, run_config in enumerate(run_args):
         min_inter_cluster_distance=batch_config['min_inter_cluster_distance'],
         cluster_type=batch_config['cluster_type'],
         min_lattice_length=batch_config['min_lattice_length'],
+        prep_crystal_in_melt=batch_config['prep_crystal_in_melt'],
+        equil_time=batch_config['equil_time'],
+        melt_temperature=batch_config['melt_temperature'],
 
         max_sphere_radius=run_config[dynamic_arg_keys['max_sphere_radius']],
         cluster_size=run_config[dynamic_arg_keys['cluster_size']],

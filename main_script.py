@@ -40,28 +40,9 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               seed=1, min_inter_cluster_distance=500,
                               temperature=300, run_time=int(1e6),
                               print_steps=100, box_type='s', bulk_crystal=False,
-                              integrator='langevin', damping: str = str(100.0)):
-    """
-    :param head_dir:
-    :param run_num:
-    :param crystals_path:
-    :param cluster_size:
-    :param cluster_type:
-    :param structure_identifier:
-    :param max_sphere_radius:
-    :param defect_rate:
-    :param scramble_rate:
-    :param gap_rate:
-    :param seed:
-    :param min_inter_cluster_distance:
-    :param temperature:
-    :param run_time:
-    :param print_steps:
-    :param box_type:
-    :param integrator:
-    :param damping:
-    :return:
-    """
+                              integrator='langevin', damping: str = str(100.0),
+                              prep_crystal_in_melt=False, melt_temperature=None,
+                              equil_time=None):
 
     '''make new workdir'''
     workdir = head_dir + '/' + str(run_num)
@@ -95,9 +76,25 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             'box_type': box_type,
             'bulk_crystal': bulk_crystal,
             'integrator': integrator,
-            'damping': damping
+            'damping': damping,
+            'prep_crystal_in_melt': prep_crystal_in_melt,
+            'melt_temperature': melt_temperature,
+            'equilibration_time': equil_time,
         }
         np.save('run_config', run_config)
+
+        print("============================")
+        print("Generating Structure")
+        print("============================")
+        '''generate cluster structure'''
+        xyz_filename, melt_inds = generate_structure(
+            workdir, crystals_path, structure_identifier,
+            cluster_type, max_sphere_radius,
+            cluster_size, defect_rate, scramble_rate,
+            gap_rate, seed, min_inter_cluster_distance,
+            min_lattice_length,
+            periodic_structure=bulk_crystal,
+            prep_crystal_in_melt=prep_crystal_in_melt)
 
         '''set temperature, run time, and print step in lmp file'''
         with open("run_MD.lmp") as f:
@@ -115,21 +112,17 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                 newText = newText.replace('#_NPT', '')
             if bulk_crystal:
                 newText = newText.replace('#_KSPACE', '')
+            if prep_crystal_in_melt:
+                newText = newText.replace('#_MELT_PREP', '')
+                newText = newText.replace('_EQUIL_TIME', str(equil_time))
+                newText = newText.replace('_MELT_TEMP', str(melt_temperature))
+                newText = newText.replace('_MELT_START_IND', str(melt_inds.melt_start_ind))
+                newText = newText.replace('_MELT_END_IND', str(melt_inds.melt_end_ind))
+                newText = newText.replace('_CRYSTAL_START_IND', str(melt_inds.crystal_start_ind))
+                newText = newText.replace('_CRYSTAL_END_IND', str(melt_inds.crystal_end_ind))
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
-
-        print("============================")
-        print("Generating Structure")
-        print("============================")
-        '''generate cluster structure'''
-        xyz_filename = generate_structure(
-            workdir, crystals_path, structure_identifier,
-            cluster_type, max_sphere_radius,
-            cluster_size, defect_rate, scramble_rate,
-            gap_rate, seed, min_inter_cluster_distance,
-            min_lattice_length,
-            periodic_structure=bulk_crystal)
 
         print("============================")
         print("Converting to lammps and ovito analysis")

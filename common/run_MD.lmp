@@ -14,10 +14,16 @@
   variable          t_run  equal _RUNTIME     # number of MD steps
   variable          t_print equal ${t_run}/_PRINTSTEPS  #how often to print histogram
 
+#_MELT_PREP  variable          t_equil equal _EQUIL_TIME   # how long to equilibrate different melts
+#_MELT_PREP  variable          T_melt  equal _MELT_TEMP    # temperature at which to melt things
+#_MELT_PREP  variable          melt_start_ind  equal _MELT_START_IND
+#_MELT_PREP  variable          melt_end_ind    equal _MELT_END_IND
+#_MELT_PREP  variable          crystal_start_ind  equal _CRYSTAL_START_IND
+#_MELT_PREP  variable          crystal_end_ind    equal _CRYSTAL_END_IND
+
 #-------------------------------------------------------------------------------#
   boundary			_BOUND _BOUND _BOUND
-  #thermo_modify lost ignore flush yes
-  #thermo_modify lost/bond ignore
+
 #------------------------- Load initial setup ----------------------------------#
   # load function definition
   include "system.in.init"
@@ -27,7 +33,7 @@
 
   # load force field parameters
   include "new_system.in.settings"
- #_KSPACE kspace_style    pppm 0.0001
+  #_KSPACE kspace_style    pppm 0.0001
 
 #-------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------#
@@ -50,6 +56,28 @@
 #--------------------------- Thermo style and settings -------------------------#
   timestep          1.0
   thermo            ${t_print}
+
+#--------------------------- Crystal-in-Melt preparation------------------------#
+#_MELT_PREP group crystal molecule $crystal_start_ind:$crystal_end_end
+#_MELT_PREP group melt molecule $melt_start_ind:$melt_end_ind
+
+#_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP run $t_equil  # equilibrate
+#_MELT_PREP unfix f11
+#_MELT_PREP reset_timestep    0
+
+#_MELT_PREP fix f12 melt nvt temp $T_melt $T_melt $(100.0*dt)
+#_MELT_PREP velocity          melt create $T_melt ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP run $t_equil  # melt
+#_MELT_PREP unfix f12
+#_MELT_PREP reset_timestep    0
+
+#_MELT_PREP fix f13 melt nvt temp $T_melt $T $(100.0*dt)
+#_MELT_PREP run $t_equil  # cool
+#_MELT_PREP unfix f13
+#_MELT_PREP  reset_timestep    0
+
 #---------------------- Thermostat & Barostat ----------------------------------#
 #_NPT  fix               f2 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp $T $T $(100.0*dt)
@@ -57,8 +85,9 @@
 #-------------------------------------------------------------------------------#
 
   compute	    c1 all pe
-  compute cc1 all chunk/atom molecule
+  compute       cc1 all chunk/atom molecule
   compute myChunk all temp/chunk cc1 temp kecom internal
+
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
 
