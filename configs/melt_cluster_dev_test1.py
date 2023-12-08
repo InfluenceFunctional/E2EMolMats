@@ -21,7 +21,7 @@ batch_config = {
     'min_inter_cluster_distance': None,
     'bulk_crystal': True,
     'machine': 'cluster',
-    'run_name': 'melt_cluster_dev_test1',
+    'run_name': 'melt_cluster_dev_test2',
     'min_lattice_length': 60,
     'prep_crystal_in_melt': True,
     'equil_time': 1e5,
