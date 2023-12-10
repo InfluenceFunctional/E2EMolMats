@@ -2,9 +2,9 @@
 
 #SBATCH --job-name=ntm_battery
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=4
-#SBATCH --cpus-per-task=1
-#SBATCH --mem=5GB
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=10GB
 #SBATCH --time=2-00:00:00
 
 module purge
