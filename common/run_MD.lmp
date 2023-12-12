@@ -66,8 +66,8 @@
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
 
-  dump              d1 all dcd ${t_print} traj.dcd
-  dump              d2 all custom ${t_print} traj.dump id mol element x y z vx vy vz
+# dump              d1 all dcd ${t_print} traj.dcd
+  dump              d2 all custom ${t_print} traj.dump id mol element xu yu zu
   dump_modify       d2 element 1 2 3 4 5 6 7 8 9 10
 
 #--------------------------- Crystal-in-Melt preparation------------------------#
