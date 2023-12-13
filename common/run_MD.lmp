@@ -75,6 +75,7 @@
 #_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
 #_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # equilibrate
 #_MELT_PREP unfix f11
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
