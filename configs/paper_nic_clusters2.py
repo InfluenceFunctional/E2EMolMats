@@ -19,7 +19,7 @@ batch_config = {
     'box_type': 'p',
     'integrator': 'nosehoover',
     'print_steps': int(5e2),
-    'min_inter_cluster_distance': 80,
+    'min_inter_cluster_distance': 1000,
     'bulk_crystal': False,
     'machine': 'cluster',
     'run_name': 'paper_nic_clusters2',
