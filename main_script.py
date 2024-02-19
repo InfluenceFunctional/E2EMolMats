@@ -6,9 +6,12 @@ import ovito
 from ovito.io import import_file, export_file
 
 from generate_cluster_structures import generate_structure
-from template_scripts.initial_setup_for_ovito import initial_setup
-from template_scripts.original_templify_to_runnable import templify_to_runnable
-from template_scripts.moltemp_final import moltemp_final
+from template_scripts.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
+from template_scripts.acridine_initial_for_ovito import initial_setup as initial_setup_acridine
+from template_scripts.original_templify_to_runnable import templify_to_runnable as templify_to_runnable_nicotinamide
+from template_scripts.acridine_original_templify_to_runnable import templify_to_runnable as templify_to_runnable_acridine
+from template_scripts.moltemp_final import moltemp_final as moltemp_final_nicotinamide
+from template_scripts.acridine_moltemp_final_ver2 import moltemp_final as moltemp_final_acridine
 import subprocess
 
 
@@ -43,6 +46,9 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               integrator='langevin', damping: str = str(100.0),
                               prep_crystal_in_melt=False, melt_temperature=None,
                               equil_time=None):
+    """
+    main working script
+    """
 
     '''make new workdir'''
     workdir = head_dir + '/' + str(run_num)
@@ -137,10 +143,15 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         export_file(pipeline, '1.data', 'lammps/data', atom_style='full')
 
         '''prep for ovito bonds'''
-        initial_setup(workdir, '1.data', '2.data')
+        if 'nicotinamide' in structure_identifier:
+            initial_setup_nicotinamide(workdir, '1.data', '2.data')
+            ovito.scene.load("nicotinamide_bond_session_nico_ben_iso.ovito")
+
+        elif 'acridine' in structure_identifier:
+            initial_setup_acridine(workdir, '1.data', '2.data')
+            ovito.scene.load("acridine_ovito.ovito")
 
         '''add bonds via ovito'''
-        ovito.scene.load("nicotinamide_bond_session_nico_ben_iso.ovito")
         pipeline = ovito.scene.pipelines[0]
         pipeline.source.load('2.data')
         export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
@@ -162,7 +173,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("============================")
 
         '''make runnable'''
-        templify_to_runnable(workdir, "4.lt", "3.data", "5.lt")
+        if 'nicotinamide' in structure_identifier:
+            templify_to_runnable_nicotinamide(workdir, "4.lt", "3.data", "5.lt")
+        elif 'acridine' in structure_identifier:
+            templify_to_runnable_acridine(workdir, "4.lt", "3.data", "5.lt")
 
         print("============================")
         print("Running Moltemplate")
@@ -181,7 +195,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("Indexing cleanup")
         print("============================")
 
-        moltemp_final(workdir)  # Daisuke final indexing cleanup
+        if 'nicotinamide' in structure_identifier:
+            moltemp_final_nicotinamide(workdir)  # Daisuke final indexing cleanup
+        elif 'acridine' in structure_identifier:
+            moltemp_final_acridine(workdir)  # Daisuke final indexing cleanup
 
         settings_final()  # adjust pairs to be Daisuke-friendly
 

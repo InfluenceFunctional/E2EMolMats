@@ -17,56 +17,101 @@ from utils import dict2namespace
 
 def get_crystal_properties(structure_identifier):
     # get original structure
-    if structure_identifier == "NICOAM07":  # form 5, Tm 383.5, epsilon
+    if structure_identifier == "nicotinamide/NICOAM07":  # form 5, Tm 383.5, epsilon
         atoms_in_molecule = 15
         space_group = "P21"
         z_value = 2
         z_prime = 1
-    elif structure_identifier == "NICOAM08":  # form 7, Tm 381, eta
+    elif structure_identifier == "nicotinamide/NICOAM08":  # form 7, Tm 381, eta
         atoms_in_molecule = 15
         space_group = "P-1"
         z_value = 4
         z_prime = 2
-    elif structure_identifier == "NICOAM09":  # form 8, Tm 377.5, theta
+    elif structure_identifier == "nicotinamide/NICOAM09":  # form 8, Tm 377.5, theta
         atoms_in_molecule = 15
         space_group = "P21"
         z_value = 40
         z_prime = 20
-    elif structure_identifier == "NICOAM13":  # form 1, Tm 402K, alpha
+    elif structure_identifier == "nicotinamide/NICOAM13":  # form 1, Tm 402K, alpha
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 4
         z_prime = 1
-    elif structure_identifier == "NICOAM14":  # form 2, Tm 390K, beta
+    elif structure_identifier == "nicotinamide/NICOAM14":  # form 2, Tm 390K, beta
         atoms_in_molecule = 15
         space_group = "P2/n"
         z_value = 16
         z_prime = 4
-    elif structure_identifier == "NICOAM15":  # form 3, Tm 388K, gamma
+    elif structure_identifier == "nicotinamide/NICOAM15":  # form 3, Tm 388K, gamma
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 16
         z_prime = 4
-    elif structure_identifier == "NICOAM16":  # form 4, Tm 387K, delta
+    elif structure_identifier == "nicotinamide/NICOAM16":  # form 4, Tm 387K, delta
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 8
         z_prime = 2
-    elif structure_identifier == "NICOAM17":  # form 9, Tm 376K, iota
+    elif structure_identifier == "nicotinamide/NICOAM17":  # form 9, Tm 376K, iota
         atoms_in_molecule = 15
         space_group = "P21/c"
         z_value = 4
         z_prime = 1
-    elif structure_identifier == "NICOAM18":  # form 6, Tm 382.5K, zeta
+    elif structure_identifier == "nicotinamide/NICOAM18":  # form 6, Tm 382.5K, zeta
         atoms_in_molecule = 15
         space_group = "P-1"
         z_value = 4
         z_prime = 2
+
+    elif structure_identifier == "acridine/Form2":
+        atoms_in_molecule = 23
+        space_group = "P21/n"
+        z_value = 4
+        z_prime = 1
+    elif structure_identifier == "acrkdine/Form3":
+        atoms_in_molecule = 23
+        space_group = "P21/c"
+        z_value = 8
+        z_prime = 2
+    elif structure_identifier == "acridine/Form4":
+        atoms_in_molecule = 23
+        space_group = "P212121"
+        z_value = 12
+        z_prime = 3
+    elif structure_identifier == "acridine/Form6":
+        atoms_in_molecule = 23
+        space_group = "Cc"
+        z_value = 8
+        z_prime = 2
+    elif structure_identifier == "acridine/Form7":
+        atoms_in_molecule = 23
+        space_group = "P21/n"
+        z_value = 8
+        z_prime = 2
+    elif structure_identifier == "acridine/Form8":
+        atoms_in_molecule = 23
+        space_group = "Cc"
+        z_value = 8
+        z_prime = 2
+    elif structure_identifier == "acridine/Form9":
+        atoms_in_molecule = 23
+        space_group = "P21/n"
+        z_value = 4
+        z_prime = 1
     else:
         print("no such structure!")
         sys.exit()
 
     return atoms_in_molecule, space_group, z_value, z_prime
+    # '''
+    # II	04
+    # III	07
+    # IV	08
+    # VI	05
+    # VII	06
+    # VIII	23bek9s	from Alex Shtukenberg
+    # IX	12
+    # '''
 
 
 def generate_structure(workdir, crystals_path, structure_identifier,
@@ -81,7 +126,7 @@ def generate_structure(workdir, crystals_path, structure_identifier,
         os.chdir(workdir)
 
     atoms_in_molecule, space_group, z_value, z_prime = get_crystal_properties(structure_identifier)
-    crystal_path = crystals_path + f'{structure_identifier}_renumbered_1x1x1.pdb'
+    crystal_path = crystals_path + f'{structure_identifier}.pdb'
     print("Loading Crystal" + crystal_path)
     # gather structural information from the crystal file
     unit_cell = io.read(crystal_path)
@@ -105,11 +150,10 @@ def generate_structure(workdir, crystals_path, structure_identifier,
     # adjust shape of the cluster
     if cluster_type == "supercell":
         cluster_size, supercell_atoms, supercell_coordinates =(
-            built_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
+            build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
                             min_lattice_length, supercell_atoms))
     elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
-        supercell_atoms, supercell_coordinates = (
-            carve_spherical_cluster(
+        supercell_atoms, supercell_coordinates = (carve_spherical_cluster(
                 atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
                 supercell_atoms, supercell_coordinates, z_value))
 
@@ -132,6 +176,8 @@ def generate_structure(workdir, crystals_path, structure_identifier,
                 atoms_in_molecule, gap_rate, single_mol_atoms, supercell_atoms, supercell_coordinates))
 
     if defect_rate > 0:  # sub nicotinamides for benzamides
+        if 'acridine' in crystal_path:
+            assert False, "Cannot do defects for acridine yet."
         supercell_atoms, supercell_coordinates = (
             apply_defect(
                 atoms_in_molecule, defect_rate, single_mol_atoms, supercell_atoms, supercell_coordinates))
@@ -145,7 +191,7 @@ def generate_structure(workdir, crystals_path, structure_identifier,
 
     cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)
 
-    filename = f'{structure_identifier}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
+    filename = f'{"_".join(structure_identifier.split("/"))}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
     io.write(filename, cluster)
 
     return filename, melt_inds
@@ -173,7 +219,7 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     return melt_inds, supercell_coordinates
 
 
-def built_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates, min_lattice_length, supercell_atoms):
+def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates, min_lattice_length, supercell_atoms):
     if min_lattice_length is not None:
         required_repeats = np.ceil(min_lattice_length / cell_lengths).astype(int)
         supercell_coordinates = []

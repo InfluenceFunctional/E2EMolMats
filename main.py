@@ -24,10 +24,8 @@ print(f"Running {int(n_runs)} LAMMPS MD Jobs")
 '''setup working directory'''
 machine = batch_config['machine']  # 'cluster' or 'local'
 if machine == 'local':
-    #head_dir = r'/home/mkilgour/cluster_structures/' + batch_config['run_name']
-    #crystals_path = r'/home/mkilgour/cluster_structures/CrystalStructures/'
     head_dir = r'C:\Users\mikem\crystals\clusters/cluster_structures/' + batch_config['run_name']
-    crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie/CrystalStructures/'
+    crystals_path = r'C:\Users\mikem\crystals\clusters\crystals_reference/'
 elif machine == 'cluster':
     head_dir = r'/vast/mk8347/molecule_clusters/' + batch_config['run_name']
     crystals_path = r'/vast/mk8347/molecule_clusters/CrystalStructures/'
@@ -46,7 +44,7 @@ if not os.path.exists('common'):
     copy_tree(source_path + '/common', './common/')  # copy from source
 
 for run_num, run_config in enumerate(run_args):
-    create_xyz_and_run_lammps(
+    create_xyz_and_run_lammps(  # todo pass as dict this is ridiculous
         run_num=run_num,
         head_dir=head_dir,
         crystals_path=crystals_path,
