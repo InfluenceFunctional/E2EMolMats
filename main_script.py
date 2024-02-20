@@ -16,21 +16,22 @@ import subprocess
 
 
 def settings_final():
-    file = 'system.in.settings'
+    file = 'system.in.init'
     data = open(file, 'r')
     New_data = open(f'new_{file}', 'w')
 
     lines = data.readlines()
-    for i in range(8):
-        line = lines[i]
-        split_line = line.split('/')
-        split_line[3] = split_line[3].replace('charmm', 'long')
-        new_line = '/'.join(split_line)
-        New_data.write(new_line)
+    lines[0] = "atom_style full2\n"
+#    for i in range(8):
+#        line = lines[i]
+#        #split_line = line.split('/')
+#        #split_line[3] = split_line[3].replace('charmm', 'long')
+#        #new_line = '/'.join(split_line)
+#        New_data.write(new_line)
+#
+#    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
 
-    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
-
-    for i in range(8, len(lines)):
+    for i in range(0, len(lines)):
         New_data.write(lines[i])
 
     New_data.close()

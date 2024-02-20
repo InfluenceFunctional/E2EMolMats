@@ -8,19 +8,17 @@ def moltemp_final(workdir):
     New = "new_" + original
     data = open(original, 'r')
     New_data = open(New, 'w')
-
-    while data_file_line != "Masses\n":
-        data_file_line = data.readline()
+    data_file_line = data.readline()  # original atom type. skip
+    while data_file_line != "Atoms  # full\n":
         New_data.write(data_file_line)
-
-    for i in range(0, 9):
         data_file_line = data.readline()
-        New_data.write(data_file_line)
-    New_data.write("\nAtoms  # full2\n\n")
-    for i in range(0, 3):
+
+    New_data.write("Atoms  # full2\n\n")
+#    for i in range(0, 3):
 #        data_file_line = data.readline()
-        data_file_line = data.readline()
+#        data_file_line = data.readline()
     # This is right before Masses info is added. I need to change some of ca to ca1 and ca2
+    data_file_line = data.readline()
     data_file_line = data.readline()
     mol_id = 1
     atm_counter = 1
