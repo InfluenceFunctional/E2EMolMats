@@ -20,7 +20,7 @@ batch_config = {
     'print_steps': int(1e2),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': False,  # if true, periodic structure
-    'machine': 'local',  # 'local' or 'cluster' have different associated paths
+    'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
     'run_name': 'acridine_dev1',
     'min_lattice_length': 40,  # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
