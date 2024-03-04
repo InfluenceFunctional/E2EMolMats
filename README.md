@@ -6,7 +6,7 @@ Currently hardcoded for nicotinamide only, with options for vacancies, random re
 
 
 ## 1. Installation
-1. Requires following python packages: numpy, ase, scipy, ovito. 
+1. Requires following python packages: numpy, ase, scipy, ovito, pandas, mdanalysis. 
 2. Requires also a local installation of moltemplate and LAMMPS compiled with the following functions:
 
 |Name of Package|
