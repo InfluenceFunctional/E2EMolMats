@@ -8,8 +8,6 @@ def initial_setup(workdir, original, New):
     New_data = open(New, 'w')
     lines = data.readlines()
 
-    lines_rstrip = [line.rstrip("\n") for line in lines]
-
     counter = 0
     mol_counter = 0
     atm_counter = 1
@@ -47,9 +45,6 @@ def initial_setup(workdir, original, New):
             # elif counter >= 19:
             line = i.split()
             if new_mol:  # mol_checker != line[1]:  # If I am reading a new molecule, I will go here
-                mol_lines_3rd = lines_rstrip[counter + 1].split()  # checking the 3rd atom
-                mol_lines_4th = lines_rstrip[counter + 2].split()  # checking the 4th atom
-                mol_checker = mol_lines_3rd[1]
                 mol_counter += 1
                 atm_counter = 1
                 new_mol = False
@@ -139,3 +134,5 @@ def write_acridine(line, atm_counter, New_data):
     for j in range(0, 7):
         New_data.write(str(line[j]) + ' ')
     New_data.write("\n")
+
+2

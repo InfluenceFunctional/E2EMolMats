@@ -68,7 +68,7 @@ def get_crystal_properties(structure_identifier):
         space_group = "P21/n"
         z_value = 4
         z_prime = 1
-    elif structure_identifier == "acrkdine/Form3":
+    elif structure_identifier == "acridine/Form3":
         atoms_in_molecule = 23
         space_group = "P21/c"
         z_value = 8

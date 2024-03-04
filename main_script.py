@@ -4,6 +4,9 @@ import numpy as np
 
 import ovito
 from ovito.io import import_file, export_file
+from ovito.data import *
+from ovito.pipeline import *
+from ovito.modifiers import *
 
 from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
@@ -150,11 +153,15 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
 
         elif 'acridine' in structure_identifier:
             initial_setup_acridine(workdir, '1.data', '2.data')
-            ovito.scene.load("acridine_ovito.ovito")
+            #ovito.scene.load("acridine_ovito.ovito")
+#            pipeline = import_file("2.data")
+#            pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
+#            pipeline.create_bond(a, b, type=None, pbcvec=None)
 
         '''add bonds via ovito'''
-        pipeline = ovito.scene.pipelines[0]
+#        pipeline = ovito.scene.pipelines[0]
         pipeline.source.load('2.data')
+        pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
         export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
         print("============================")
@@ -165,9 +172,12 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         if r'Users\mikem' in workdir:  # if we are Mike's local windows machine (which
             ltemplify_path = r"C:\Users\mikem\miniconda3\envs\LAMMPS_runs\lib\site-packages\moltemplate\ltemplify.py"
         else:  # works on linux
-            ltemplify_path = subprocess.getoutput("which ltemplify.py")
-
-        os.system(f'python {ltemplify_path} 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
+            ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py")
+#            print(ltemplify_path)
+#        print("###################################################################################")
+#        print(ltemplify_path)
+        #os.system(f'{ltemplify_path} 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
+        os.system("~/.local/bin/ltemplify.py 3.data > 4.lt")  # .py on ltemplify required on cluster not windows
 
         print("============================")
         print("Templify to runnable")
@@ -184,13 +194,13 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("============================")
 
         '''run moltemplate and cleanup'''
-        os.system("moltemplate.sh system.lt")
+        os.system("~/.local/bin/moltemplate.sh system.lt")
 
         print("============================")
         print("Moltemplate cleanup")
         print("============================")
 
-        os.system("cleanup_moltemplate.sh")
+        os.system("~/.local/bin/cleanup_moltemplate.sh")
 
         print("============================")
         print("Indexing cleanup")
@@ -208,4 +218,4 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("============================\n")
 
         # '''optionally - directly run MD'''
-        os.system("sbatch sub_job.slurm")
+        os.system("/opt/slurm/bin/sbatch sub_job.slurm")

@@ -11,4 +11,4 @@ module purge
 module load intel/19.1.2
 module load openmpi/intel/4.1.1
 
-srun lammps -in run_MD.lmp -screen screen.log
+srun /scratch/mk8347/newlammps/src/lmp_mpi -in run_MD.lmp -screen screen.log
