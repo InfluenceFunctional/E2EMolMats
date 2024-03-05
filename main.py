@@ -68,6 +68,7 @@ for run_num, run_config in enumerate(run_args):
         structure_identifier=run_config[dynamic_arg_keys['structure_identifier']],
         temperature=run_config[dynamic_arg_keys['temperature']],
         defect_rate=run_config[dynamic_arg_keys['defect_rate']],
+        defect_type=run_config[dynamic_arg_keys['defect_type']],
         gap_rate=run_config[dynamic_arg_keys['gap_rate']],
         scramble_rate=run_config[dynamic_arg_keys['scramble_rate']],
     )

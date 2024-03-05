@@ -9,11 +9,12 @@ import sys
 
 import numpy as np
 from ase import Atoms
-#from ase.visualize import view
+# from ase.visualize import view
 from ase import io
 from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation
-from utils import dict2namespace
+from utils import dict2namespace, compute_principal_axes_np
+
 
 def get_crystal_properties(structure_identifier):
     # get original structure
@@ -116,7 +117,7 @@ def get_crystal_properties(structure_identifier):
 
 def generate_structure(workdir, crystals_path, structure_identifier,
                        cluster_type, max_sphere_radius, cluster_size,
-                       defect_rate, scramble_rate, gap_rate, seed,
+                       defect_rate, defect_type, scramble_rate, gap_rate, seed,
                        min_inter_cluster_distance, min_lattice_length,
                        periodic_structure=False, prep_crystal_in_melt=False):
     np.random.seed(seed=seed)
@@ -149,13 +150,13 @@ def generate_structure(workdir, crystals_path, structure_identifier,
 
     # adjust shape of the cluster
     if cluster_type == "supercell":
-        cluster_size, supercell_atoms, supercell_coordinates =(
+        cluster_size, supercell_atoms, supercell_coordinates = (
             build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
                             min_lattice_length, supercell_atoms))
     elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
         supercell_atoms, supercell_coordinates = (carve_spherical_cluster(
-                atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
-                supercell_atoms, supercell_coordinates, z_value))
+            atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
+            supercell_atoms, supercell_coordinates, z_value))
 
     if prep_crystal_in_melt:
         melt_inds, supercell_coordinates = (
@@ -166,7 +167,7 @@ def generate_structure(workdir, crystals_path, structure_identifier,
         melt_inds = None
 
     if scramble_rate > 0:
-        supercell_atoms, supercell_coordinates =\
+        supercell_atoms, supercell_coordinates = \
             apply_scramble(
                 atoms_in_molecule, scramble_rate, single_mol_atoms, supercell_atoms, supercell_coordinates)
 
@@ -175,15 +176,14 @@ def generate_structure(workdir, crystals_path, structure_identifier,
             apply_gap(
                 atoms_in_molecule, gap_rate, single_mol_atoms, supercell_atoms, supercell_coordinates))
 
-    if defect_rate > 0:  # sub nicotinamides for benzamides
-        if 'acridine' in crystal_path:
-            assert False, "Cannot do defects for acridine yet."
+    if defect_rate > 0:  # substitute certain molecules
         supercell_atoms, supercell_coordinates = (
             apply_defect(
-                atoms_in_molecule, defect_rate, single_mol_atoms, supercell_atoms, supercell_coordinates))
+                atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type=defect_type))
 
     if periodic_structure:
-        cell = T_fc * np.asarray(cluster_size)  # cell parameters are the same as the fractional->cartesian transition matrix (or sometimes its transpose)
+        cell = T_fc * np.asarray(
+            cluster_size)  # cell parameters are the same as the fractional->cartesian transition matrix (or sometimes its transpose)
     else:
         cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
 
@@ -208,9 +208,11 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     crystal_mol_inds = np.argwhere(dists < max_sphere_radius)[:, 0]
     melt_mol_inds = np.argwhere(dists > max_sphere_radius)[:, 0]
     # complete reindexing
-    molwise_supercell_coordinates = np.concatenate([molwise_supercell_coordinates[crystal_mol_inds], molwise_supercell_coordinates[melt_mol_inds]], axis=0)
+    molwise_supercell_coordinates = np.concatenate(
+        [molwise_supercell_coordinates[crystal_mol_inds], molwise_supercell_coordinates[melt_mol_inds]], axis=0)
     # supercell atom indexing doesn't change
-    supercell_coordinates = molwise_supercell_coordinates.reshape(int(len(molwise_supercell_coordinates) * atoms_in_molecule), 3)
+    supercell_coordinates = molwise_supercell_coordinates.reshape(
+        int(len(molwise_supercell_coordinates) * atoms_in_molecule), 3)
     melt_inds = {'melt_start_ind': len(crystal_mol_inds) + 1,
                  'melt_end_ind': len(molwise_supercell_coordinates),
                  'crystal_start_ind': 1,
@@ -219,7 +221,8 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     return melt_inds, supercell_coordinates
 
 
-def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates, min_lattice_length, supercell_atoms):
+def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates, min_lattice_length,
+                    supercell_atoms):
     if min_lattice_length is not None:
         required_repeats = np.ceil(min_lattice_length / cell_lengths).astype(int)
         supercell_coordinates = []
@@ -238,7 +241,8 @@ def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coo
     return cluster_size, supercell_atoms, supercell_coordinates
 
 
-def carve_spherical_cluster(atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms, supercell_atoms, supercell_coordinates, z_value):
+def carve_spherical_cluster(atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
+                            supercell_atoms, supercell_coordinates, z_value):
     num_mols = z_value * np.product(cluster_size)
     molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
     centroid = supercell_coordinates.mean(0)
@@ -263,7 +267,8 @@ def carve_spherical_cluster(atoms_in_molecule, cell_lengths, cluster_size, max_s
 
         # get coordination number
         coordination_number = np.zeros(len(kept_dists))
-        max_mol_radius = np.amax(np.linalg.norm(molwise_supercell_coordinates[0] - molwise_supercell_coordinates[0].mean(0), axis=-1))
+        max_mol_radius = np.amax(
+            np.linalg.norm(molwise_supercell_coordinates[0] - molwise_supercell_coordinates[0].mean(0), axis=-1))
         inter_mol_dist = 2 * max_mol_radius  # 2 radii - empirically decided
         for ind in range(len(kept_dists)):
             coordination_number[ind] = np.sum(kept_dists[ind] < inter_mol_dist)
@@ -320,16 +325,61 @@ def apply_gap(atoms_in_molecule, gap_rate, single_mol_atoms, supercell_atoms, su
     return supercell_atoms, supercell_coordinates
 
 
-def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_atoms, supercell_coordinates):
-    benzamide_atoms = np.concatenate((single_mol_atoms, np.ones(1))).astype(int)  # add a hydrogen # TODO get this in a non-hardcoded fashion
-    atom_switch_coord = 2
-    benzamide_atoms[atom_switch_coord] = 6  # replace ring nitrogen by carbon
-    BENZINE_C_H_BOND_LENGTH = 1.09  # angstrom
+def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type):
     # pick molecules to defect
     num_mols = len(supercell_coordinates) // atoms_in_molecule
     num_defect_molecules = int(defect_rate * num_mols)
     defect_molecule_indices = np.random.choice(np.arange(num_mols), size=num_defect_molecules)
     molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
+
+    if defect_type == 'benzamide':
+        defect_atoms = np.concatenate((single_mol_atoms, np.ones(1))).astype(int)  # append a proton
+        atom_switch_coord = 2
+        defect_atoms[atom_switch_coord] = 6  # replace ring nitrogen by carbon
+        BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
+
+    elif defect_type == 'isonicotinamide':
+        defect_atoms = single_mol_atoms
+        atom_switch_coord = 2  # ring nitrogen by carbon
+        defect_atoms[atom_switch_coord] = 6  # replace ring nitrogen by carbon
+
+        # also sub the ring carbon by nitrogen and pick the proton which will be moved
+        defect_atoms[3] = 7
+        move_proton_ind = 12
+        BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
+
+    elif defect_type == '2_7_dihydroxynaphthalene':
+        # need to bodily replace the acridine with a naphthalene in the appropriate orientation
+        defect_atoms = np.asarray([
+            8, 8,
+            6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
+            1, 1, 1, 1, 1, 1, 1, 1,
+        ])
+        defect_coordinates = np.asarray([
+            [3.6117, - 1.1467, 0.0000],
+            [- 3.6117, - 1.1468, - 0.0011],
+            [0.0000, - 0.4782, 0.0002],
+            [0.0000, 0.9370, 0.0000],
+            [1.2250, - 1.1651, 0.0002],
+            [- 1.2250, - 1.1650, 0.0005],
+            [1.2250, 1.6238, - 0.0002],
+            [- 1.2252, 1.6238, 0.0001],
+            [2.4327, - 0.4665, - 0.0001],
+            [- 2.4326, - 0.4666, 0.0005],
+            [2.4326, 0.9252, - 0.0003],
+            [- 2.4327, 0.9251, 0.0003],
+            [1.2424, - 2.2536, 0.0003],
+            [- 1.2424, - 2.2535, 0.0003],
+            [1.2487, 2.7116, - 0.0004],
+            [- 1.2490, 2.7116, - 0.0001],
+            [3.3667, 1.4807, - 0.0005],
+            [- 3.3668, 1.4805, 0.0000],
+            [4.3447, - 0.5074, - 0.0001],
+            [- 4.3447, - 0.5074, - 0.0013],
+        ])
+        defect_coordinates -= defect_coordinates.mean(0)
+        Ip_defect, _, _ = compute_principal_axes_np(defect_coordinates)
+
     # apply defect
     defected_supercell_coordinates = []
     defected_supercell_atoms = []
@@ -337,25 +387,73 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_ato
         if i in defect_molecule_indices:  # yes defect
             original_mol_coords = molwise_supercell_coordinates[i]
 
-            # append a proton in the correct spot
-            new_carbon_coord = original_mol_coords[atom_switch_coord]
-            neighboring_carbon_inds = list(np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
-            neighboring_carbon_inds.remove(2)  # remove self
-            neighbor_vectors = new_carbon_coord - original_mol_coords[neighboring_carbon_inds]
+            if defect_type == 'benzamide':
+                # append a proton in the correct spot
+                new_carbon_coord = original_mol_coords[atom_switch_coord]
+                neighboring_carbon_inds = list(
+                    np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
+                neighboring_carbon_inds.remove(2)  # remove self
+                neighbor_vectors = new_carbon_coord - original_mol_coords[neighboring_carbon_inds]
 
-            # to project a trigonal planar proton, take the mean of the neighbors directions, and reverse it
-            normed_neighbor_vectors = neighbor_vectors / np.linalg.norm(neighbor_vectors, axis=1)[:, None]
-            proton_direction = normed_neighbor_vectors.mean(0)  # switch direction
-            proton_vector = proton_direction / np.linalg.norm(proton_direction) * BENZINE_C_H_BOND_LENGTH
-            proton_position = new_carbon_coord + proton_vector
+                # to project a trigonal planar proton, take the mean of the neighbors directions, and reverse it
+                normed_neighbor_vectors = neighbor_vectors / np.linalg.norm(neighbor_vectors, axis=1)[:, None]
+                proton_direction = normed_neighbor_vectors.mean(0)  # switch direction
+                proton_vector = proton_direction / np.linalg.norm(proton_direction) * BENZENE_C_H_BOND_LENGTH
+                proton_position = new_carbon_coord + proton_vector
+                defect_mol_coordinates = np.concatenate(
+                    (original_mol_coords, proton_position[None, :]))  # append proton position to end of list
 
-            defect_mol_coordinates = np.concatenate((original_mol_coords, proton_position[None, :]))  # append proton position to end of list
+            elif defect_type == 'isonicotinamide':
+                # move a proton to the correct spot
+                new_carbon_coord = original_mol_coords[atom_switch_coord]
+                neighboring_carbon_inds = list(
+                    np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
+                neighboring_carbon_inds.remove(2)  # remove self
+                neighbor_vectors = new_carbon_coord - original_mol_coords[neighboring_carbon_inds]
+
+                # to project a trigonal planar proton, take the mean of the neighbors directions, and reverse it
+                normed_neighbor_vectors = neighbor_vectors / np.linalg.norm(neighbor_vectors, axis=1)[:, None]
+                proton_direction = normed_neighbor_vectors.mean(0)  # switch direction
+                proton_vector = proton_direction / np.linalg.norm(proton_direction) * BENZENE_C_H_BOND_LENGTH
+                proton_position = new_carbon_coord + proton_vector
+                defect_mol_coordinates = original_mol_coords.copy()
+                defect_mol_coordinates[12] = proton_position
+                # np.concatenate(
+                #   (original_mol_coords, proton_position[None, :]))  # append proton position to end of list
+
+            elif defect_type == 'anthracene':
+                # simply convert the nitrogen to a carbon, don't move any atoms around
+                defect_mol_coordinates = original_mol_coords
+
+            elif defect_type == '2_7_dihydroxynaphthalene':
+                # compute the intertial tensor for the acridine molecule
+                # and align it with the napthalene
+                Ip_host, _, _ = compute_principal_axes_np(original_mol_coords)
+                Rmat = Ip_host @ np.linalg.inv(Ip_defect)
+                oriented_defect_coords = (Rmat @ defect_coordinates.T).T
+
+                # test
+                if i == 10:
+                    defect_test_Ip, _, _ = compute_principal_axes_np(oriented_defect_coords)
+                    assert np.sum(np.abs(defect_test_Ip - Ip_host)) <= 1e-3, "Defect naphthalene is not in correct orientation"
+
+                oriented_defect_coords += original_mol_coords.mean(0)  # put it in place
+                defect_mol_coordinates = oriented_defect_coords
 
             defected_supercell_coordinates.append(defect_mol_coordinates)
-            defected_supercell_atoms.extend(benzamide_atoms)
+            defected_supercell_atoms.extend(defect_atoms)
         else:  # no defect
             defected_supercell_coordinates.append(molwise_supercell_coordinates[i])
             defected_supercell_atoms.extend(single_mol_atoms)
+
     supercell_coordinates = np.concatenate(defected_supercell_coordinates)
     supercell_atoms = np.asarray(defected_supercell_atoms)
+
+    # visualize cluster
+    # from ase import Atoms
+    # from ase.visualize import view
+    #
+    # mol = Atoms(positions=supercell_coordinates[:1200], numbers=supercell_atoms[:1200])
+    # view(mol)
+
     return supercell_atoms, supercell_coordinates

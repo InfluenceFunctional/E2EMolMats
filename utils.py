@@ -1,7 +1,7 @@
 from argparse import Namespace
-import os
+# import os
 import numpy as np
-import MDAnalysis as mda
+# import MDAnalysis as mda
 from scipy.spatial.distance import cdist, pdist
 import pandas as pd
 
@@ -101,7 +101,8 @@ def compute_Ip_molwise_alignment(u, Ip_overlap_trajectory, print_frames):
             it += 1
             mol_centroids = np.asarray([u.residues[ii].atoms.centroid() for ii in range(len(u.residues))])
             distmat = cdist(mol_centroids, mol_centroids)
-            envelope = -np.tanh((distmat - 10) / 2) / 2 + .5  # a function which prioritizes mols which are nearby to each other
+            envelope = -np.tanh(
+                (distmat - 10) / 2) / 2 + .5  # a function which prioritizes mols which are nearby to each other
 
             for icc, cutoff in enumerate(cutoffs):
                 alignments = np.zeros((3, len(u.residues), len(u.residues)))
@@ -185,7 +186,8 @@ def compute_principal_axes_np(coords):
     # cardinal direction is vector from CoM to the farthest atom
     dists = np.linalg.norm(points, axis=1)
     max_ind = np.argmax(dists)
-    max_equivs = np.argwhere(np.round(dists, 8) == np.round(dists[max_ind], 8))[:, 0]  # if there are multiple equidistant atoms - pick the one with the lowest index
+    max_equivs = np.argwhere(np.round(dists, 8) == np.round(dists[max_ind], 8))[:,
+                 0]  # if there are multiple equidistant atoms - pick the one with the lowest index
     max_ind = int(np.amin(max_equivs))
     direction = points[max_ind]
     direction = np.divide(direction, np.linalg.norm(direction))
@@ -194,7 +196,8 @@ def compute_principal_axes_np(coords):
     signs[signs == 0] = 1
 
     Ip = (Ip.T * signs).T  # if the vectors have negative overlap, flip the direction
-    if np.any(np.abs(overlaps) < 1e-3):  # if any overlaps are vanishing, determine the direction via the RHR (if two overlaps are vanishing, this will not work)
+    if np.any(
+            np.abs(overlaps) < 1e-3):  # if any overlaps are vanishing, determine the direction via the RHR (if two overlaps are vanishing, this will not work)
         # align the 'good' vectors
         fix_ind = np.argmin(np.abs(overlaps))  # vector with vanishing overlap
         if compute_Ip_handedness(Ip) < 0:  # make sure result is right handed
@@ -228,40 +231,41 @@ def cell_vol(v, a, units='natural'):
     return vol
 
 
-def rewrite_trajectory(u: mda.Universe, run_dir: str, extra_atomwise_values=None):
-
-    #if not os.path.exists(f"{run_dir}_traj.xyz"):
-    # if extra_atomwise_values is not None:
-    #     u.add_TopologyAttr('tempfactors')
-    atom_types = u.atoms.types
-    atom_names = np.asarray([names_dict[atype] for atype in atom_types])
-    u.add_TopologyAttr('name', atom_names)
-    cluster = u.select_atoms("all")
-    with mda.Writer(f"{run_dir}_traj.xyz", cluster.n_atoms) as W:
-        for ts in u.trajectory:
-            # if extra_atomwise_values is not None:
-            #     u.atoms.tempfactors = extra_atomwise_values[ts.frame]
-            W.write(cluster)
-
-        if extra_atomwise_values is not None:
-            newFile = open(f"{run_dir}_traj2.xyz", 'w')
-            with open(f"{run_dir}_traj.xyz") as f:
-                newText = f.readlines()
-                counter = 0
-                frame_num = None
-                for ind, line in enumerate(newText):
-                    if 'frame' in line:
-                        newFile.write(line)
-                        frame_num = int(line.split()[1])
-                        counter = 0
-                    elif len(line.split()) == 1:
-                        newFile.write(line)
-                    elif line == '\n':
-                        newFile.write(line)
-                    else:
-                        coord_line = line.replace('\n', f'  {extra_atomwise_values[frame_num, counter]:.2f}\n')
-                        counter += 1
-                        newFile.write(coord_line)
+#
+# def rewrite_trajectory(u: mda.Universe, run_dir: str, extra_atomwise_values=None):
+#
+#     #if not os.path.exists(f"{run_dir}_traj.xyz"):
+#     # if extra_atomwise_values is not None:
+#     #     u.add_TopologyAttr('tempfactors')
+#     atom_types = u.atoms.types
+#     atom_names = np.asarray([names_dict[atype] for atype in atom_types])
+#     u.add_TopologyAttr('name', atom_names)
+#     cluster = u.select_atoms("all")
+#     with mda.Writer(f"{run_dir}_traj.xyz", cluster.n_atoms) as W:
+#         for ts in u.trajectory:
+#             # if extra_atomwise_values is not None:
+#             #     u.atoms.tempfactors = extra_atomwise_values[ts.frame]
+#             W.write(cluster)
+#
+#         if extra_atomwise_values is not None:
+#             newFile = open(f"{run_dir}_traj2.xyz", 'w')
+#             with open(f"{run_dir}_traj.xyz") as f:
+#                 newText = f.readlines()
+#                 counter = 0
+#                 frame_num = None
+#                 for ind, line in enumerate(newText):
+#                     if 'frame' in line:
+#                         newFile.write(line)
+#                         frame_num = int(line.split()[1])
+#                         counter = 0
+#                     elif len(line.split()) == 1:
+#                         newFile.write(line)
+#                     elif line == '\n':
+#                         newFile.write(line)
+#                     else:
+#                         coord_line = line.replace('\n', f'  {extra_atomwise_values[frame_num, counter]:.2f}\n')
+#                         counter += 1
+#                         newFile.write(coord_line)
 
 def process_dump(path):
     file = open(path, 'r')
@@ -289,19 +293,19 @@ def process_dump(path):
 
     return frame_outputs
 
-def tile_universe(universe, tiling):
-    n_x, n_y, n_z = tiling
-    box = universe.dimensions[:3]
-    copied = []
-    for x in range(n_x):
-        for y in range(n_y):
-            for z in range(n_z):
-                u_ = universe.copy()
-                move_by = box * (x, y, z)
-                u_.atoms.translate(move_by)
-                copied.append(u_.atoms)
-
-    new_universe = mda.Merge(*copied)
-    new_box = box * (n_x, n_y, n_z)
-    new_universe.dimensions = list(new_box) + [90] * 3
-    return new_universe
+# def tile_universe(universe, tiling):
+#     n_x, n_y, n_z = tiling
+#     box = universe.dimensions[:3]
+#     copied = []
+#     for x in range(n_x):
+#         for y in range(n_y):
+#             for z in range(n_z):
+#                 u_ = universe.copy()
+#                 move_by = box * (x, y, z)
+#                 u_.atoms.translate(move_by)
+#                 copied.append(u_.atoms)
+#
+#     new_universe = mda.Merge(*copied)
+#     new_box = box * (n_x, n_y, n_z)
+#     new_universe.dimensions = list(new_box) + [90] * 3
+#     return new_universe
