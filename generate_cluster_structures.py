@@ -15,6 +15,8 @@ from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation
 from utils import dict2namespace, compute_principal_axes_np
 
+BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
+
 
 def get_crystal_properties(structure_identifier):
     # get original structure
@@ -338,6 +340,11 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
         defect_atoms[atom_switch_coord] = 6  # replace ring nitrogen by carbon
         BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
 
+    elif defect_type == 'anthracene':
+        defect_atoms = np.concatenate((single_mol_atoms, np.ones(1))).astype(int)  # append a proton
+        atom_switch_coord = int(np.argwhere(defect_atoms == 7))
+        defect_atoms[atom_switch_coord] = 6  # swap nitrogen for carbon
+
     elif defect_type == 'isonicotinamide':
         defect_atoms = single_mol_atoms
         atom_switch_coord = 2  # ring nitrogen by carbon
@@ -346,7 +353,6 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
         # also sub the ring carbon by nitrogen and pick the proton which will be moved
         defect_atoms[3] = 7
         move_proton_ind = 12
-        BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
 
     elif defect_type == '2_7_dihydroxynaphthalene':
         # need to bodily replace the acridine with a naphthalene in the appropriate orientation
@@ -392,7 +398,7 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
                 new_carbon_coord = original_mol_coords[atom_switch_coord]
                 neighboring_carbon_inds = list(
                     np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
-                neighboring_carbon_inds.remove(2)  # remove self
+                neighboring_carbon_inds.remove(atom_switch_coord)  # remove self
                 neighbor_vectors = new_carbon_coord - original_mol_coords[neighboring_carbon_inds]
 
                 # to project a trigonal planar proton, take the mean of the neighbors directions, and reverse it
@@ -423,7 +429,19 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
 
             elif defect_type == 'anthracene':
                 # simply convert the nitrogen to a carbon, don't move any atoms around
-                defect_mol_coordinates = original_mol_coords
+                new_carbon_coord = original_mol_coords[atom_switch_coord]
+                neighboring_carbon_inds = list(
+                    np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
+                neighboring_carbon_inds.remove(atom_switch_coord)  # remove self
+                neighbor_vectors = new_carbon_coord - original_mol_coords[neighboring_carbon_inds]
+
+                # to project a trigonal planar proton, take the mean of the neighbors directions, and reverse it
+                normed_neighbor_vectors = neighbor_vectors / np.linalg.norm(neighbor_vectors, axis=1)[:, None]
+                proton_direction = normed_neighbor_vectors.mean(0)  # switch direction
+                proton_vector = proton_direction / np.linalg.norm(proton_direction) * BENZENE_C_H_BOND_LENGTH
+                proton_position = new_carbon_coord + proton_vector
+                defect_mol_coordinates = np.concatenate(
+                    (original_mol_coords, proton_position[None, :]))  # append proton position to end of list
 
             elif defect_type == '2_7_dihydroxynaphthalene':
                 # compute the intertial tensor for the acridine molecule
@@ -435,7 +453,8 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
                 # test
                 if i == 10:
                     defect_test_Ip, _, _ = compute_principal_axes_np(oriented_defect_coords)
-                    assert np.sum(np.abs(defect_test_Ip - Ip_host)) <= 1e-3, "Defect naphthalene is not in correct orientation"
+                    assert np.sum(
+                        np.abs(defect_test_Ip - Ip_host)) <= 1e-3, "Defect naphthalene is not in correct orientation"
 
                 oriented_defect_coords += original_mol_coords.mean(0)  # put it in place
                 defect_mol_coordinates = oriented_defect_coords
