@@ -152,6 +152,11 @@ def generate_structure(workdir, crystals_path, structure_identifier,
 
     # adjust shape of the cluster
     if cluster_type == "supercell":
+        if min_inter_cluster_distance is not None:  # force cluster radii to be separated by at least X
+            cluster_separation = min_lattice_length - 2*max_sphere_radius
+            extra_separation = min_inter_cluster_distance - cluster_separation
+            min_lattice_length += extra_separation
+
         cluster_size, supercell_atoms, supercell_coordinates = (
             build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
                             min_lattice_length, supercell_atoms))
@@ -223,8 +228,8 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     return melt_inds, supercell_coordinates
 
 
-def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates, min_lattice_length,
-                    supercell_atoms):
+def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms,
+                    crystal_coordinates, min_lattice_length, supercell_atoms):
     if min_lattice_length is not None:
         required_repeats = np.ceil(min_lattice_length / cell_lengths).astype(int)
         supercell_coordinates = []
@@ -237,9 +242,9 @@ def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coo
         supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(required_repeats))])
 
         cluster_size = required_repeats
-
     else:
-        pass
+        pass # todo this will just crash
+
     return cluster_size, supercell_atoms, supercell_coordinates
 
 
