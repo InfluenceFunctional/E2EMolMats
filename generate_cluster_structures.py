@@ -189,8 +189,8 @@ def generate_structure(workdir, crystals_path, structure_identifier,
                 atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type=defect_type))
 
     if periodic_structure:
-        cell = T_fc * np.asarray(
-            cluster_size)  # cell parameters are the same as the fractional->cartesian transition matrix (or sometimes its transpose)
+        cell = T_fc * np.asarray(cluster_size)[None, :].T  # cell parameters are the same as the
+        # fractional->cartesian transition matrix (or sometimes its transpose)
     else:
         cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
 
@@ -243,7 +243,15 @@ def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms,
 
         cluster_size = required_repeats
     else:
-        pass # todo this will just crash
+        supercell_coordinates = []
+        for xs in range(cluster_size[0]):
+            for ys in range(cluster_size[1]):
+                for zs in range(cluster_size[2]):
+                    supercell_coordinates.extend(crystal_coordinates + T_fc[0] * xs + T_fc[1] * ys + T_fc[2] * zs)
+
+        supercell_coordinates = np.asarray(supercell_coordinates)
+        supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(cluster_size))])
+
 
     return cluster_size, supercell_atoms, supercell_coordinates
 
