@@ -22,6 +22,7 @@ def templify_to_runnable(workdir, original, ori_data_file, New):
     data_file_line = data_file.readline()
     data_file_line = data_file.readline()
     data_file_line = data_file.readline()
+    data_file_line = data_file.readline()
 
     data_file_line = data_file.readline()
     system.write("   " + data_file_line)

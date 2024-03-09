@@ -20,10 +20,12 @@ def initial_setup(workdir, original, New):
     n_benzamide_atoms = 16
     n_nicotinamide_atoms = 15
     new_mol = True
+    in_atom = False
+    end_of_atom = False
     oxy = -1;
     nit = -1;
     car = -1;
-    for ind, i in enumerate(lines):
+    for i in lines:
         counter = counter + 1
         if "# C" in i:
             car = i[0];
@@ -52,7 +54,9 @@ def initial_setup(workdir, original, New):
             New_data.write(i)
             New_data.write("\n")
             printed_atoms = True
-        elif printed_atoms and i != '\n':
+        #elif printed_atoms and i != '\n' and (not end_of_atom):
+        elif printed_atoms and i != '\n' and not end_of_atom:
+            in_atom = True
             # elif counter >= 19:
             line = i.split()
             if new_mol:  # mol_checker != line[1]:  # If I am reading a new molecule, I will go here
@@ -90,7 +94,13 @@ def initial_setup(workdir, original, New):
                 write_isonicotinamide(line, atm_counter, New_data)
 
             atm_counter += 1
-
+        elif in_atom and i == '\n':
+#            print("TEST222222")
+            in_atom = False;
+            New_data.write(i);
+            end_of_atom = True
+        if end_of_atom:
+            New_data.write(i);
     New_data.close()
     data.close()
 

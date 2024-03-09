@@ -12,7 +12,8 @@ from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
 from template_scripts.acridine_initial_for_ovito import initial_setup as initial_setup_acridine
 from template_scripts.original_templify_to_runnable import templify_to_runnable as templify_to_runnable_nicotinamide
-from template_scripts.acridine_original_templify_to_runnable import templify_to_runnable as templify_to_runnable_acridine
+from template_scripts.acridine_original_templify_to_runnable import \
+    templify_to_runnable as templify_to_runnable_acridine
 from template_scripts.moltemp_final import moltemp_final as moltemp_final_nicotinamide
 from template_scripts.acridine_moltemp_final_ver2 import moltemp_final as moltemp_final_acridine
 import subprocess
@@ -25,14 +26,14 @@ def settings_final():
 
     lines = data.readlines()
     lines[0] = "atom_style full2\n"
-#    for i in range(8):
-#        line = lines[i]
-#        #split_line = line.split('/')
-#        #split_line[3] = split_line[3].replace('charmm', 'long')
-#        #new_line = '/'.join(split_line)
-#        New_data.write(new_line)
-#
-#    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
+    #    for i in range(8):
+    #        line = lines[i]
+    #        #split_line = line.split('/')
+    #        #split_line[3] = split_line[3].replace('charmm', 'long')
+    #        #new_line = '/'.join(split_line)
+    #        New_data.write(new_line)
+    #
+    #    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
 
     for i in range(0, len(lines)):
         New_data.write(lines[i])
@@ -134,7 +135,6 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             newText = newText.replace('_BOUND', str(box_type))
             newText = newText.replace('_DAMP', damping)
 
-
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
 
@@ -148,21 +148,34 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
 
         '''prep for ovito bonds'''
         if 'nicotinamide' in structure_identifier:
-            initial_setup_nicotinamide(workdir, '1.data', '2.data')
-            ovito.scene.load("nicotinamide_bond_session_nico_ben_iso.ovito")
+            pipeline.source.load('1.data')
+            create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
+            pipeline.modifiers.append(create_bonds_modifier)
+
+            # CreateBondsModifier.Mode.VdWRadius
+            # pipeline.modifiers.append(CreateBondsModifier.Mode.VdWRadius())
+            # pipeline.modifiers.append(CreateBondsModifier())
+            export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
+            initial_setup_nicotinamide(workdir, '2.data', '3.data')
+            # ovito.scene.load("nicotinamide_bond_session_nico_ben_iso.ovito")
 
         elif 'acridine' in structure_identifier:
             initial_setup_acridine(workdir, '1.data', '2.data')
-            #ovito.scene.load("acridine_ovito.ovito")
-#            pipeline = import_file("2.data")
-#            pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
-#            pipeline.create_bond(a, b, type=None, pbcvec=None)
+            # ovito.scene.load("acridine_ovito.ovito")
+            # pipeline = import_file("2.data")
+            # pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
+            # pipeline.create_bond(a, b, type=None, pbcvec=None)
 
         '''add bonds via ovito'''
-#        pipeline = ovito.scene.pipelines[0]
-        pipeline.source.load('2.data')
-        pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
-        export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
+        #        pipeline = ovito.scene.pipelines[0]
+        # pipeline.source.load('2.data')
+        #        pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
+        # modbonds = CreateBondsModifier(mode = CreateBondsModifier.Mode.VdWRadius)
+        # pipeline.modifiers.append(modbonds)
+        #        pipeline.modifiers.append(CreateBondsModifier.Mode.VdWRadius)
+        # pipeline.modifiers.append(CreateBondsModifier.Mode.VdWRadius)
+        # pipeline.modifiers.append(CreateBondsModifier.Mode.VdWRadius)
+        #        pipeline.modifiers.append(CreateBondsModifier.Mode.VdWRadius)
 
         print("============================")
         print("Ltemplifying")
