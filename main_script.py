@@ -137,10 +137,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             newText = newText.replace('_DAMP', damping)
 
             if 'nicotinamide' in structure_identifier:
-                newText = newText.replace('_NICOTINAMIDE','')
+                newText = newText.replace('#_NICOTINAMIDE','')
 
             elif 'acridine' in structure_identifier:
-                newText = newText.replace('_ACRIDINE', '')
+                newText = newText.replace('#_ACRIDINE', '')
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
