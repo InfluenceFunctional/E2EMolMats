@@ -19,21 +19,22 @@ from template_scripts.acridine_moltemp_final_ver2 import moltemp_final as moltem
 import subprocess
 
 
-def settings_final():
+def settings_final(change_atom_style=True):
     file = 'system.in.init'
     data = open(file, 'r')
     New_data = open(f'new_{file}', 'w')
 
     lines = data.readlines()
-    lines[0] = "atom_style full2\n"
-    #    for i in range(8):
-    #        line = lines[i]
-    #        #split_line = line.split('/')
-    #        #split_line[3] = split_line[3].replace('charmm', 'long')
-    #        #new_line = '/'.join(split_line)
-    #        New_data.write(new_line)
-    #
-    #    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
+    if change_atom_style:
+        lines[0] = "atom_style full2\n"
+        #    for i in range(8):
+        #        line = lines[i]
+        #        #split_line = line.split('/')
+        #        #split_line[3] = split_line[3].replace('charmm', 'long')
+        #        #new_line = '/'.join(split_line)
+        #        New_data.write(new_line)
+        #
+        #    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
 
     for i in range(0, len(lines)):
         New_data.write(lines[i])
@@ -135,6 +136,12 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             newText = newText.replace('_BOUND', str(box_type))
             newText = newText.replace('_DAMP', damping)
 
+            if 'nicotinamide' in structure_identifier:
+                newText = newText.replace('_NICOTINAMIDE','')
+
+            elif 'acridine' in structure_identifier:
+                newText = newText.replace('_ACRIDINE', '')
+
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
 
@@ -221,10 +228,11 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
 
         if 'nicotinamide' in structure_identifier:
             moltemp_final_nicotinamide(workdir)  # Daisuke final indexing cleanup
+            settings_final(False)  # adjust pairs to be Daisuke-friendly
+
         elif 'acridine' in structure_identifier:
             moltemp_final_acridine(workdir)  # Daisuke final indexing cleanup
-
-        settings_final()  # adjust pairs to be Daisuke-friendly
+            settings_final(True)  # adjust pairs to be Daisuke-friendly
 
         print("============================")
         print("Submitting LAMMPS run")
