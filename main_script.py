@@ -228,7 +228,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
 
         if 'nicotinamide' in structure_identifier:
             moltemp_final_nicotinamide(workdir)  # Daisuke final indexing cleanup
-            settings_final(False)  # adjust pairs to be Daisuke-friendly
+            settings_final(True)  # adjust pairs to be Daisuke-friendly
 
         elif 'acridine' in structure_identifier:
             moltemp_final_acridine(workdir)  # Daisuke final indexing cleanup
