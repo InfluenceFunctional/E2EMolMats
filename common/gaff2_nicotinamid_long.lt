@@ -68,14 +68,14 @@ GAFF2 {
   } # (end of masses)
 
   write_once("In Settings") {
-    pair_coeff @atom:ha @atom:ha lj/charmm/coul/charmm 0.0150 2.59964245953   # Spellmeyer
-    pair_coeff @atom:hn @atom:hn lj/charmm/coul/charmm 0.0157 1.06907846177   # !Ferguson base pair geom.
-    pair_coeff @atom:o @atom:o lj/charmm/coul/charmm 0.2100 2.95992190115   # OPLS
-    pair_coeff @atom:c @atom:c lj/charmm/coul/charmm 0.0860 3.39966950842   # OPLS
-    pair_coeff @atom:ca @atom:ca lj/charmm/coul/charmm 0.0860 3.39966950842   # OPLS
-    pair_coeff @atom:n @atom:n lj/charmm/coul/charmm 0.1700 3.24999852378   # OPLS
-    pair_coeff @atom:nb @atom:nb lj/charmm/coul/charmm 0.1700 3.24999852378   # OPLS
-    pair_coeff @atom:h4 @atom:h4 lj/charmm/coul/charmm 0.0150 2.51055258772   # Spellmeyer, one electrowithdr. neighbor
+    pair_coeff @atom:ha @atom:ha lj/charmm/coul/long 0.0150 2.59964245953   # Spellmeyer
+    pair_coeff @atom:hn @atom:hn lj/charmm/coul/long 0.0157 1.06907846177   # !Ferguson base pair geom.
+    pair_coeff @atom:o @atom:o lj/charmm/coul/long 0.2100 2.95992190115   # OPLS
+    pair_coeff @atom:c @atom:c lj/charmm/coul/long 0.0860 3.39966950842   # OPLS
+    pair_coeff @atom:ca @atom:ca lj/charmm/coul/long 0.0860 3.39966950842   # OPLS
+    pair_coeff @atom:n @atom:n lj/charmm/coul/long 0.1700 3.24999852378   # OPLS
+    pair_coeff @atom:nb @atom:nb lj/charmm/coul/long 0.1700 3.24999852378   # OPLS
+    pair_coeff @atom:h4 @atom:h4 lj/charmm/coul/long 0.0150 2.51055258772   # Spellmeyer, one electrowithdr. neighbor
   } # (end of pair_coeffs)
 
   write_once("In Settings") {
