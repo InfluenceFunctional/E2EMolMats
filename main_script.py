@@ -226,7 +226,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("Indexing cleanup")
         print("============================")
 
-        if 'nicotinamide' in structure_identifier:
+        if 'nicotinamide' in structure_identifier:  # these are in fact un-used in nicotinamide runs
             moltemp_final_nicotinamide(workdir)  # Daisuke final indexing cleanup
             settings_final(True)  # adjust pairs to be Daisuke-friendly
 
@@ -238,5 +238,5 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("Submitting LAMMPS run")
         print("============================\n")
 
-        # '''optionally - directly run MD'''
-        os.system("/opt/slurm/bin/sbatch sub_job.slurm")
+        # '''optionally - directly run MD''' # NOTE this no longer works on cluster due to Singularity issue - must use the batch_sub_lmp.sh in common to submit after all templates are built
+        #os.system("/opt/slurm/bin/sbatch sub_job.slurm")
