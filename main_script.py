@@ -42,6 +42,29 @@ def settings_final(change_atom_style=True):
     New_data.close()
 
 
+def settings_final_nico(change_atom_style=True):
+    file = 'system.in.init'
+    data = open(file, 'r')
+    New_data = open(f'new_{file}', 'w')
+
+    lines = data.readlines()
+    if change_atom_style:
+        lines[0] = "atom_style full\n"
+        #    for i in range(8):
+        #        line = lines[i]
+        #        #split_line = line.split('/')
+        #        #split_line[3] = split_line[3].replace('charmm', 'long')
+        #        #new_line = '/'.join(split_line)
+        #        New_data.write(new_line)
+        #
+        #    New_data.write('pair_coeff 9 9 lj/charmm/coul/long 0.0860 3.39966950842\npair_coeff 10 10 lj/charmm/coul/long 0.0860 3.39966950842\n')
+
+    for i in range(0, len(lines)):
+        New_data.write(lines[i])
+
+    New_data.close()
+
+
 def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
                               cluster_type="supercell", structure_identifier="NICOAM13",
                               max_sphere_radius=None, min_lattice_length=None,
@@ -137,7 +160,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             newText = newText.replace('_DAMP', damping)
 
             if 'nicotinamide' in structure_identifier:
-                newText = newText.replace('#_NICOTINAMIDE','')
+                newText = newText.replace('#_NICOTINAMIDE', '')
 
             elif 'acridine' in structure_identifier:
                 newText = newText.replace('#_ACRIDINE', '')
@@ -165,9 +188,15 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
             initial_setup_nicotinamide(workdir, '2.data', '3.data')
             # ovito.scene.load("nicotinamide_bond_session_nico_ben_iso.ovito")
+            # create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
+            # pipeline.modifiers.append(create_bonds_modifier)
+            # export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
         elif 'acridine' in structure_identifier:
             initial_setup_acridine(workdir, '1.data', '2.data')
+            pipeline.source.load('2.data')
+            pipeline.modifiers.append(CreateBondsModifier(cutoff=1.7))
+            export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
             # ovito.scene.load("acridine_ovito.ovito")
             # pipeline = import_file("2.data")
             # pipeline.modifiers.append(CreateBondsModifier(cutoff = 1.7))
@@ -193,10 +222,10 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             ltemplify_path = r"C:\Users\mikem\miniconda3\envs\LAMMPS_runs\lib\site-packages\moltemplate\ltemplify.py"
         else:  # works on linux
             ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py")
-#            print(ltemplify_path)
-#        print("###################################################################################")
-#        print(ltemplify_path)
-        #os.system(f'{ltemplify_path} 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
+        #            print(ltemplify_path)
+        #        print("###################################################################################")
+        #        print(ltemplify_path)
+        # os.system(f'{ltemplify_path} 3.data > 4.lt')  # .py on ltemplify required on cluster not windows
         os.system("~/.local/bin/ltemplify.py 3.data > 4.lt")  # .py on ltemplify required on cluster not windows
 
         print("============================")
@@ -228,7 +257,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
 
         if 'nicotinamide' in structure_identifier:  # these are in fact un-used in nicotinamide runs
             moltemp_final_nicotinamide(workdir)  # Daisuke final indexing cleanup
-            settings_final(True)  # adjust pairs to be Daisuke-friendly
+            settings_final_nico(True)  # adjust pairs to be Daisuke-friendly
 
         elif 'acridine' in structure_identifier:
             moltemp_final_acridine(workdir)  # Daisuke final indexing cleanup
@@ -239,4 +268,4 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("============================\n")
 
         # '''optionally - directly run MD''' # NOTE this no longer works on cluster due to Singularity issue - must use the batch_sub_lmp.sh in common to submit after all templates are built
-        #os.system("/opt/slurm/bin/sbatch sub_job.slurm")
+        # os.system("/opt/slurm/bin/sbatch sub_job.slurm")

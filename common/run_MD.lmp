@@ -26,12 +26,10 @@
 
 #------------------------- Load initial setup ----------------------------------#
   # load function definition
-#_ACRIDINE  include "new_system.in.init"
-#_NICOTINAMIDE  include "system.in.init"
+  include "new_system.in.init"
 
   # read system setup (positions, connectivity,...)
-#_ACRIDINE  read_data "new_system.data"
-#_NICOTINAMIDE  read_data "system.data"
+  read_data "new_system.data"
 
   # load force field parameters
   include "system.in.settings"
