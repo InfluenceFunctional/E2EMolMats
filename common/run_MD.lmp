@@ -9,8 +9,8 @@
   variable          nx     equal 1      # System size.
   variable          ny     equal 1      # System size.
   variable          nz     equal 1      # System size.
-  variable          T      equal _TEMP    # Temperature
-  variable          T0      equal _TEMP0    # Initial Temperature
+  variable          T_sample      equal _TEMP    # Temperature
+  variable          T_init      equal _INIT_TEMP    # Initial Temperature
   variable          rnd    equal _SEED     # seed for random velocities
   variable          t_run  equal _RUNTIME     # number of MD steps
   variable          t_print equal ${t_run}/_PRINTSTEPS  #how often to print histogram
@@ -81,8 +81,8 @@
 #_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
 #_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
-#_MELT_PREP fix f11 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_MELT_PREP velocity          all create $T ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP fix f11 all npt temp $T_sample $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_MELT_PREP velocity          all create $T_sample ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # equilibrate
 #_MELT_PREP unfix f11
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
@@ -93,23 +93,23 @@
 #_MELT_PREP unfix f12
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_melted.data
 
-#_MELT_PREP fix f13 melt nvt temp ${T_melt} $T $(100.0*dt)
+#_MELT_PREP fix f13 melt nvt temp ${T_melt} $T_sample $(100.0*dt)
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f13
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled.data
 
-#_MELT_PREP fix f14 melt npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_MELT_PREP fix f14 melt npt temp $T_sample $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_MELT_PREP run ${t_equil}  # re-equilibrate npt the melt with the crystal
 #_MELT_PREP unfix f14
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled_equil.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp $T0 $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_NOSE  fix               f2 all nvt temp $T0 $T $(100.0*dt)
-#_LANGEVIN  fix				f2 all langevin $T0 $T _DAMP ${rnd}
+#_NPT  fix               f2 all npt temp $T_init $T_sample $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_NOSE  fix               f2 all nvt temp $T_init $T_sample $(100.0*dt)
+#_LANGEVIN  fix				f2 all langevin $T_init $T_sample _DAMP ${rnd}
 #-------------------------------------------------------------------------------#
 
-  velocity          all create $T ${rnd} mom yes rot yes dist gaussian
+  velocity          all create $T_init ${rnd} mom yes rot yes dist gaussian
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
 

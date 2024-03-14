@@ -143,9 +143,9 @@ def create_xyz_and_run_lammps(run_config):
                 newText = newText.replace('#_ACRIDINE', '')
 
             if config.ramp_temperature:
-                newText = newText.replace('_TEMP0', str(0))
+                newText = newText.replace('_INIT_TEMP', str(int(1)))
             else:
-                newText = newText.replace('_TEMP0', str(config.temperature))
+                newText = newText.replace('_INIT_TEMP', str(config.temperature))
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
