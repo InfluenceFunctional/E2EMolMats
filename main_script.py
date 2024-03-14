@@ -7,6 +7,7 @@ from ovito.io import import_file, export_file
 from ovito.data import *
 from ovito.pipeline import *
 from ovito.modifiers import *
+from argparse import Namespace
 
 from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
@@ -65,22 +66,14 @@ def settings_final_nico(change_atom_style=True):
     New_data.close()
 
 
-def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
-                              cluster_type="supercell", structure_identifier="NICOAM13",
-                              max_sphere_radius=None, min_lattice_length=None,
-                              defect_rate=0, defect_type=None, scramble_rate=0, gap_rate=0,
-                              seed=1, min_inter_cluster_distance=500,
-                              temperature=300, run_time=int(1e6),
-                              print_steps=100, box_type='s', bulk_crystal=False,
-                              integrator='langevin', damping: str = str(100.0),
-                              prep_crystal_in_melt=False, melt_temperature=None,
-                              equil_time=None):
+def create_xyz_and_run_lammps(run_config):
     """
     main working script
     """
+    config = Namespace(run_config)
 
     '''make new workdir'''
-    workdir = head_dir + '/' + str(run_num)
+    workdir = config.head_dir + '/' + str(config.run_num)
     if os.path.exists(workdir):
         pass
     else:
@@ -91,31 +84,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         copy_tree('../common', './')
 
         '''save run config'''
-        run_config = {
-            'head_dir': head_dir,
-            'run_num': run_num,
-            'crystals_path': crystals_path,
-            'cluster_size': cluster_size,
-            'cluster_type': cluster_type,
-            'structure_identifier': structure_identifier,
-            'min_lattice_length': min_lattice_length,
-            'max_sphere_radius': max_sphere_radius,
-            'defect_rate': defect_rate,
-            'scramble_rate': scramble_rate,
-            'gap_rate': gap_rate,
-            'seed': seed,
-            'min_inter_cluster_distance': min_inter_cluster_distance,
-            'temperature': temperature,
-            'run_time': run_time,
-            'print_steps': print_steps,
-            'box_type': box_type,
-            'bulk_crystal': bulk_crystal,
-            'integrator': integrator,
-            'damping': damping,
-            'prep_crystal_in_melt': prep_crystal_in_melt,
-            'melt_temperature': melt_temperature,
-            'equilibration_time': equil_time,
-        }
+
         np.save('run_config', run_config)
 
         print("============================")
@@ -123,47 +92,60 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("============================")
         '''generate cluster structure'''
         xyz_filename, melt_inds = generate_structure(
-            workdir, crystals_path, structure_identifier,
-            cluster_type, max_sphere_radius,
-            cluster_size, defect_rate, defect_type, scramble_rate,
-            gap_rate, seed, min_inter_cluster_distance,
-            min_lattice_length,
-            periodic_structure=bulk_crystal,
-            prep_crystal_in_melt=prep_crystal_in_melt)
+            workdir,
+            config.crystals_path,
+            config.structure_identifier,
+            config.cluster_type,
+            config.max_sphere_radius,
+            config.cluster_size,
+            config.defect_rate,
+            config.defect_type,
+            config.scramble_rate,
+            config.gap_rate,
+            config.seed,
+            config.min_inter_cluster_distance,
+            config.min_lattice_length,
+            periodic_structure=config.bulk_crystal,
+            prep_crystal_in_melt=config.prep_crystal_in_melt)
 
         '''set temperature, run time, and print step in lmp file'''
         with (open("run_MD.lmp") as f):
             newText = f.read()
 
-            if integrator.lower() == 'langevin':
+            if config.integrator.lower() == 'langevin':
                 newText = newText.replace('#_LANGEVIN', '')
-            elif integrator.lower() == 'nosehoover':
+            elif config.integrator.lower() == 'nosehoover':
                 newText = newText.replace('#_NOSE', '')
-            elif integrator.lower() == 'npt':
+            elif config.integrator.lower() == 'npt':
                 newText = newText.replace('#_NPT', '')
-            if bulk_crystal:
+            if config.bulk_crystal:
                 newText = newText.replace('#_KSPACE', '')
-            if prep_crystal_in_melt:
+            if config.prep_crystal_in_melt:
                 newText = newText.replace('#_MELT_PREP', '')
-                newText = newText.replace('_EQUIL_TIME', str(equil_time))
-                newText = newText.replace('_MELT_TEMP', str(melt_temperature))
+                newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
+                newText = newText.replace('_MELT_TEMP', str(config.melt_temperature))
                 newText = newText.replace('_MELT_START_IND', str(melt_inds.melt_start_ind))
                 newText = newText.replace('_MELT_END_IND', str(melt_inds.melt_end_ind))
                 newText = newText.replace('_CRYSTAL_START_IND', str(melt_inds.crystal_start_ind))
                 newText = newText.replace('_CRYSTAL_END_IND', str(melt_inds.crystal_end_ind))
 
-            newText = newText.replace('_TEMP', str(temperature))
-            newText = newText.replace('_RUNTIME', str(run_time))
-            newText = newText.replace('_PRINTSTEPS', str(print_steps))
-            newText = newText.replace('_SEED', str(seed))
-            newText = newText.replace('_BOUND', str(box_type))
-            newText = newText.replace('_DAMP', damping)
+            newText = newText.replace('_TEMP', str(config.temperature))
+            newText = newText.replace('_RUNTIME', str(config.run_time))
+            newText = newText.replace('_PRINTSTEPS', str(config.print_steps))
+            newText = newText.replace('_SEED', str(config.seed))
+            newText = newText.replace('_BOUND', str(config.box_type))
+            newText = newText.replace('_DAMP', config.damping)
 
-            if 'nicotinamide' in structure_identifier:
+            if 'nicotinamide' in config.structure_identifier:
                 newText = newText.replace('#_NICOTINAMIDE', '')
 
-            elif 'acridine' in structure_identifier:
+            elif 'acridine' in config.structure_identifier:
                 newText = newText.replace('#_ACRIDINE', '')
+
+            if config.ramp_temperature:
+                newText = newText.replace('_TEMP0', str(0))
+            else:
+                newText = newText.replace('_TEMP0', str(config.temperature))
 
         with open("run_MD.lmp", "w") as f:
             f.write(newText)
@@ -177,7 +159,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         export_file(pipeline, '1.data', 'lammps/data', atom_style='full')
 
         '''prep for ovito bonds'''
-        if 'nicotinamide' in structure_identifier:
+        if 'nicotinamide' in config.structure_identifier:
             pipeline.source.load('1.data')
             create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
             pipeline.modifiers.append(create_bonds_modifier)
@@ -192,7 +174,7 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
             # pipeline.modifiers.append(create_bonds_modifier)
             # export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
-        elif 'acridine' in structure_identifier:
+        elif 'acridine' in config.structure_identifier:
             initial_setup_acridine(workdir, '1.data', '2.data')
             pipeline.source.load('2.data')
             pipeline.modifiers.append(CreateBondsModifier(cutoff=1.7))
@@ -233,9 +215,9 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("============================")
 
         '''make runnable'''
-        if 'nicotinamide' in structure_identifier:
+        if 'nicotinamide' in config.structure_identifier:
             templify_to_runnable_nicotinamide(workdir, "4.lt", "3.data", "5.lt")
-        elif 'acridine' in structure_identifier:
+        elif 'acridine' in config.structure_identifier:
             templify_to_runnable_acridine(workdir, "4.lt", "3.data", "5.lt")
 
         print("============================")
@@ -255,11 +237,11 @@ def create_xyz_and_run_lammps(head_dir, run_num, crystals_path, cluster_size,
         print("Indexing cleanup")
         print("============================")
 
-        if 'nicotinamide' in structure_identifier:  # these are in fact un-used in nicotinamide runs
+        if 'nicotinamide' in config.structure_identifier:  # these are in fact un-used in nicotinamide runs
             moltemp_final_nicotinamide(workdir)  # Daisuke final indexing cleanup
             settings_final_nico(True)  # adjust pairs to be Daisuke-friendly
 
-        elif 'acridine' in structure_identifier:
+        elif 'acridine' in config.structure_identifier:
             moltemp_final_acridine(workdir)  # Daisuke final indexing cleanup
             settings_final(True)  # adjust pairs to be Daisuke-friendly
 

@@ -10,6 +10,7 @@
   variable          ny     equal 1      # System size.
   variable          nz     equal 1      # System size.
   variable          T      equal _TEMP    # Temperature
+  variable          T0      equal _TEMP0    # Initial Temperature
   variable          rnd    equal _SEED     # seed for random velocities
   variable          t_run  equal _RUNTIME     # number of MD steps
   variable          t_print equal ${t_run}/_PRINTSTEPS  #how often to print histogram
@@ -103,9 +104,9 @@
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled_equil.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp $T $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_NOSE  fix               f2 all nvt temp $T $T $(100.0*dt)
-#_LANGEVIN  fix				f2 all langevin $T $T _DAMP ${rnd}
+#_NPT  fix               f2 all npt temp $T0 $T $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_NOSE  fix               f2 all nvt temp $T0 $T $(100.0*dt)
+#_LANGEVIN  fix				f2 all langevin $T0 $T _DAMP ${rnd}
 #-------------------------------------------------------------------------------#
 
   velocity          all create $T ${rnd} mom yes rot yes dist gaussian
