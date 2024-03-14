@@ -70,7 +70,7 @@ def create_xyz_and_run_lammps(run_config):
     """
     main working script
     """
-    config = Namespace(run_config)
+    config = Namespace(**run_config)
 
     '''make new workdir'''
     workdir = config.head_dir + '/' + str(config.run_num)

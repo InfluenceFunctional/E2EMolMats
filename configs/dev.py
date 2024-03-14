@@ -18,11 +18,12 @@ batch_config = {
     'run_time': int(1e5),  # sampling time in femtoseconds
     'box_type': 'p',  # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
     'integrator': 'nosehoover',  # nosehoover, npt, nvt
+    'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'print_steps': int(1e2),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': None, #40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'local',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'nicotinamide_debug2',
+    'run_name': 'new_configs_debug',
     'min_lattice_length': None,  # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': True,  # Work in progress - prepare a frozen nanocrystal in a melted environment
     'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
