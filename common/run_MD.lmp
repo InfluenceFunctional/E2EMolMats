@@ -9,7 +9,7 @@
   variable          nx     equal 1      # System size.
   variable          ny     equal 1      # System size.
   variable          nz     equal 1      # System size.
-  variable          T_sample      equal _TEMP    # Temperature
+  variable          T_sample      equal _TEMP_SAMPLE    # Temperature
   variable          T_init      equal _INIT_TEMP    # Initial Temperature
   variable          rnd    equal _SEED     # seed for random velocities
   variable          t_run  equal _RUNTIME     # number of MD steps

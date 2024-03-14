@@ -129,7 +129,7 @@ def create_xyz_and_run_lammps(run_config):
                 newText = newText.replace('_CRYSTAL_START_IND', str(melt_inds.crystal_start_ind))
                 newText = newText.replace('_CRYSTAL_END_IND', str(melt_inds.crystal_end_ind))
 
-            newText = newText.replace('_TEMP', str(config.temperature))
+            newText = newText.replace('_TEMP_SAMPLE', str(config.temperature))
             newText = newText.replace('_RUNTIME', str(config.run_time))
             newText = newText.replace('_PRINTSTEPS', str(config.print_steps))
             newText = newText.replace('_SEED', str(config.seed))
