@@ -6,13 +6,22 @@ import itertools
 import os
 import sys
 import warnings
+import argparse
 from distutils.dir_util import copy_tree
 
 warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
-from main_script import create_xyz_and_run_lammps
+from lammps_prepper import create_xyz_and_run_lammps
 
 '''import run config'''
 from configs.dev import batch_config  # todo convert to command line arg
+
+parser = argparse.ArgumentParser()
+args = parser.parse_known_args()[1]
+
+if '--run_num' in args:
+    run_num = int(args[1])
+else:
+    run_num = None
 
 dynamic_configs = {key: value for key, value in batch_config.items() if isinstance(value, list)}
 run_args = list(itertools.product(*list(dynamic_configs.values())))
@@ -43,7 +52,8 @@ if not os.path.exists('common'):
     os.mkdir('common')
     copy_tree(source_path + '/common', './common/')  # copy from source
 
-for run_num, run_config in enumerate(run_args):
+if run_num is not None:  # for running in batches or just one at a time
+    run_config = run_args[run_num]
     create_xyz_and_run_lammps({
         'run_num': run_num,
         'head_dir': head_dir,
@@ -74,3 +84,35 @@ for run_num, run_config in enumerate(run_args):
         'scramble_rate': run_config[dynamic_arg_keys['scramble_rate']],
     }
     )
+else:
+    for run_num, run_config in enumerate(run_args):
+        create_xyz_and_run_lammps({
+            'run_num': run_num,
+            'head_dir': head_dir,
+            'crystals_path': crystals_path,
+
+            'print_steps': batch_config['print_steps'],
+            'run_time': batch_config['run_time'],
+            'integrator': batch_config['integrator'],
+            'box_type': batch_config['box_type'],
+            'bulk_crystal': batch_config['bulk_crystal'],
+            'min_inter_cluster_distance': batch_config['min_inter_cluster_distance'],
+            'cluster_type': batch_config['cluster_type'],
+            'min_lattice_length': batch_config['min_lattice_length'],
+            'prep_crystal_in_melt': batch_config['prep_crystal_in_melt'],
+            'equil_time': batch_config['equil_time'],
+            'melt_temperature': batch_config['melt_temperature'],
+            'ramp_temperature': batch_config['ramp_temperature'],
+
+            'max_sphere_radius': run_config[dynamic_arg_keys['max_sphere_radius']],
+            'cluster_size': run_config[dynamic_arg_keys['cluster_size']],
+            'seed': run_config[dynamic_arg_keys['seed']],
+            'damping': run_config[dynamic_arg_keys['damping']],
+            'structure_identifier': run_config[dynamic_arg_keys['structure_identifier']],
+            'temperature': run_config[dynamic_arg_keys['temperature']],
+            'defect_rate': run_config[dynamic_arg_keys['defect_rate']],
+            'defect_type': run_config[dynamic_arg_keys['defect_type']],
+            'gap_rate': run_config[dynamic_arg_keys['gap_rate']],
+            'scramble_rate': run_config[dynamic_arg_keys['scramble_rate']],
+        }
+        )

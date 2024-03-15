@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=ntm_battery
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=2
+#SBATCH --tasks-per-node=32
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=10GB
-#SBATCH --time=0-48:00:00
-#SBATCH --array=0-6
+#SBATCH --time=7-00:00:00
+#SBATCH --array=0
 
 module purge
 module load intel/19.1.2

@@ -143,7 +143,8 @@ def create_xyz_and_run_lammps(run_config):
                 newText = newText.replace('#_ACRIDINE', '')
 
             if config.ramp_temperature:
-                newText = newText.replace('_INIT_TEMP', str(int(1)))
+                newText = newText.replace('_INIT_TEMP', str(config.init_temperature))
+                newText = newText.replace('_EQUIL_BEFORE_RAMP', '')
             else:
                 newText = newText.replace('_INIT_TEMP', str(config.temperature))
 

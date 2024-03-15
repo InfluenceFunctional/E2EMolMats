@@ -9,7 +9,7 @@ batch_config = {
     'defect_type': ['benzamide'],  # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2_7_dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
-    'seed': [1],
+    'seed': [1],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
     'max_sphere_radius': [5],  # if carving a finite cluster from a bulk structure, the radius of the sphere
 
@@ -19,6 +19,7 @@ batch_config = {
     'box_type': 'p',  # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
     'integrator': 'nosehoover',  # nosehoover, npt, nvt
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
+    'init_temperature': 0,
     'print_steps': int(1e2),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': None, #40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure

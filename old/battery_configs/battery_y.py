@@ -5,7 +5,7 @@ generate an .xyz file and automatically prep LAMMPS inputs
 import numpy as np
 import os
 from distutils.dir_util import copy_tree
-from main_script import create_xyz_and_run_lammps
+from lammps_prepper import create_xyz_and_run_lammps
 
 '''set head directory'''
 head_dir = r'/home/mk8347/scratch/molecule_clusters/battery_9'

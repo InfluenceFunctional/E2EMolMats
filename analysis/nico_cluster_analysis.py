@@ -5,7 +5,8 @@ from random import shuffle
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)  # ignore numpy error
 
-from reporting.cluster_figs import (plot_thermodynamic_data, cluster_molecule_alignment, process_thermo_data)
+from reporting.cluster_figs import (plot_thermodynamic_data, cluster_molecule_alignment)
+from reporting.utils import process_thermo_data
 from utils import (dict2namespace, rewrite_trajectory, compute_Ip_molwise_alignment, process_dump)
 import numpy as np
 
