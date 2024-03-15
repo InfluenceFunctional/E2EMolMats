@@ -20,6 +20,7 @@ args = parser.parse_known_args()[1]
 
 if '--run_num' in args:
     run_num = int(args[1])
+    print(f"Running job {run_num}")
 else:
     run_num = None
 
@@ -71,6 +72,7 @@ if run_num is not None:  # for running in batches or just one at a time
         'equil_time': batch_config['equil_time'],
         'melt_temperature': batch_config['melt_temperature'],
         'ramp_temperature': batch_config['ramp_temperature'],
+        'init_temperature': batch_config['init_temperature'],
 
         'max_sphere_radius': run_config[dynamic_arg_keys['max_sphere_radius']],
         'cluster_size': run_config[dynamic_arg_keys['cluster_size']],
@@ -103,6 +105,7 @@ else:
             'equil_time': batch_config['equil_time'],
             'melt_temperature': batch_config['melt_temperature'],
             'ramp_temperature': batch_config['ramp_temperature'],
+            'init_temperature': batch_config['init_temperature'],
 
             'max_sphere_radius': run_config[dynamic_arg_keys['max_sphere_radius']],
             'cluster_size': run_config[dynamic_arg_keys['cluster_size']],
