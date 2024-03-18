@@ -144,7 +144,7 @@ def create_xyz_and_run_lammps(run_config):
 
             if config.ramp_temperature:
                 newText = newText.replace('_INIT_TEMP', str(config.init_temperature))
-                newText = newText.replace('_EQUIL_BEFORE_RAMP', '')
+                newText = newText.replace('#_EQUIL_BEFORE_RAMP', '')
             else:
                 newText = newText.replace('_INIT_TEMP', str(config.temperature))
 
