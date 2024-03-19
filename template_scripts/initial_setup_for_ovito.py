@@ -150,7 +150,7 @@ def write_nicotinamide(line, atm_counter, New_data):
         line[2] = 3
         line[3] = 0.357505
 
-    elif (atm_counter == 12):
+    elif atm_counter == 12:
         line[2] = 2
         line[3] = 0.027993
 

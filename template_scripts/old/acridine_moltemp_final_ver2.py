@@ -8,6 +8,7 @@ def moltemp_final(workdir):
     New = "new_" + original
     data = open(original, 'r')
     New_data = open(New, 'w')
+
     data_file_line = data.readline()  # original atom type. skip
     while data_file_line != "Atoms  # full\n":
         New_data.write(data_file_line)

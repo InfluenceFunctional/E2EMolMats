@@ -1,54 +1,50 @@
 import os
+from common.constants import MOLECULE_SYM_INDICES
 
 
-def moltemp_final(workdir):
-
+def moltemp_final(workdir: str, atom_style: str, molind2name: dict) -> None:
     os.chdir(workdir)
-    original = "system.data"
-    New = "new_" + original
-    data = open(original, 'r')
-    New_data = open(New, 'w')
+    original_filename = "system.data"
+    new_filename = "new_" + original_filename
+    original_data = open(original_filename, 'r')
+    new_data = open(new_filename, 'w')
 
-    for i in range(0, 8):
-        data_file_line = data.readline()
-        New_data.write(data_file_line)
-    data_file_line = data.readline()  # original atom type. skip
-    New_data.write("     10  atom types\n")
-    while data_file_line != "Masses\n":
-        data_file_line = data.readline()
-        New_data.write(data_file_line)
+    # first adjust atom_tyle
+    line = original_data.readline()
+    while line != "Atoms  # full\n":
+        new_data.write(line)
+        line = original_data.readline()
+    new_data.write(f"Atoms  # {atom_style}\n\n")
 
-    for i in range(0, 9):
-        data_file_line = data.readline()
-        New_data.write(data_file_line)
-    New_data.write("9 12.01 # ca1\n10 12.01 # ca2\n")
-    for i in range(0, 3):
-        data_file_line = data.readline()
-        New_data.write(data_file_line)
-    # This is right before Masses info is added. I need to change some of ca to ca1 and ca2
-    data_file_line = data.readline()
-    mol_id = 1
-    atm_counter = 1
+    # adjust atom type legend  # todo check with Daisuke if we need to do this
+    line = original_data.readline()
+    atom_counter = 1
 
-    while data_file_line != "\n":
-        line = data_file_line.split()
-        if atm_counter == 1:
-            line[2] = 9
-        elif atm_counter == 4:
-            line[2] = 10
-        New_data.write(line[0] + " " + line[1] + " " + str(line[2]) + " " + line[3] + " " + line[4] + " " + line[5] + " " + line[6] + "\n");
+    if atom_style == 'full2':
+        # full2 includes symmetry info
+        while line != "\n":
+            line = line.split(' ')
 
-        # HARD CODED PART FOR BENZAMIDE
-        mol_id = line[1]
-        data_file_line = data.readline()
-        line = data_file_line.split()
-        if data_file_line != "\n" and int(mol_id) != int(line[1]):  # in case of banzamide
-            atm_counter = 0
-        atm_counter += 1
+            # get type of current molecule
+            mol_ind = line[1]
+            sym_index_dict = MOLECULE_SYM_INDICES[molind2name[mol_ind]]
 
-    New_data.write(data_file_line);
-    while data_file_line:
-        data_file_line = data.readline()
-        New_data.write(data_file_line)
-    New_data.close()
-    data.close()
+            # add symmetry tag
+            line[3] = ' ' + str(sym_index_dict[atom_counter])
+            newline = ' '.join(line) + '\n'
+            new_data.write(newline)
+
+            atom_counter += 1
+            if atom_counter == len(sym_index_dict):  # this only works if molecules are processed in blocks
+                atom_counter = 1
+                mol_ind += 1
+
+    # write the rest of the file
+    new_data.write(line)
+    while line:
+        line = original_data.readline()
+        new_data.write(line)
+
+    # finish up
+    new_data.close()
+    original_data.close()

@@ -1,9 +1,14 @@
-from argparse import Namespace
-# import os
+import itertools
+import os
+import sys
+from distutils.dir_util import copy_tree
 import numpy as np
 # import MDAnalysis as mda
-from scipy.spatial.distance import cdist, pdist
+from scipy.spatial.distance import cdist
 import pandas as pd
+from argparse import Namespace
+from pathlib import Path
+import yaml
 
 names_dict = {'1': 'H',  # rename for xyz export
               '8': 'H',
@@ -26,6 +31,30 @@ ff_names_dict = {'1': 'ha',  # detailed atom types for analysis
                  '9': 'ca',
                  '10': 'ca',
                  }
+
+
+def args2run_num(override_args):
+    override_keys = [
+        arg.strip("--").split("=")[0] for arg in override_args if "--" in arg
+    ]
+    override_values = [
+        arg for arg in override_args if "--" not in arg
+    ]
+    override_args = dict2namespace({key: val for key, val in zip(override_keys, override_values)})
+    if 'run_num' in override_keys:
+        return int(override_args.run_num)
+    else:
+        return None
+
+
+def load_yaml(path):
+    yaml_path = Path(path)
+    assert yaml_path.exists()
+    assert yaml_path.suffix in {".yaml", ".yml"}
+    with yaml_path.open("r") as f:
+        target_dict = yaml.safe_load(f)
+
+    return target_dict
 
 
 def dict2namespace(data_dict: dict):
@@ -162,6 +191,71 @@ def earth_movers_distance_np(d1: np.ndarray, d2: np.ndarray):
     return np.sum(np.abs(np.cumsum(d1, axis=-1) - np.cumsum(d2, axis=-1)), axis=-1)
 
 
+def dict2namespace(data_dict: dict):
+    """
+    Recursively converts a dictionary and its internal dictionaries into an
+    argparse.Namespace
+
+    Parameters
+    ----------
+    data_dict : dict
+        The input dictionary
+
+    Return
+    ------
+    data_namespace : argparse.Namespace
+        The output namespace
+    """
+    for k, v in data_dict.items():
+        if isinstance(v, dict):
+            data_dict[k] = dict2namespace(v)
+        else:
+            pass
+    data_namespace = Namespace(**data_dict)
+
+    return data_namespace
+
+
+def get_user_config(override_args=None, user_yaml_path=None):
+    if user_yaml_path is None:
+        assert override_args is not None, "Must provide a user yaml path on command line if not directly to get_config"
+        '''get user-specific configs'''
+        override_keys = [
+            arg.strip("--").split("=")[0] for arg in override_args if "--" in arg
+        ]
+        override_values = [
+            arg for arg in override_args if "--" not in arg
+        ]
+        override_args = dict2namespace({key: val for key, val in zip(override_keys, override_values)})
+
+        user_path = f'configs/users/{override_args.user}.yaml'  # this is a necessary cmd line argument
+    else:
+        user_path = user_yaml_path
+
+    return dict2namespace(load_yaml(user_path))
+
+
+def get_run_config(override_args=None, user_yaml_path=None):
+    if user_yaml_path is None:
+        assert override_args is not None, "Must provide a user yaml path on command line if not directly to get_config"
+        '''get user-specific configs'''
+        override_keys = [
+            arg.strip("--").split("=")[0] for arg in override_args if "--" in arg
+        ]
+        override_values = [
+            arg for arg in override_args if "--" not in arg
+        ]
+        override_args = dict2namespace({key: val for key, val in zip(override_keys, override_values)})
+
+        user_path = f'configs/experiments/{override_args.experiment}.yaml'  # this is a necessary cmd line argument
+        return load_yaml(user_path)
+
+    else:  # if nothing specified, revert to dev
+        print("No experimemt specified, using the default config in dev.py")
+        from configs.experiments.dev import batch_config
+        return batch_config
+
+
 def compute_principal_axes_np(coords):
     """
     compute the principal axes for a given set of particle coordinates, ignoring particle mass
@@ -197,7 +291,8 @@ def compute_principal_axes_np(coords):
 
     Ip = (Ip.T * signs).T  # if the vectors have negative overlap, flip the direction
     if np.any(
-            np.abs(overlaps) < 1e-3):  # if any overlaps are vanishing, determine the direction via the RHR (if two overlaps are vanishing, this will not work)
+            np.abs(
+                overlaps) < 1e-3):  # if any overlaps are vanishing, determine the direction via the RHR (if two overlaps are vanishing, this will not work)
         # align the 'good' vectors
         fix_ind = np.argmin(np.abs(overlaps))  # vector with vanishing overlap
         if compute_Ip_handedness(Ip) < 0:  # make sure result is right handed
@@ -293,6 +388,7 @@ def process_dump(path):
 
     return frame_outputs
 
+
 # def tile_universe(universe, tiling):
 #     n_x, n_y, n_z = tiling
 #     box = universe.dimensions[:3]
@@ -309,3 +405,37 @@ def process_dump(path):
 #     new_box = box * (n_x, n_y, n_z)
 #     new_universe.dimensions = list(new_box) + [90] * 3
 #     return new_universe
+
+
+def get_user_paths(batch_config, user_config):
+    machine = batch_config['machine']  # 'cluster' or 'local'  # todo rewrite as user config
+    if machine == 'local':
+        head_dir = user_config.local_structures_dir + batch_config['run_name']
+        crystals_path = user_config.local_crystals_dir
+        ltemplify_path = user_config.local_ltemplify_path
+    elif machine == 'cluster':
+        head_dir = user_config.cluster_structures_dir + batch_config['run_name']
+        crystals_path = user_config.cluster_structures_dir
+        ltemplify_path = user_config.cluster_ltemplify_path
+    else:
+        print("Machine must be 'local' or 'cluster'")
+        sys.exit()
+
+    return head_dir, crystals_path, ltemplify_path
+
+
+def generate_run_configs(batch_config):
+    dynamic_configs = {key: value for key, value in batch_config.items() if isinstance(value, list)}
+    run_args = list(itertools.product(*list(dynamic_configs.values())))
+    dynamic_arg_keys = {key: i for i, key in enumerate(dynamic_configs.keys())}
+    return run_args, dynamic_arg_keys
+
+
+def setup_workdir(head_dir):
+    if not os.path.exists(head_dir):
+        os.mkdir(head_dir)
+    source_path = os.getcwd()
+    os.chdir(head_dir)
+    if not os.path.exists('common'):
+        os.mkdir('common')
+        copy_tree(source_path + '/common', './common/')  # copy from source

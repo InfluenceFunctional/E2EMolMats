@@ -117,59 +117,54 @@ def get_crystal_properties(structure_identifier):
     # '''
 
 
-def generate_structure(workdir, crystals_path, structure_identifier,
+def generate_structure(crystals_path, structure_identifier,
                        cluster_type, max_sphere_radius, cluster_size,
                        defect_rate, defect_type, scramble_rate, gap_rate, seed,
                        min_inter_cluster_distance, min_lattice_length,
                        periodic_structure=False, prep_crystal_in_melt=False):
     np.random.seed(seed=seed)
 
-    # move to working directory
-    if workdir is not None:
-        os.chdir(workdir)
-
+    '''load base crystal structure'''
     atoms_in_molecule, space_group, z_value, z_prime = get_crystal_properties(structure_identifier)
     crystal_path = crystals_path + f'{structure_identifier}.pdb'
-    print("Loading Crystal" + crystal_path)
-    # gather structural information from the crystal file
+    print("Loading Crystal " + crystal_path)
     unit_cell = io.read(crystal_path)
     crystal_atoms = unit_cell.get_atomic_numbers()
-    single_mol_atoms = crystal_atoms[:atoms_in_molecule]
+    single_mol_atoms = crystal_atoms[
+                       :atoms_in_molecule]  # assume the first atoms_in_mol atoms are always one molecule sequentially indexed
     crystal_coordinates = unit_cell.positions
-    cell_params = unit_cell.cell
+    # cell_params = unit_cell.cell
     cell_lengths, cell_angles = unit_cell.cell.lengths(), unit_cell.cell.angles()
-    T_fc = unit_cell.cell.array  # fractional to cartesian coordinate transform matrix
+    T_fc = unit_cell.cell.array  # fractional to cartesian coordinate transform matrix (a.k.a. box vectors)
 
-    # generate supercell
-    supercell_coordinates = []
-    for xs in range(cluster_size[0]):
-        for ys in range(cluster_size[1]):
-            for zs in range(cluster_size[2]):
-                supercell_coordinates.extend(crystal_coordinates + T_fc[0] * xs + T_fc[1] * ys + T_fc[2] * zs)
-
-    supercell_coordinates = np.asarray(supercell_coordinates)
-    supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(cluster_size))])
-
-    # adjust shape of the cluster
+    '''pare cluster to desired shape'''
     if cluster_type == "supercell":
         if min_inter_cluster_distance is not None and max_sphere_radius is not None:  # force cluster radii to be separated by at least X
-            cluster_separation = min_lattice_length - 2*max_sphere_radius
+            cluster_separation = min_lattice_length - 2 * max_sphere_radius
             extra_separation = min_inter_cluster_distance - cluster_separation
             min_lattice_length += extra_separation
 
         cluster_size, supercell_atoms, supercell_coordinates = (
             build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
-                            min_lattice_length, supercell_atoms))
+                            min_lattice_length))
+
     elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
+        # build initial supercell from which to carve
+        cluster_size, supercell_atoms, supercell_coordinates = (
+            build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
+                            min_lattice_length=None))
+
         supercell_atoms, supercell_coordinates = (carve_spherical_cluster(
             atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
             supercell_atoms, supercell_coordinates, z_value))
+
+    else:  # todo consider other shapes, rods, sheets, whatever
+        assert False, f"Unrecognized cluster type {cluster_type}"
 
     if prep_crystal_in_melt:
         melt_inds, supercell_coordinates = (
             crystal_melt_reindexing(
                 atoms_in_molecule, cluster_size, max_sphere_radius, supercell_coordinates, z_value))
-
     else:
         melt_inds = None
 
@@ -183,40 +178,51 @@ def generate_structure(workdir, crystals_path, structure_identifier,
             apply_gap(
                 atoms_in_molecule, gap_rate, single_mol_atoms, supercell_atoms, supercell_coordinates))
 
+    molecule_name = structure_identifier.split('/')[0]
+    num_mols = len(supercell_coordinates) // atoms_in_molecule
+    molind2name = {ind + 1: molecule_name for ind in range(num_mols)}  # mols index from 1
+
     if defect_rate > 0:  # substitute certain molecules
-        supercell_atoms, supercell_coordinates = (
+        supercell_atoms, supercell_coordinates, defect_mol_indices = (
             apply_defect(
                 atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type=defect_type))
 
+        for ind in defect_mol_indices:  # record which molecules are which
+            molind2name[ind] = defect_type
+
     if periodic_structure:
         cell = T_fc * np.asarray(cluster_size)[None, :].T  # cell parameters are the same as the
-        # fractional->cartesian transition matrix (or sometimes its transpose)
+        # fractional->cartesian transition matrix in this code
     else:
         cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
 
-    supercell_coordinates += cell.sum(0) / 2 - supercell_coordinates.mean(0)
+    supercell_coordinates += cell.sum(0) / 2 - supercell_coordinates.mean(0)  # centre the structure
 
+    # write the structure
     cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)
-
     filename = f'{"_".join(structure_identifier.split("/"))}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
     io.write(filename, cluster)
 
-    return filename, melt_inds
+    return filename, melt_inds, molind2name
 
 
 def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, supercell_coordinates, z_value):
-    # identify atoms in a sufficiently large sphere from the center
+    # identify atoms in molecules within a sufficiently large sphere from the center
     # reindex the whole thing to put these in the first N rows
     num_mols = z_value * np.product(cluster_size)
     molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
-    centroid = supercell_coordinates.mean(0)
+
+    global_centroid = supercell_coordinates.mean(0)
     mol_centroids = molwise_supercell_coordinates.mean(1)
-    dists = cdist(centroid[None, :], mol_centroids)[0, :]
-    crystal_mol_inds = np.argwhere(dists < max_sphere_radius)[:, 0]
-    melt_mol_inds = np.argwhere(dists > max_sphere_radius)[:, 0]
+
+    mol_centroid_dists = cdist(global_centroid[None, :], mol_centroids)[0, :]
+    crystal_mol_inds = np.argwhere(mol_centroid_dists < max_sphere_radius)[:, 0]
+    melt_mol_inds = np.argwhere(mol_centroid_dists > max_sphere_radius)[:, 0]
+
     # complete reindexing
     molwise_supercell_coordinates = np.concatenate(
         [molwise_supercell_coordinates[crystal_mol_inds], molwise_supercell_coordinates[melt_mol_inds]], axis=0)
+
     # supercell atom indexing doesn't change
     supercell_coordinates = molwise_supercell_coordinates.reshape(
         int(len(molwise_supercell_coordinates) * atoms_in_molecule), 3)
@@ -225,11 +231,12 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
                  'crystal_start_ind': 1,
                  'crystal_end_ind': len(crystal_mol_inds)}
     melt_inds = dict2namespace(melt_inds)
+
     return melt_inds, supercell_coordinates
 
 
-def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms,
-                    crystal_coordinates, min_lattice_length, supercell_atoms):
+def build_supercell(T_fc: np.ndarray, cell_lengths: np.ndarray, cluster_size: list, crystal_atoms: np.ndarray,
+                    crystal_coordinates: np.ndarray, min_lattice_length: float):
     if min_lattice_length is not None:
         required_repeats = np.ceil(min_lattice_length / cell_lengths).astype(int)
         supercell_coordinates = []
@@ -251,7 +258,6 @@ def build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms,
 
         supercell_coordinates = np.asarray(supercell_coordinates)
         supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(cluster_size))])
-
 
     return cluster_size, supercell_atoms, supercell_coordinates
 
@@ -367,7 +373,7 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
         defect_atoms[3] = 7
         move_proton_ind = 12
 
-    elif defect_type == '2_7_dihydroxynaphthalene':
+    elif defect_type == '2,7-dihydroxynaphthalene':
         # need to bodily replace the acridine with a naphthalene in the appropriate orientation
         defect_atoms = np.asarray([
             8, 8,
@@ -456,7 +462,7 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
                 defect_mol_coordinates = np.concatenate(
                     (original_mol_coords, proton_position[None, :]))  # append proton position to end of list
 
-            elif defect_type == '2_7_dihydroxynaphthalene':
+            elif defect_type == '2,7-dihydroxynaphthalene':
                 # compute the intertial tensor for the acridine molecule
                 # and align it with the napthalene
                 Ip_host, _, _ = compute_principal_axes_np(original_mol_coords)
@@ -488,4 +494,4 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
     # mol = Atoms(positions=supercell_coordinates[:1200], numbers=supercell_atoms[:1200])
     # view(mol)
 
-    return supercell_atoms, supercell_coordinates
+    return supercell_atoms, supercell_coordinates, defect_molecule_indices

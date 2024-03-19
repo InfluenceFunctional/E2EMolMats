@@ -22,7 +22,7 @@ batch_config = {
     'min_inter_cluster_distance': 80,
     'bulk_crystal': False,
     'machine': 'cluster',
-    'run_name': 'paper_nic_clusters',
+    'run_name': 'classifier_paper_nicotinamides',
     'min_lattice_length': 60,
     'prep_crystal_in_melt': False,
     'equil_time': int(2e5),
