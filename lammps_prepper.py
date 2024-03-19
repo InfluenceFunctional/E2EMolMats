@@ -8,12 +8,12 @@ from argparse import Namespace
 
 from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup import initial_setup
-from template_scripts.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
-from template_scripts.acridine_initial_for_ovito import initial_setup as initial_setup_acridine
+from template_scripts.old.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
 from template_scripts.moltemp_final import moltemp_final
-from template_scripts.original_templify_to_runnable import templify_to_runnable as templify_to_runnable_nicotinamide
-from template_scripts.acridine_original_templify_to_runnable import \
+from template_scripts.old.original_templify_to_runnable import templify_to_runnable as templify_to_runnable_nicotinamide
+from template_scripts.old.acridine_original_templify_to_runnable import \
     templify_to_runnable as templify_to_runnable_acridine
+from template_scripts.templify_to_runnable import templify_to_runnable
 
 from template_scripts.utils import update_atom_style_in_settings, generate_MD_script
 
@@ -88,17 +88,15 @@ def prep_LAMMPS_input(run_num, config_i, ltemplify_path, head_dir, crystals_path
 
         '''ltemplify'''
         #ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py") # alternate method
-        os.system(f"{ltemplify_path} 3.data > 4.lt")  # .py on ltemplify required on cluster not windows
+        os.system(f"{ltemplify_path} 3.data > 4.lt")
 
         print("============================")
         print("Templify to runnable")
         print("============================")
 
         '''make runnable'''
-        if 'nicotinamide' in config.structure_identifier:
-            templify_to_runnable_nicotinamide(workdir, "4.lt", "3.data", "5.lt")
-        elif 'acridine' in config.structure_identifier:
-            templify_to_runnable_acridine(workdir, "4.lt", "3.data", "5.lt")
+        templify_to_runnable('4.lt', '3.data', '5.lt',
+                             molecule_name)
 
         print("============================")
         print("Running Moltemplate")

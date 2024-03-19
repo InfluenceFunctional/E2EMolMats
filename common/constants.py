@@ -1,3 +1,6 @@
+FF_PATH_DICT = {'nicotinamide': 'gaff2_nicotinamid_long.lt',
+                'acridine': 'gaff2_acridine.lt'}
+
 MOLECULE_SYM_INDICES = {'acridine': {ind: ind for ind in range(1, 24)},
                         'anthracene': {ind: ind for ind in range(1, 25)},
                         '2,7-dihydroxynaphthalene': {ind: ind for ind in range(1, 21)},
@@ -24,6 +27,9 @@ MOLECULE_NUM_ATOMS = {'acridine': 23,
                       'benzamide': 16,
                       'isonicotinamide': 15,
                       }
+
+MOLECULE_SHORTHAND = {'nicotinamide': 'nic1',
+                      'acridine': 'AC1'}
 
 ATOM_TYPES = {
     'nicotinamide': {
