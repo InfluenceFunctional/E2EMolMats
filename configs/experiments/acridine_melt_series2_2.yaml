@@ -30,18 +30,19 @@ max_sphere_radius:
 - 10
 melt_temperature: 2000
 min_inter_cluster_distance: 0
-min_lattice_length: 30
+min_lattice_length: 40
 prep_crystal_in_melt: false
 print_steps: 1000
 ramp_temperature: true
 run_name: acridine_melt_series2_2
-run_time: 10000000
+run_time: 1000000
 scramble_rate:
 - 0
 seed:
 - 1
 - 2
 - 3
+- 4
 structure_identifier:
 - acridine/Form4
 - acridine/Form8
