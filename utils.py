@@ -415,7 +415,7 @@ def get_user_paths(batch_config, user_config):
         ltemplify_path = user_config.local_ltemplify_path
     elif machine == 'cluster':
         head_dir = user_config.cluster_structures_dir + batch_config['run_name']
-        crystals_path = user_config.cluster_structures_dir
+        crystals_path = user_config.cluster_crystals_dir
         ltemplify_path = user_config.cluster_ltemplify_path
     else:
         print("Machine must be 'local' or 'cluster'")
