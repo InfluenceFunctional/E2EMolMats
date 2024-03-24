@@ -67,7 +67,7 @@ ATOM_TYPES = {
         15: 1,
         16: 1
     },
-    'isonicotinamide': {  # todo missing 5
+    'isonicotinamide': {  # todo missing N
         1: 7,
         2: 7,
         3: 7,

@@ -31,7 +31,7 @@ batch_config = {
     'min_inter_cluster_distance': None,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'local',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'refactor_test6',
+    'run_name': 'dev',
     'min_lattice_length': None,
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment

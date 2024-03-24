@@ -9,7 +9,7 @@ warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
 import numpy as np
 import os
 from distutils.dir_util import copy_tree
-from lammps_prepper import prep_LAMMPS_input
+from lammps_prepper import prep_lammps_inputs
 
 '''set head directory'''
 #head_dir = r'/home/mk8347/scratch/molecule_clusters/benzamide_test4'
@@ -48,17 +48,17 @@ for i in range(len(cluster_sizes)):
                 defect_list.append(defect_rates[l])
 
 for run_num, size, temp, crystal, defect in zip(run_nums, size_list, temp_list, crystal_list, defect_list):
-    prep_LAMMPS_input(head_dir, run_num, crystals_path,
-                      cluster_size=size,
-                      print_steps=1000,
-                      run_time=int(1e7),
-                      integrator='nosehoover',
-                      box_type='p',
-                      bulk_crystal=False,
-                      min_inter_cluster_distance=1000,
-                      seed=1,
-                      damping=str(100.0),
-                      structure_identifier=crystal,
-                      temperature=temp,
-                      defect_rate=defect,
-                      )
+    prep_lammps_inputs(head_dir, run_num, crystals_path,
+                       cluster_size=size,
+                       print_steps=1000,
+                       run_time=int(1e7),
+                       integrator='nosehoover',
+                       box_type='p',
+                       bulk_crystal=False,
+                       min_inter_cluster_distance=1000,
+                       seed=1,
+                       damping=str(100.0),
+                       structure_identifier=crystal,
+                       temperature=temp,
+                       defect_rate=defect,
+                       )

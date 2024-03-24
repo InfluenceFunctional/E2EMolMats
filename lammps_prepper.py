@@ -8,17 +8,13 @@ from argparse import Namespace
 
 from generate_cluster_structures import generate_structure
 from template_scripts.initial_setup import initial_setup
-from template_scripts.old.initial_setup_for_ovito import initial_setup as initial_setup_nicotinamide
 from template_scripts.moltemp_final import moltemp_final
-from template_scripts.old.original_templify_to_runnable import templify_to_runnable as templify_to_runnable_nicotinamide
-from template_scripts.old.acridine_original_templify_to_runnable import \
-    templify_to_runnable as templify_to_runnable_acridine
 from template_scripts.templify_to_runnable import templify_to_runnable
 
 from template_scripts.utils import update_atom_style_in_settings, generate_MD_script
 
 
-def prep_LAMMPS_input(run_num, config_i, ltemplify_path, head_dir, crystals_path):
+def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_path):
     """
     main working script
     """
@@ -31,6 +27,15 @@ def prep_LAMMPS_input(run_num, config_i, ltemplify_path, head_dir, crystals_path
         print(f"{workdir} already exists - skipping run")
         pass
     else:
+        if head_dir.split('/')[-1] == 'dev':  # index the next highest integer dev directory
+            ind = 0
+            found_new_workdir = False
+            while not found_new_workdir:
+                if os.path.exists(workdir + "_" + str(ind)):
+                    ind += 1
+                else:
+                    found_new_workdir = True
+
         os.mkdir(workdir)
         os.chdir(workdir)
         '''copy in common elements'''
@@ -41,7 +46,7 @@ def prep_LAMMPS_input(run_num, config_i, ltemplify_path, head_dir, crystals_path
         print("Generating Structure")
         print("============================")
         '''generate cluster structure'''
-        xyz_filename, melt_inds, molind2name = generate_structure(
+        xyz_filename, melt_inds, molind2name = generate_structure(  # TODO save molind2name in run_config
             crystals_path,
             config.structure_identifier,
             config.cluster_type,
@@ -75,12 +80,6 @@ def prep_LAMMPS_input(run_num, config_i, ltemplify_path, head_dir, crystals_path
         create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
         pipeline.modifiers.append(create_bonds_modifier)
         export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
-        initial_setup_nicotinamide(workdir, '2.data', '3.data')
-        #
-        # initial_setup_acridine(workdir, '1.data', '2.data')
-        # pipeline.source.load('2.data')
-        # pipeline.modifiers.append(CreateBondsModifier(cutoff=1.7))
-        # export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
         print("============================")
         print("Ltemplifying")

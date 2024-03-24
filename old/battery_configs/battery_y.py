@@ -5,7 +5,7 @@ generate an .xyz file and automatically prep LAMMPS inputs
 import numpy as np
 import os
 from distutils.dir_util import copy_tree
-from lammps_prepper import prep_LAMMPS_input
+from lammps_prepper import prep_lammps_inputs
 
 '''set head directory'''
 head_dir = r'/home/mk8347/scratch/molecule_clusters/battery_9'
@@ -46,13 +46,13 @@ for i in range(len(cluster_sizes)):
             crystal_list.append(crystal_structures[k])
 
 for run_num, size, temp, crystal in zip(run_nums, size_list, temp_list, crystal_list):
-    prep_LAMMPS_input(head_dir, run_num, crystals_path,
-                      print_steps=1000,
-                      run_time=int(1e7),
-                      integrator='nosehoover',
-                      box_type='s',
-                      seed=1,
-                      damping=str(100.0),
-                      structure_identifier=crystal,
-                      temperature=temp,
-                      cluster_size=size)
+    prep_lammps_inputs(head_dir, run_num, crystals_path,
+                       print_steps=1000,
+                       run_time=int(1e7),
+                       integrator='nosehoover',
+                       box_type='s',
+                       seed=1,
+                       damping=str(100.0),
+                       structure_identifier=crystal,
+                       temperature=temp,
+                       cluster_size=size)
