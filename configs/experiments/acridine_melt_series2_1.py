@@ -17,7 +17,7 @@ batch_config = {
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'supercell',  # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
-    'run_time': int(1e7),  # sampling time in femtoseconds
+    'run_time': int(1e6),  # sampling time in femtoseconds
     'box_type': 'p',  # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
     'integrator': 'npt',  # nosehoover, npt, nvt
     'ramp_temperature': True,  # linearly ramp temperature in main sampling run from 0-temperature

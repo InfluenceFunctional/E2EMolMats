@@ -40,7 +40,6 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         os.chdir(workdir)
         '''copy in common elements'''
         copy_tree('../common', './')
-        np.save('run_config', config)
 
         print("============================")
         print("Generating Structure")
@@ -62,6 +61,9 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
             periodic_structure=config.bulk_crystal,
             prep_crystal_in_melt=config.prep_crystal_in_melt)
 
+        config.update({'molind2name_dict': molind2name})
+        np.save('run_config', config)
+
         '''set temperature, run time, and print step in lmp file'''
         generate_MD_script(config, melt_inds)
 
@@ -79,7 +81,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         pipeline.source.load('2.data')
         create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
         pipeline.modifiers.append(create_bonds_modifier)
-        export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
+        export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
         print("============================")
         print("Ltemplifying")

@@ -35,7 +35,7 @@ prep_crystal_in_melt: false
 print_steps: 1000
 ramp_temperature: true
 run_name: acridine_melt_series2_1
-run_time: 10000000
+run_time: 1000000
 scramble_rate:
 - 0
 seed:
