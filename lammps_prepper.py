@@ -105,7 +105,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         print("Running Moltemplate")
         print("============================")
 
-        '''run moltemplate and cleanup'''
+        '''run moltemplate and cleanup'''  # todo change to user-config path
         os.system("~/.local/bin/moltemplate.sh system.lt")
 
         print("============================")
