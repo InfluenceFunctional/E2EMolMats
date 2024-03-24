@@ -4,7 +4,7 @@ def update_atom_style_in_settings(atom_style='full'):
     New_data = open(f'new_{file}', 'w')
 
     lines = data.readlines()
-    lines[0] = f"atom_style {atom_style}\n"
+    lines[-1] = f"atom_style {atom_style}\n"
 
     for i in range(0, len(lines)):
         New_data.write(lines[i])
