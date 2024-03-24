@@ -17,7 +17,7 @@ MOLECULE_ATOM_TYPES_MASSES = {
     'acridine': "Masses\n\n1 14.01  # nb\n2 12.01  # ca\n3 1.008  # ha\n"}
 
 MOLECULE_NUM_ATOM_TYPES = {'nicotinamide': 8,  # 1-8
-                           'acridine': 4}  # CHNO (oxygen from defects)  # todo check this
+                           'acridine': 3}  # CHNO (oxygen from defects)  # todo adjust this when we have carbon-containing additives
 
 MOLECULE_NUM_ATOMS = {'acridine': 23,
                       'anthracene': 24,
