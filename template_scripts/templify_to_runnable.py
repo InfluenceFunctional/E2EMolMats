@@ -50,7 +50,7 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
             new_lt.write(line)
         elif counter == 5:
             new_lt.write(line)
-            new_lt.write(f"import \"{ff_name}\"\n{molecule_name}" + " inherits GAFF2 {\n")
+            new_lt.write(f"import \"{ff_name}\"\n{molecule_name.capitalize()}" + " inherits GAFF2 {\n")
         elif counter < 10:
             new_lt.write(line)
         elif counter >= 10 and not hit_write_atoms_block:
