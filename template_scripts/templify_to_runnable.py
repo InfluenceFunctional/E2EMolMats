@@ -1,6 +1,7 @@
 from common.constants import MOLECULE_SHORTHAND, FF_PATH_DICT
-
-
+# import os
+# os.chdir(r'D:\crystal_datasets\misc\6')
+# original_lt_path, original_data_path, new_lt_path, molecule_name = '4.lt', '3.data', '5.lt', 'acridine'
 def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, molecule_name):
     '''
     ff_paths gaff2_nicotinamid_long.lt, gaff2_acridine.lt
@@ -39,8 +40,7 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
     lt_file.write(f"{molecule_shorthand} = new {molecule_name.capitalize()}")
 
     counter = 0
-    data_atom_checker = 0
-    end_data_atom = 0
+    end_data_atom = False
     data_bond_checker = 0
     end_data_bond = 0
     hit_write_atoms_block = False
@@ -59,15 +59,11 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
                 new_lt.write(line)
             else:
                 new_lt.write(line)
-        elif data_atom_checker == 0:
-            new_lt.write(line)
-            if line == "write(\"Data Atoms\") {\n":
-                data_atom_checker = 1
-        elif end_data_atom == 0:
+        elif not end_data_atom:
             line = line.split()
             if line[0] == "}":
-                new_lt.write(line)
-                end_data_atom = 1
+                new_lt.write("}")
+                end_data_atom = True
             else:
                 new_lt.write("  " + line[0] + " " + line[1] + " " + line[2] + " " + line[3] + " " + line[4] + " " + line[5] + " " + line[6] + "\n")
         elif data_bond_checker == 0:
@@ -79,7 +75,7 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
         elif end_data_bond == 0:
             line = line.split()
             if line[0] == "}":
-                new_lt.write(line)
+                new_lt.write("}\n")
                 end_data_bond = 1
             else:
                 new_lt.write("  " + line[0] + " " + line[2] + " " + line[3] + "\n")
@@ -88,3 +84,6 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
     new_lt.close()
     data.close()
     lt_file.close()
+
+
+#templify_to_runnable(original_lt_path, original_data_path, new_lt_path, molecule_name)
