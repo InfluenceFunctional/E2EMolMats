@@ -106,7 +106,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         print("============================")
 
         '''run moltemplate and cleanup'''  # todo change to user-config path
-        os.system("~/.local/bin/moltemplate.sh system.lt")
+        os.system("~/.local/bin/moltemplate.sh system.lt -nocheck")  # nocheck means it will skip over missing @bond type issues
 
         print("============================")
         print("Moltemplate cleanup")

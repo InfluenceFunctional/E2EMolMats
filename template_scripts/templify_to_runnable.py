@@ -35,8 +35,8 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
         lt_file.write("   " + data_file_line)
 
     lt_file.write("}\n\n")
-    lt_file.write(f"# Create \"{molecule_name}\" molecules\n# rotated and moved to give polymorph {molecule_shorthand} = new {molecule_name}\n") # TODO do we need this?
-    lt_file.write(f"{molecule_shorthand} = new {molecule_name}")
+    lt_file.write(f"# Create \"{molecule_name.capitalize()}\" molecules\n# rotated and moved to give polymorph {molecule_shorthand} = new {molecule_name.capitalize()}\n") # TODO do we need this?
+    lt_file.write(f"{molecule_shorthand} = new {molecule_name.capitalize()}")
 
     counter = 0
     data_atom_checker = 0
