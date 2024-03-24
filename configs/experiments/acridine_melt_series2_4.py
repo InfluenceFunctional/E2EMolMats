@@ -9,7 +9,7 @@ batch_config = {
     'structure_identifier': ['acridine/Form4', 'acridine/Form8'],
     'defect_rate': [0],
     'defect_type': ['anthracene'],  # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
-    'gap_rate': [0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.075],  # fraction of molecule sites to be left vacant
+    'gap_rate': [0, 0.005, 0.01, 0.015, 0.02, 0.03, 0.04, 0.05, 0.075],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
     'seed': [1, 2, 3],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
@@ -26,8 +26,8 @@ batch_config = {
     'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'acridine_melt_series2_3',
-    'min_lattice_length': 30,  # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
+    'run_name': 'acridine_melt_series2_4',
+    'min_lattice_length': 40,  # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
     'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs

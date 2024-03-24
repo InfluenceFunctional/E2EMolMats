@@ -15,7 +15,9 @@ defect_type:
 equil_time: 100000.0
 gap_rate:
 - 0
+- 0.005
 - 0.01
+- 0.015
 - 0.02
 - 0.03
 - 0.04
@@ -28,11 +30,11 @@ max_sphere_radius:
 - 10
 melt_temperature: 2000
 min_inter_cluster_distance: 0
-min_lattice_length: 30
+min_lattice_length: 40
 prep_crystal_in_melt: false
 print_steps: 1000
 ramp_temperature: true
-run_name: acridine_melt_series2_3
+run_name: acridine_melt_series2_4
 run_time: 10000000
 scramble_rate:
 - 0
