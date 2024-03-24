@@ -56,6 +56,7 @@ def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, mole
         elif counter >= 10 and not hit_write_atoms_block:
             if 'write("Data Atoms") {' in line:
                 hit_write_atoms_block = True
+                new_lt.write(line)
             else:
                 new_lt.write(line)
         elif data_atom_checker == 0:
