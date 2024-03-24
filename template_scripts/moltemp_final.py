@@ -14,7 +14,7 @@ def moltemp_final(workdir: str, atom_style: str, molind2name: dict) -> None:
     while line != "Atoms  # full\n":
         new_data.write(line)
         line = original_data.readline()
-    new_data.write(f"Atoms  # {atom_style}\n\n")
+    new_data.write(f"Atoms  # {atom_style}\n")
 
     # adjust atom type legend  # todo check with Daisuke if we need to do this
     line = original_data.readline()
