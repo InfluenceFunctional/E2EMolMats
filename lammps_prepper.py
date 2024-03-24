@@ -61,8 +61,9 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
             periodic_structure=config.bulk_crystal,
             prep_crystal_in_melt=config.prep_crystal_in_melt)
 
-        config.update({'molind2name_dict': molind2name})
-        np.save('run_config', config)
+        config_dict = config.__dict__
+        config_dict.update({'molind2name_dict': molind2name})
+        np.save('run_config', config_dict)
 
         '''set temperature, run time, and print step in lmp file'''
         generate_MD_script(config, melt_inds)
