@@ -7,7 +7,7 @@ batch_config = {
     'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved.
     'temperature': [700],  # Kelvin
     'structure_identifier': ['acridine/Form2', 'acridine/Form3', 'acridine/Form4', 'acridine/Form6', 'acridine/Form7',
-                             'acridine/Form8''acridine/Form9'],
+                             'acridine/Form8', 'acridine/Form9'],
     'defect_rate': [0],
     'defect_type': ['anthracene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
