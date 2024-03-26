@@ -117,22 +117,28 @@ plot melting point vs run length, system size
 '''
 combined_df.reset_index(drop=True, inplace=True)
 
-runtimes = [df['run_config']['run_time']/1e6 for _, df in combined_df.iterrows()]
+runtimes = [df['run_config']['run_time'] / 1e6 for _, df in combined_df.iterrows()]
 
 polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for conf in combined_df['run_config']]))
 num_polymorphs = len(polymorphs)
 
 colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', num_polymorphs, colortype='rgb')
-polymorph_colors = [colors[polymorphs.index(polymorph_name)] for polymorph_name in combined_df['polymorph_name']]
+# polymorph_colors = [colors[polymorphs.index(polymorph_name)] for polymorph_name in combined_df['polymorph_name']]
+seen_polymorph = {polymorph: False for polymorph in polymorphs}
 
 fig = go.Figure()
-fig.add_scattergl(x=runtimes,
-                  y=combined_df['polymorph_melt_temp'],
-                  mode='markers',
-                  marker_color=polymorph_colors,
-                  )
+for polymorph in polymorphs:
+    good_inds = np.argwhere(combined_df['polymorph_name'] == polymorph).flatten()
+    fig.add_scattergl(x=np.asarray(runtimes)[good_inds],
+                      y=np.asarray(combined_df.iloc[good_inds]['polymorph_melt_temp']).flatten(),
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=True if not seen_polymorph[polymorph] else False,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      )
 
-
+fig.update_layout(xaxis_title='Run Time (ns)', yaxis_title='Tm (K)')
 fig.show(renderer='browser')
 
 aa = 1
