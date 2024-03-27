@@ -12,7 +12,7 @@ batch_config = {
     'defect_type': ['anthracene'],  # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0, 0.05, 0.1, 0.15, 0.2, 0.25],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
-    'seed': [1, 2, 3, 4],  # integers greater than zero
+    'seed': [1, 2, 3],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
     'max_sphere_radius': [10],  # if carving a finite cluster from a bulk structure, the radius of the sphere
 
