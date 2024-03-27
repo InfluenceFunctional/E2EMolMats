@@ -1,0 +1,53 @@
+atom_style: full
+box_type: p
+bulk_crystal: true
+cluster_size:
+- - 10
+  - 10
+  - 10
+cluster_type: supercell
+damping:
+- '100.0'
+defect_rate:
+- 0
+defect_type:
+- anthracene
+equil_time: 100000.0
+gap_rate:
+- 0
+- 0.05
+- 0.1
+- 0.15
+- 0.2
+- 0.25
+init_temperature: 200
+integrator: npt
+machine: cluster
+max_sphere_radius:
+- 10
+melt_temperature: 2000
+min_inter_cluster_distance: 0
+min_lattice_length: 30
+prep_crystal_in_melt: false
+print_steps: 1000
+ramp_temperature: true
+run_name: acridine_melt_series2_1b
+run_time: 1000000
+scramble_rate:
+- 0
+seed:
+- 1
+- 2
+- 3
+- 4
+structure_identifier:
+- acridine/Form2
+- acridine/Form3
+- acridine/Form4
+- acridine/Form6
+- acridine/Form7
+- acridine/Form8
+- acridine/Form9
+submit_lammps_slurm: false
+temperature:
+- 700

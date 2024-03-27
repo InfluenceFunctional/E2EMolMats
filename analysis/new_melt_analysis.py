@@ -7,10 +7,12 @@ from reporting.utils import process_thermo_data, make_thermo_fig, multi_ramp_fig
 from utils import dict2namespace
 import pandas as pd
 import wandb
+import glob
 
 battery_paths = [r'D:\crystal_datasets\acridine_melt_series2_1/',
                  r'D:\crystal_datasets\acridine_melt_series2_2/',
-                 r'D:\crystal_datasets\acridine_melt_series2_3/']
+                 r'D:\crystal_datasets\acridine_melt_series2_3/',
+                 r'D:\crystal_datasets\acridine_melt_series2_4/']
 
 combined_df = pd.DataFrame()
 
@@ -31,6 +33,7 @@ for battery_path in battery_paths:
     wandb.run.save()
 
     os.chdir(config.battery_path)
+    battery_full_path = os.getcwd()
 
     if os.path.exists('results_df'):
         results_df = pd.read_pickle('results_df')
@@ -46,6 +49,7 @@ for battery_path in battery_paths:
                         'molwise_mean_kecom', 'molwise_mean_internal']
 
     dirs = os.listdir()
+    dirs += glob.glob('*/*')
     for run_dir in dirs:  # loop over run directories in the battery
         os.chdir(config.battery_path)
         # (run_dir not in results_df["run_num"].values) and \
@@ -56,11 +60,14 @@ for battery_path in battery_paths:
                 ('png' not in run_dir) and \
                 ('log' not in run_dir) and \
                 ('wandb' not in run_dir):
-            os.chdir(run_dir)
-            # do the analysis
-            print(run_dir)
 
-            run_config = np.load('run_config.npy', allow_pickle=True).item()
+            try:
+                os.chdir(run_dir)
+                # do the analysis
+                print(run_dir)
+                run_config = np.load('run_config.npy', allow_pickle=True).item()
+            except:
+                continue
 
             if config.make_run_wise_figs:
                 '''thermodynamic data'''
@@ -84,7 +91,7 @@ for battery_path in battery_paths:
                 for key in traj_thermo_keys:
                     new_row.update({key: [thermo_results_dict[key]]})
                 results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
-                results_df.to_pickle('../results_df')
+                results_df.to_pickle(battery_full_path + '/results_df')
 
     results_df.reset_index(drop=True, inplace=True)
 
@@ -122,8 +129,8 @@ runtimes = [df['run_config']['run_time'] / 1e6 for _, df in combined_df.iterrows
 polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for conf in combined_df['run_config']]))
 num_polymorphs = len(polymorphs)
 
-colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', num_polymorphs, colortype='rgb')
-# polymorph_colors = [colors[polymorphs.index(polymorph_name)] for polymorph_name in combined_df['polymorph_name']]
+import plotly.express as px
+colors = px.colors.qualitative.G10
 seen_polymorph = {polymorph: False for polymorph in polymorphs}
 
 fig = go.Figure()
@@ -134,6 +141,7 @@ for polymorph in polymorphs:
                       mode='markers',
                       name=polymorph,
                       legendgroup=polymorph,
+                      marker_size=15,
                       showlegend=True if not seen_polymorph[polymorph] else False,
                       marker_color=colors[polymorphs.index(polymorph)],
                       )

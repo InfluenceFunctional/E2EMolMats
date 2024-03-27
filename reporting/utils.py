@@ -172,7 +172,7 @@ def make_gap_vs_tm_fig(results_df):
     gap_vs_tm_fig = make_subplots(cols=len(polymorphs), rows=1, subplot_titles=polymorphs)
     for ind, row in results_df.iterrows():
         step_size, melt_temp = get_melt_point(row['temp'][3:], row['E_pair'][3:])
-        #print(f"{row['run_num']} : {step_size}, : {melt_temp}")
+        # print(f"{row['run_num']} : {step_size}, : {melt_temp}")
         polymorph_name = row['run_config']['structure_identifier'].split('/')[1]
 
         polymorph_names.append(polymorph_name)
@@ -200,17 +200,32 @@ def make_gap_vs_tm_fig(results_df):
         gap_rates = np.asarray(results_df.iloc[good_inds]['gap_rate'])
         melt_temps = np.asarray(results_df.iloc[good_inds]['melt_temp'])
         step_sizes = np.asarray(results_df.iloc[good_inds]['step_size'])
+        seeds = np.asarray([rc['seed'] for rc in results_df.iloc[good_inds]['run_config']])
 
         good = np.argwhere(step_sizes >= 0.25).flatten()
-        linear_fit = linregress(gap_rates[good], melt_temps[good])
+        unique_gaps = np.unique(gap_rates[good])
+        mean_tms = np.zeros(len(unique_gaps))
+        for gap_ind, gap_rate in enumerate(unique_gaps):
+            tms = melt_temps[good][gap_rates[good] == gap_rate]
+            mean_tms[gap_ind] = tms.mean()
+
+        linear_fit = linregress(unique_gaps[-3:], mean_tms[-3:])
 
         xmin = 0
         xmax = max(gap_rates)
         gap_vs_tm_fig.add_scattergl(x=[xmin, xmax],
                                     y=[linear_fit.intercept + xmin, linear_fit.intercept + xmax * linear_fit.slope],
                                     showlegend=False, row=1, col=ind + 1)
+
+        gap_vs_tm_fig.add_scattergl(x=unique_gaps,
+                                    y=mean_tms,
+                                    marker_size=25,
+                                    mode='markers',
+                                    showlegend=False, row=1, col=ind + 1)
+
         polymorph_inds.extend(good_inds)
-        polymorph_tm.extend([linear_fit.intercept] * len(good_inds))
+        polymorph_tm.extend([mean_tms[-1]] * len(
+            good_inds))  # [linear_fit.intercept] * len(good_inds))
 
     tm_array = np.zeros(len(results_df))
     tm_array[polymorph_inds] = polymorph_tm
