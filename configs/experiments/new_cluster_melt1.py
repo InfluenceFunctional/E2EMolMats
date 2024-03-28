@@ -6,9 +6,9 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[15, 15, 15]],  # size of initial bulk supercell, from which finite subsamples may be carved.
     'temperature': [350],  # Kelvin
-    'structure_identifier': ['nicotinamide/NICOAM17'],  # Form IX
+    'structure_identifier': ['acridine/Form2'],  # Form IX
     'defect_rate': [0],
-    'defect_type': ['benzamide'],  # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
+    'defect_type': ['anthracene'],  # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
     'seed': [1],  # integers greater than zero

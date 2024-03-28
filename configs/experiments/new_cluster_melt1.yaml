@@ -11,7 +11,7 @@ damping:
 defect_rate:
 - 0
 defect_type:
-- benzamide
+- anthracene
 equil_time: 100000.0
 gap_rate:
 - 0
@@ -33,7 +33,7 @@ scramble_rate:
 seed:
 - 1
 structure_identifier:
-- nicotinamide/NICOAM17
+- acridine/Form2
 submit_lammps_slurm: false
 temperature:
 - 350
