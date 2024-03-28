@@ -10,12 +10,12 @@ import plotly.graph_objects as go
 
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
-    thermo_telemetry_fig = make_subplots(rows=2, cols=4, subplot_titles=traj_thermo_keys)
+    thermo_telemetry_fig = make_subplots(rows=3, cols=3, subplot_titles=traj_thermo_keys)
     ind = 0
     for i, key in enumerate(thermo_results_dict.keys()):
         if key in traj_thermo_keys:
-            row = ind // 4 + 1
-            col = ind % 4 + 1
+            row = ind // 3 + 1
+            col = ind % 3 + 1
             thermo_telemetry_fig.add_trace(
                 go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
                              y=thermo_results_dict[key],
@@ -37,7 +37,7 @@ def process_thermo_data():
     text = f.read()
     lines = text.split('\n')
     f.close()
-
+    hit_minimization = False
     skip = True
     results_dict = {'time step': [],
                     'temp': [],
@@ -45,7 +45,8 @@ def process_thermo_data():
                     'E_mol': [],
                     'E_tot': [],
                     'Press': [],
-                    'ns_per_day': []}
+                    'Volume': [],
+                    }
 
     if "Total wall time" not in text:  # skip analysis if the run crashed
         for key in results_dict.keys():
@@ -58,14 +59,16 @@ def process_thermo_data():
             ns_per_day = float(text[0].split(' ')[1])
             results_dict['ns_per_day'] = ns_per_day
 
-        if skip:
+        if not hit_minimization:
+            if 'Minimization stats' in line:
+                hit_minimization = True
+        elif skip:
             if "Step" in line:
                 skip = False
                 # print(ind)
         else:
             if "Loop" in line:
                 skip = True
-                # print(ind)
 
             if not skip:
                 split_line = line.split(' ')
@@ -145,21 +148,37 @@ def multi_ramp_fig(results_df):
     colors = n_colors('rgb(5,120,200)', 'rgb(250,50,5)', len(np.unique(results_df['gap_rate'])), colortype='rgb')
     gaps = np.sort(np.unique(results_df['gap_rate']))
     gap_dict = {temp: ind for ind, temp in enumerate(gaps)}
-    temp_vs_pe_fig = go.Figure()
+    polymorphs = [thing['structure_identifier'].split('/')[-1] for thing in results_df['run_config']]
+    seen_polymorph = {polymorph: False for polymorph in polymorphs}
+    temp_vs_pe_fig = make_subplots(cols=2, rows=1, subplot_titles=['E_pair', 'Volume'])
     for ind in range(len(results_df)):
         gap = results_df['gap_rate'][ind]
-        temp_vs_pe_fig.add_scattergl(x=results_df['temp'][ind][1:],
-                                     y=results_df['E_pair'][ind][1:],
+        temp_vs_pe_fig.add_scattergl(x=results_df['temp'][ind][3:],
+                                     y=results_df['E_pair'][ind][3:],
                                      line_color=colors[gap_dict[gap]],
                                      marker_color=gap,
                                      mode='markers',
                                      marker_size=5,
-                                     showlegend=False,
                                      opacity=0.5,
-                                     # name=f"Gap rate = {gap:.2f}",
-                                     # showlegend=True
+                                     name=polymorphs[ind],
+                                     legendgroup=polymorphs[ind],
+                                     showlegend=True if not seen_polymorph[polymorphs[ind]] else False,
+                                     row=1, col=1
                                      )
-    temp_vs_pe_fig.update_layout(xaxis_title="Temperature (K)", yaxis_title="Pair Energy")
+        temp_vs_pe_fig.add_scattergl(x=results_df['temp'][ind][3:],
+                                     y=results_df['Volume'][ind][3:],
+                                     line_color=colors[gap_dict[gap]],
+                                     marker_color=gap,
+                                     mode='markers',
+                                     marker_size=5,
+                                     opacity=0.5,
+                                     name=polymorphs[ind],
+                                     legendgroup=polymorphs[ind],
+                                     showlegend=True if not seen_polymorph[polymorphs[ind]] else False,
+                                     row=1, col=2
+                                     )
+        seen_polymorph[polymorphs[ind]] = True
+    temp_vs_pe_fig.update_layout(xaxis_title="Temperature (K)")
 
     return temp_vs_pe_fig
 
@@ -219,7 +238,7 @@ def make_gap_vs_tm_fig(results_df):
 
         gap_vs_tm_fig.add_scattergl(x=unique_gaps,
                                     y=mean_tms,
-                                    marker_size=25,
+                                    marker_size=10,
                                     mode='markers',
                                     showlegend=False, row=1, col=ind + 1)
 

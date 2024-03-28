@@ -9,9 +9,9 @@ import pandas as pd
 import wandb
 import glob
 
-battery_paths = [r'D:\crystal_datasets\acridine_melt_series2_1/',
-                 r'D:\crystal_datasets\acridine_melt_series2_2/',
-                 r'D:\crystal_datasets\acridine_melt_series2_3/',
+battery_paths = [#r'D:\crystal_datasets\acridine_melt_series2_1/',
+                 #r'D:\crystal_datasets\acridine_melt_series2_2/',
+                 #r'D:\crystal_datasets\acridine_melt_series2_3/',
                  r'D:\crystal_datasets\acridine_melt_series2_4/']
 
 combined_df = pd.DataFrame()
@@ -45,7 +45,7 @@ for battery_path in battery_paths:
                                            "E_tot",
                                            ])
 
-    traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'Press', 'molwise_mean_temp',
+    traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'Press', 'Volume', 'molwise_mean_temp',
                         'molwise_mean_kecom', 'molwise_mean_internal']
 
     dirs = os.listdir()
@@ -79,7 +79,7 @@ for battery_path in battery_paths:
                 if config.show_figs:
                     thermo_telemetry_fig.show(renderer="browser")
                 wandb.log({'Thermo Data': thermo_telemetry_fig})
-                thermo_telemetry_fig.write_image('Thermo Data.png')
+                #thermo_telemetry_fig.write_image('Thermo Data.png')
 
                 '''save results'''
                 new_row = {"run_num": run_dir,
@@ -141,7 +141,7 @@ for polymorph in polymorphs:
                       mode='markers',
                       name=polymorph,
                       legendgroup=polymorph,
-                      marker_size=15,
+                      #marker_size=15,
                       showlegend=True if not seen_polymorph[polymorph] else False,
                       marker_color=colors[polymorphs.index(polymorph)],
                       )
