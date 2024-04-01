@@ -47,7 +47,7 @@ for j in range(len(temperatures)):
 
 dirs = os.listdir()
 
-# wandb.init(config=params, project="nicotinamide_clusters",
+# wandb.init(config=params, project="E2EMolMats",
 #            entity="mkilgour", tags=["bulk_reference_test"],
 #            settings=wandb.Settings(code_dir="."))
 #

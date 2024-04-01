@@ -22,7 +22,7 @@ params = {
 }
 config = dict2namespace(params)
 
-wandb.init(config=params, project="nicotinamide_clusters",
+wandb.init(config=params, project="E2EMolMats",
            entity="mkilgour", tags=["reporting_test2"],
            settings=wandb.Settings(code_dir="."))
 
