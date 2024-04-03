@@ -41,5 +41,5 @@ for dir_path in run_dirs[:5]:
                 sleep(10)
                 wait_steps += 1
 
-        os.chdir('../')
+        os.chdir('../../')
 

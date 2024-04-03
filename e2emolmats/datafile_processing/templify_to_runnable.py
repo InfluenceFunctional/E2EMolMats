@@ -1,7 +1,6 @@
-from common.constants import MOLECULE_SHORTHAND, FF_PATH_DICT
-# import os
-# os.chdir(r'D:\crystal_datasets\misc\6')
-# original_lt_path, original_data_path, new_lt_path, molecule_name = '4.lt', '3.data', '5.lt', 'acridine'
+from e2emolmats.md_data.constants import MOLECULE_SHORTHAND, FF_PATH_DICT
+
+
 def templify_to_runnable(original_lt_path, original_data_path, new_lt_path, molecule_name):
     '''
     ff_paths gaff2_nicotinamid_long.lt, gaff2_acridine.lt

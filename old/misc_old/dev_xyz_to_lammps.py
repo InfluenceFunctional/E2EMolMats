@@ -6,10 +6,9 @@ import warnings
 
 warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
 
-import numpy as np
 import os
 from distutils.dir_util import copy_tree
-from lammps_prepper import prep_lammps_inputs
+from e2emolmats.workflows.lammps_prepper import prep_lammps_inputs
 
 '''set head directory'''
 head_dir = r'C:\Users\mikem\crystals\clusters\cluster_structures/benzamide_test3'
@@ -19,9 +18,9 @@ crystals_path = r'C:\Users\mikem\crystals\clusters\Leslie\CrystalStructures/'  #
 if not os.path.exists(head_dir):
     os.mkdir(head_dir)
 os.chdir(head_dir)
-if not os.path.exists('common'):
-    os.mkdir('common')
-    copy_tree('../common', './common/')
+if not os.path.exists('md_data'):
+    os.mkdir('md_data')
+    copy_tree('../md_data', './md_data/')
 
 prep_lammps_inputs(head_dir, 1, crystals_path,
                    cluster_size=[4, 4, 4],

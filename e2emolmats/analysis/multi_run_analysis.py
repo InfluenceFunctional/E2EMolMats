@@ -2,10 +2,7 @@ import os
 import pandas as pd
 import numpy as np
 
-from reporting.cluster_figs import cluster_property_heatmap, collate_property_over_multiple_runs, plot_classifier_pies
-from utils import compute_rdf_distance
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+from e2emolmats.reporting.cluster_figs import plot_classifier_pies
 
 os.chdir(r'C:\Users\mikem\crystals\clusters\cluster_structures')
 

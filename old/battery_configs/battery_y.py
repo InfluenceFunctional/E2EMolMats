@@ -5,7 +5,7 @@ generate an .xyz file and automatically prep LAMMPS inputs
 import numpy as np
 import os
 from distutils.dir_util import copy_tree
-from lammps_prepper import prep_lammps_inputs
+from e2emolmats.workflows.lammps_prepper import prep_lammps_inputs
 
 '''set head directory'''
 head_dir = r'/home/mk8347/scratch/molecule_clusters/battery_9'
@@ -17,9 +17,9 @@ crystals_path = r'/scratch/mk8347/molecule_clusters/CrystalStructures/'
 if not os.path.exists(head_dir):
     os.mkdir(head_dir)
 os.chdir(head_dir)
-if not os.path.exists('common'):
-    os.mkdir('common')
-    copy_tree('../common', './common/')
+if not os.path.exists('md_data'):
+    os.mkdir('md_data')
+    copy_tree('../md_data', './md_data/')
 
 n_runs = 36
 cluster_sizes = [[2, 2, 2],

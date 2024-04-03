@@ -1,14 +1,10 @@
-"""
-generate an .xyz file and automatically prep LAMMPS inputs
-"""
-
 import warnings
 import argparse
-from utils import get_user_config, args2run_num, get_user_paths, generate_run_configs, \
+from e2emolmats.common.utils import get_user_config, args2run_num, get_user_paths, generate_run_configs, \
     get_run_config, setup_workdir
 
 warnings.filterwarnings('ignore', message='.*OVITO.*PyPI')
-from lammps_prepper import prep_lammps_inputs
+from e2emolmats.workflows.lammps_prepper import prep_lammps_inputs
 
 parser = argparse.ArgumentParser()
 _, args = parser.parse_known_args()
@@ -39,4 +35,4 @@ if run_num is not None:  # for running in one at a time with run_num taken from 
     run_lammps_prepper(run_num, run_args, static_config, dynamic_arg_keys, ltemplify_path, head_dir, crystals_path)
 else:  # for running sequentially in a loop
     for run_num, variable_config in enumerate(run_args):
-        run_lammps_prepper(run_num, run_args, static_config, dynamic_arg_keys, ltemplify_path, crystals_path)
+        run_lammps_prepper(run_num, run_args, static_config, dynamic_arg_keys, ltemplify_path, head_dir, crystals_path)

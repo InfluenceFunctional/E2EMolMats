@@ -1,16 +1,16 @@
 import MDAnalysis as mda
 import os
 import wandb
-from reporting.cluster_figs import \
-    (plot_rdf_series, plot_intermolecular_rdf_series,
-     plot_cluster_stability, plot_cluster_centroids_drift,
+from e2emolmats.reporting.rdf_figs import \
+    (plot_rdf_series, plot_intermolecular_rdf_series)
+from e2emolmats.reporting.cluster_figs import \
+    (plot_cluster_stability, plot_cluster_centroids_drift,
      plot_atomwise_rdf_drift, plot_alignment_fingerprint)
-from reporting.utils import process_thermo_data
-from utils import (dict2namespace, names_dict, ff_names_dict)
+from e2emolmats.reporting.utils import process_thermo_data
+from e2emolmats.common.utils import (dict2namespace, names_dict, ff_names_dict)
 import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 
 params = {
@@ -24,7 +24,7 @@ config = dict2namespace(params)
 
 wandb.init(config=params, project="E2EMolMats",
            entity="mkilgour", tags=["reporting_test2"],
-           settings=wandb.Settings(code_dir="."))
+           settings=wandb.Settings(code_dir="../../analysis"))
 
 wandb.run.name = config.battery_path
 wandb.run.save()
@@ -53,7 +53,7 @@ dirs = os.listdir()
 for run_dir in dirs:  # loop over run directories in the battery
     os.chdir(config.battery_path)
 
-    if (run_dir != 'common') and \
+    if (run_dir != 'md_data') and \
             (run_dir not in results_df["run_num"].values) and \
             ('results_df' not in run_dir) and \
             ('png' not in run_dir):

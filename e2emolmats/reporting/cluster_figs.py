@@ -6,7 +6,7 @@ from scipy.stats import mode
 from MDAnalysis.analysis import rdf
 import MDAnalysis as mda
 from scipy.spatial import distance_matrix
-from utils import compute_rdf_distance, compute_principal_axes_np
+from e2emolmats.common.utils import compute_rdf_distance, compute_principal_axes_np
 from plotly.subplots import make_subplots
 from scipy.ndimage import gaussian_filter1d
 

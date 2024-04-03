@@ -1,19 +1,14 @@
 import MDAnalysis as mda
 import os
-import wandb
-from reporting.cluster_figs import \
-    (plot_rdf_series, plot_intermolecular_rdf_series,
-     plot_cluster_stability, plot_cluster_centroids_drift,
-     plot_atomwise_rdf_drift, plot_alignment_fingerprint,
-     plot_thermodynamic_data, plot_atomwise_rdf_ref_dist)
-from reporting.utils import process_thermo_data
-from reporting.rdf_figs import trajectory_rdf_analysis
-from utils import (dict2namespace, names_dict, ff_names_dict, cell_vol, rewrite_trajectory, tile_universe)
+from e2emolmats.reporting import \
+    (plot_thermodynamic_data, plot_atomwise_rdf_ref_dist)
+from e2emolmats.reporting import process_thermo_data
+from e2emolmats.reporting import trajectory_rdf_analysis
+from e2emolmats.common.utils import (dict2namespace, cell_vol, rewrite_trajectory)
 import numpy as np
 from plotly.subplots import make_subplots
-from scipy.spatial.distance import cdist, pdist
+from scipy.spatial.distance import cdist
 import plotly.graph_objects as go
-import plotly.express as px
 import pandas as pd
 import plotly.io as pio
 
@@ -90,7 +85,7 @@ dirs = os.listdir()
 for run_dir in dirs:  # loop over run directories in the battery
     os.chdir(config.battery_path)
 
-    if (run_dir != 'common') and \
+    if (run_dir != 'md_data') and \
             (run_dir not in results_df["run_num"].values) and \
             ('results_df' not in run_dir) and \
             ('png' not in run_dir) and \

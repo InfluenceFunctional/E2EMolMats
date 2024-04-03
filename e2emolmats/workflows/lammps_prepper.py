@@ -6,12 +6,12 @@ from ovito.io import import_file, export_file
 from ovito.modifiers import *
 from argparse import Namespace
 
-from generate_cluster_structures import generate_structure
-from template_scripts.initial_setup import initial_setup
-from template_scripts.moltemp_final import moltemp_final
-from template_scripts.templify_to_runnable import templify_to_runnable
-
-from template_scripts.utils import update_atom_style_in_settings, generate_MD_script
+from e2emolmats.common.generate_cluster_structures import generate_structure
+from e2emolmats.datafile_processing.initial_setup import initial_setup
+from e2emolmats.datafile_processing.moltemp_final import moltemp_final
+from e2emolmats.datafile_processing.templify_to_runnable import templify_to_runnable
+from e2emolmats.datafile_processing.utils import update_atom_style_in_settings, generate_MD_script
+from e2emolmats.md_data.constants import MOLECULE_NUM_ATOMS, ATOM_TYPES, MOLECULE_SYM_INDICES
 
 
 def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_path):
@@ -38,14 +38,14 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
 
         os.mkdir(workdir)
         os.chdir(workdir)
-        '''copy in common elements'''
-        copy_tree('../common', './')
+        '''copy in md_data elements'''
+        copy_tree('../md_data', '../../')
 
         print("============================")
         print("Generating Structure")
         print("============================")
         '''generate cluster structure'''
-        xyz_filename, melt_inds, molind2name = generate_structure(  # TODO save molind2name in run_config
+        xyz_filename, melt_inds, molind2name = generate_structure(
             crystals_path,
             config.structure_identifier,
             config.cluster_type,
@@ -63,6 +63,9 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
 
         config_dict = config.__dict__
         config_dict.update({'molind2name_dict': molind2name})
+        config_dict.update({'molecule_num_atoms_dict': MOLECULE_NUM_ATOMS})
+        config_dict.update({'molecule_atom_types': ATOM_TYPES})
+        config_dict.update({'molecule_sym_indices': MOLECULE_SYM_INDICES})
         np.save('run_config', config_dict)
 
         '''set temperature, run time, and print step in lmp file'''
@@ -127,7 +130,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
             print("============================\n")
 
             # '''optionally - directly run MD''' # will not work from within a Singularity instance
-            # use instead batch_sub_lmp.sh in /common to submit after all templates are built
+            # use instead batch_sub_lmp.sh in /md_data to submit after all templates are built
             os.system("/opt/slurm/bin/sbatch sub_job.slurm")
 
 

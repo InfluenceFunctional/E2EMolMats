@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 
-from analysis.cluster_rdf import crystal_rdf
-from reporting.cluster_figs import plot_rdf_series, plot_intermolecular_rdf_series
-from utils import ff_names_dict, tile_universe
+from e2emolmats.analysis.cluster_rdf import crystal_rdf
+from e2emolmats.reporting.cluster_figs import plot_rdf_series, plot_intermolecular_rdf_series
+from e2emolmats.common.utils import ff_names_dict, tile_universe
 
 
 def trajectory_rdf_analysis(u, n_mols_to_sample=10, nbins=200, rrange=[0, 10], core_cutoff=None, tiling=None, print_steps=10):

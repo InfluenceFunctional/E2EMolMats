@@ -1,18 +1,21 @@
 import os
 import numpy as np
-from _plotly_utils.colors import n_colors
 import plotly.graph_objects as go
 
-from reporting.utils import process_thermo_data, make_thermo_fig, multi_ramp_fig, make_gap_vs_tm_fig
-from utils import dict2namespace
+from e2emolmats.reporting.utils import process_thermo_data, make_thermo_fig, multi_ramp_fig, make_gap_vs_tm_fig
+from e2emolmats.common.utils import dict2namespace
 import pandas as pd
 import wandb
 import glob
 
-battery_paths = [#r'D:\crystal_datasets\acridine_melt_series2_1/',
-                 #r'D:\crystal_datasets\acridine_melt_series2_2/',
-                 #r'D:\crystal_datasets\acridine_melt_series2_3/',
-                 r'D:\crystal_datasets\acridine_melt_series2_4/']
+battery_paths = [
+    # r'D:\crystal_datasets\acridine_melt_series2_1/',
+    # r'D:\crystal_datasets\acridine_melt_series2_2/',
+    # r'D:\crystal_datasets\acridine_melt_series2_3/',
+    #r'D:\crystal_datasets\acridine_melt_series2_4/',
+    #r'D:\crystal_datasets\acridine_melt_series2_5/',
+    r'D:\crystal_datasets\acridine_melt_series2_6/'
+]
 
 combined_df = pd.DataFrame()
 
@@ -27,7 +30,7 @@ for battery_path in battery_paths:
 
     wandb.init(config=params, project="E2EMolMats",
                entity="mkilgour", tags=[config.battery_path],
-               settings=wandb.Settings(code_dir="."))
+               settings=wandb.Settings(code_dir="../../analysis"))
 
     wandb.run.name = config.battery_path
     wandb.run.save()
@@ -54,7 +57,7 @@ for battery_path in battery_paths:
         os.chdir(config.battery_path)
         # (run_dir not in results_df["run_num"].values) and \
 
-        if (run_dir != 'common') and \
+        if (run_dir != 'md_data') and \
                 (run_dir not in results_df["run_num"].values) and \
                 ('results_df' not in run_dir) and \
                 ('png' not in run_dir) and \
@@ -79,7 +82,7 @@ for battery_path in battery_paths:
                 if config.show_figs:
                     thermo_telemetry_fig.show(renderer="browser")
                 wandb.log({'Thermo Data': thermo_telemetry_fig})
-                #thermo_telemetry_fig.write_image('Thermo Data.png')
+                # thermo_telemetry_fig.write_image('Thermo Data.png')
 
                 '''save results'''
                 new_row = {"run_num": run_dir,
@@ -130,6 +133,7 @@ polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for con
 num_polymorphs = len(polymorphs)
 
 import plotly.express as px
+
 colors = px.colors.qualitative.G10
 seen_polymorph = {polymorph: False for polymorph in polymorphs}
 
@@ -141,7 +145,7 @@ for polymorph in polymorphs:
                       mode='markers',
                       name=polymorph,
                       legendgroup=polymorph,
-                      #marker_size=15,
+                      # marker_size=15,
                       showlegend=True if not seen_polymorph[polymorph] else False,
                       marker_color=colors[polymorphs.index(polymorph)],
                       )

@@ -22,7 +22,6 @@ MOLECULE_NUM_ATOM_TYPES = {'nicotinamide': 8,  # 1-8
 MOLECULE_NUM_ATOMS = {'acridine': 23,
                       'anthracene': 24,
                       '2,7-dihydroxynaphthalene': 20,
-
                       'nicotinamide': 15,
                       'benzamide': 16,
                       'isonicotinamide': 15,

@@ -1,5 +1,5 @@
 import os
-from common.constants import MOLECULE_SYM_INDICES
+from e2emolmats.md_data.constants import MOLECULE_SYM_INDICES
 
 
 def moltemp_final(workdir: str, atom_style: str, molind2name: dict) -> None:

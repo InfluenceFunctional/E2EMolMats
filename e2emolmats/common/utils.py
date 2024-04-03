@@ -436,6 +436,6 @@ def setup_workdir(head_dir):
         os.mkdir(head_dir)
     source_path = os.getcwd()
     os.chdir(head_dir)
-    if not os.path.exists('common'):
-        os.mkdir('common')
-        copy_tree(source_path + '/common', './common/')  # copy from source
+    if not os.path.exists('../md_data'):
+        os.mkdir('../md_data')
+        copy_tree(source_path + '/md_data', '../md_data/')  # copy from source

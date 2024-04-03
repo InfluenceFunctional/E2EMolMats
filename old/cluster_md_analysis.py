@@ -1,16 +1,13 @@
 import MDAnalysis as mda
 import os
-import wandb
 
-from reporting.cluster_figs import (
+from e2emolmats.reporting import (
     plot_thermodynamic_data, plot_atomwise_rdf_ref_dist, cluster_molecule_alignment, cluster_property_heatmap)
-from reporting.utils import process_thermo_data
-from reporting.rdf_figs import trajectory_rdf_analysis
-from utils import (dict2namespace, cell_vol, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment)
+from e2emolmats.reporting import process_thermo_data
+from e2emolmats.reporting import trajectory_rdf_analysis
+from e2emolmats.common.utils import (dict2namespace, rewrite_trajectory, compute_Ip_alignment, compute_Ip_molwise_alignment)
 import numpy as np
-from plotly.subplots import make_subplots
-from scipy.spatial.distance import cdist, pdist
-import plotly.graph_objects as go
+from scipy.spatial.distance import cdist
 import pandas as pd
 import plotly.io as pio
 from scipy.ndimage import gaussian_filter1d
@@ -57,7 +54,7 @@ dirs = os.listdir()
 for run_dir in dirs:  # loop over run directories in the battery
     os.chdir(config.battery_path)
 
-    if (run_dir != 'common') and \
+    if (run_dir != 'md_data') and \
             (run_dir not in results_df["run_num"].values.astype(str)) and \
             ('results_df' not in run_dir) and \
             ('png' not in run_dir) and \

@@ -4,7 +4,6 @@ options for cluster size and shape
 options for introduction of defects
 """
 
-import os
 import sys
 
 import numpy as np
@@ -13,9 +12,7 @@ from ase import Atoms
 from ase import io
 from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation
-from utils import dict2namespace, compute_principal_axes_np
-
-BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
+from e2emolmats.common.utils import dict2namespace, compute_principal_axes_np
 
 
 def get_crystal_properties(structure_identifier):

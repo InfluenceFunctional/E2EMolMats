@@ -1,6 +1,6 @@
-from common.constants import (MOLECULE_ATOM_TYPES_MASSES,
-                              MOLECULE_NUM_ATOM_TYPES, MOLECULE_NUM_ATOMS,
-                              ATOM_TYPES, ATOM_CHARGES)
+from e2emolmats.md_data.constants import (MOLECULE_ATOM_TYPES_MASSES,
+                                          MOLECULE_NUM_ATOM_TYPES, MOLECULE_NUM_ATOMS,
+                                          ATOM_TYPES, ATOM_CHARGES)
 
 
 def initial_setup(original_filename, new_filename, molecule_name, molind2name):

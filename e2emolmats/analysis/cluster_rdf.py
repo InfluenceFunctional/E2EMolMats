@@ -1,8 +1,7 @@
 import itertools
 import torch
-from typing import Optional
 
-from analysis.rdf_utils import parallel_compute_rdf_torch, asymmetric_radius_graph
+from e2emolmats.analysis.rdf_utils import parallel_compute_rdf_torch, asymmetric_radius_graph
 
 
 def crystal_rdf(positions, symbols, mol_num_atoms, in_inds, out_inds, rrange=[0, 10], bins=100, elementwise=False, raw_density=False, atomwise=False, cpu_detach=True):
