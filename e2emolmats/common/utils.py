@@ -236,7 +236,7 @@ def get_user_config(override_args=None, user_yaml_path=None):
 
 
 def get_run_config(override_args=None):
-    if 'experiment' in override_args:
+    if '--experiment' in override_args:
         assert override_args is not None, "Must provide a user yaml path on command line if not directly to get_config"
         '''get user-specific configs'''
         override_keys = [
@@ -247,8 +247,8 @@ def get_run_config(override_args=None):
         ]
         override_args = dict2namespace({key: val for key, val in zip(override_keys, override_values)})
 
-        user_path = f'configs/experiments/{override_args.experiment}.yaml'  # this is a necessary cmd line argument
-        return load_yaml(user_path)
+        experiment_path = f'configs/experiments/{override_args.experiment}.yaml'  # this is a necessary cmd line argument
+        return load_yaml(experiment_path)
 
     else:  # if nothing specified, revert to dev
         print("No experimemt specified, using the default config in dev.py")
