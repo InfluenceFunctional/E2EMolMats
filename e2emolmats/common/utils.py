@@ -235,8 +235,8 @@ def get_user_config(override_args=None, user_yaml_path=None):
     return dict2namespace(load_yaml(user_path))
 
 
-def get_run_config(override_args=None, user_yaml_path=None):
-    if user_yaml_path is None:
+def get_run_config(override_args=None):
+    if 'experiment' in override_args:
         assert override_args is not None, "Must provide a user yaml path on command line if not directly to get_config"
         '''get user-specific configs'''
         override_keys = [
@@ -438,4 +438,4 @@ def setup_workdir(head_dir):
     os.chdir(head_dir)
     if not os.path.exists('../md_data'):
         os.mkdir('../md_data')
-        copy_tree(source_path + '/md_data', '../md_data/')  # copy from source
+        copy_tree(source_path + '/e2emolmats/md_data', '../md_data/')  # copy from source
