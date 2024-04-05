@@ -1,6 +1,6 @@
 # user-specified paths
 local_structures_dir: 'C:/Users/mikem/crystals/clusters/cluster_structures/'
-local_crystals_dir: 'C:/Users/mikem/crystals/clusters/reference_structures/'
+local_crystals_dir: 'C:/Users/mikem/OneDrive/NYU/nicotinamide_clusters/LAMMPS_runs/reference_structures/'
 local_ltemplify_path: 'C:/Users/mikem/miniconda3/envs/LAMMPS_runs/lib/site-packages/moltemplate/ltemplify.py'
 
 cluster_structures_dir: '/vast/mk8347/molecule_clusters/'
