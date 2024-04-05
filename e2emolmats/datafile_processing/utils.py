@@ -1,3 +1,8 @@
+import numpy as np
+
+from e2emolmats.md_data.constants import MOLECULE_NUM_ATOM_TYPES
+
+
 def update_atom_style_in_settings(atom_style='full'):
     file = 'system.in.init'
     data = open(file, 'r')
@@ -40,17 +45,17 @@ def generate_MD_script(config, melt_inds):
         newText = newText.replace('_BOUND', str(config.box_type))
         newText = newText.replace('_DAMP', config.damping)
 
-        if 'nicotinamide' in config.structure_identifier:
-            if config.atom_style == 'full2':
-                newText = newText.replace('#_NICOTINAMIDE_sym', '')
-            else:
-                newText = newText.replace('#_NICOTINAMIDE_no_sym', '')
-
-        elif 'acridine' in config.structure_identifier:
-            if config.atom_style == 'full2':
-                newText = newText.replace('#_ACRIDINE_sym', '')
-            else:
-                newText = newText.replace('#_ACRIDINE_no_sym', '')
+        # if 'nicotinamide' in config.structure_identifier:
+        #     if config.atom_style == 'full2':
+        #         newText = newText.replace('#_NICOTINAMIDE_sym', '')
+        #     else:
+        #         newText = newText.replace('#_NICOTINAMIDE_no_sym', '')
+        #
+        # elif 'acridine' in config.structure_identifier:
+        #     if config.atom_style == 'full2':
+        #         newText = newText.replace('#_ACRIDINE_sym', '')
+        #     else:
+        #         newText = newText.replace('#_ACRIDINE_no_sym', '')
 
         if config.ramp_temperature:
             newText = newText.replace('_INIT_TEMP', str(config.init_temperature))
@@ -58,5 +63,14 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
         else:
             newText = newText.replace('_INIT_TEMP', str(config.temperature))
+
+        # dump modify
+        molecule = config.structure_identifier.split('/')[0]
+        num_atom_types = MOLECULE_NUM_ATOM_TYPES[molecule]
+        type_string = ''
+        for ind in range(num_atom_types):
+            type_string = type_string + f' {ind + 1}'
+        newText = newText.replace('#_DUMP_MODIFY', '  dump modify       d2 element' + type_string)
+
     with open("run_MD.lmp", "w") as f:
         f.write(newText)

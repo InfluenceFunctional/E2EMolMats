@@ -9,7 +9,7 @@ batch_config = {
     'structure_identifier': ['acridine/Form2'],
     'defect_rate': [0],
     'defect_type': ['anthracene'],
-    # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
+    # what molecule to substitu_mdte in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0.02 * ind for ind in range(11)],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
     'seed': [1, 2],  # integers greater than zero

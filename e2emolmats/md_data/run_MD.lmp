@@ -70,13 +70,9 @@
   fix 2 all momentum 100 linear 1 1 1 angular rescale
 
 # dump              d1 all dcd ${t_print} traj.dcd
-#_ACRIDINE_sym  dump              d2 all custom ${t_print} traj.dump id mol element sym_type xu yu zu x y z
-#_ACRIDINE_no_sym  dump              d2 all custom ${t_print} traj.dump id mol element xu yu zu x y z
-#_NICOTINAMIDE_sym  dump              d2 all custom ${t_print} traj.dump id mol element sym_type xu yu zu x y z
-#_NICOTINAMIDE_no_sym  dump              d2 all custom ${t_print} traj.dump id mol element xu yu zu x y z
+  dump              d2 all custom ${t_print} traj.dump id mol element xu yu zu
 
-#_ACRIDINE  dump_modify       d2 element 1 2 3
-#_NICOTINAMIDE  dump_modify       d2 element 1 2 3 4 5 6 7 8
+#_DUMP_MODIFY
 
 #--------------------------- Crystal-in-Melt preparation------------------------#
 #_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
