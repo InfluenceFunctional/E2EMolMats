@@ -37,6 +37,12 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('_MELT_END_IND', str(melt_inds.melt_end_ind))
             newText = newText.replace('_CRYSTAL_START_IND', str(melt_inds.crystal_start_ind))
             newText = newText.replace('_CRYSTAL_END_IND', str(melt_inds.crystal_end_ind))
+        elif config.prep_bulk_melt:  # exclusive with above
+            newText = newText.replace('#_MELT_PREP', '')
+            newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
+            newText = newText.replace('_MELT_TEMP', str(config.melt_temperature))
+            newText = newText.replace('_MELT_START_IND', str(melt_inds.melt_start_ind))  # melt inds are simply the full cluster
+            newText = newText.replace('_MELT_END_IND', str(melt_inds.melt_end_ind))
 
         newText = newText.replace('_TEMP_SAMPLE', str(config.temperature))
         newText = newText.replace('_RUNTIME', str(config.run_time))

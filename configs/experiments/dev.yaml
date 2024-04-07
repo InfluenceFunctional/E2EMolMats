@@ -1,0 +1,40 @@
+atom_style: full
+box_type: p
+bulk_crystal: true
+cluster_size:
+- - 10
+  - 10
+  - 10
+cluster_type: supercell
+damping:
+- '100.0'
+defect_rate:
+- 0.25
+defect_type:
+- benzamide
+equil_time: 100000.0
+gap_rate:
+- 0
+init_temperature: 0
+integrator: nosehoover
+machine: local
+max_sphere_radius:
+- 10
+melt_temperature: 2000
+min_inter_cluster_distance: null
+min_lattice_length: null
+prep_bulk_melt: false
+prep_crystal_in_melt: false
+print_steps: 100
+ramp_temperature: false
+run_name: dev
+run_time: 100000
+scramble_rate:
+- 0
+seed:
+- 1
+structure_identifier:
+- nicotinamide/NICOAM17
+submit_lammps_slurm: false
+temperature:
+- 100

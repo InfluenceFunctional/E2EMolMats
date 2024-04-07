@@ -118,7 +118,8 @@ def generate_structure(crystals_path, structure_identifier,
                        cluster_type, max_sphere_radius, cluster_size,
                        defect_rate, defect_type, scramble_rate, gap_rate, seed,
                        min_inter_cluster_distance, min_lattice_length,
-                       periodic_structure=False, prep_crystal_in_melt=False):
+                       periodic_structure=False, prep_crystal_in_melt=False,
+                       prep_bulk_melt=False):
     np.random.seed(seed=seed)
 
     '''load base crystal structure'''
@@ -162,6 +163,11 @@ def generate_structure(crystals_path, structure_identifier,
         melt_inds, supercell_coordinates = (
             crystal_melt_reindexing(
                 atoms_in_molecule, cluster_size, max_sphere_radius, supercell_coordinates, z_value))
+    elif prep_bulk_melt:  # melt everything
+        num_mols = z_value * np.product(cluster_size)
+        melt_inds = {'melt_start_ind': 1,  # index from 1,
+                     'melt_end_ind': num_mols}
+        melt_inds = dict2namespace(melt_inds)
     else:
         melt_inds = None
 
