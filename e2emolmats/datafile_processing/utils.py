@@ -76,7 +76,7 @@ def generate_MD_script(config, melt_inds):
         type_string = ''
         for ind in range(num_atom_types):
             type_string = type_string + f' {ind + 1}'
-        newText = newText.replace('#_DUMP_MODIFY', '  dump modify       d2 element' + type_string)
+        newText = newText.replace('#_DUMP_MODIFY', '  dump_modify       d2 element' + type_string)
 
     with open("run_MD.lmp", "w") as f:
         f.write(newText)
