@@ -14,7 +14,9 @@ battery_paths = [
     # r'D:\crystal_datasets\acridine_melt_series2_3/',
     #r'D:\crystal_datasets\acridine_melt_series2_4/',
     #r'D:\crystal_datasets\acridine_melt_series2_5/',
-    r'D:\crystal_datasets\acridine_melt_series2_6/'
+    r'D:\crystal_datasets\acridine_melt_series2_6/',
+    r'D:\crystal_datasets\acridine_melt_series2_7/'
+
 ]
 
 combined_df = pd.DataFrame()
@@ -24,7 +26,7 @@ for battery_path in battery_paths:
         'battery_path': battery_path,
         'machine': 'local',  # or 'cluster'  ### doesn't do anything
         'show_figs': False,
-        'make_run_wise_figs': True,
+        'make_run_wise_figs': False,
     }
     config = dict2namespace(params)
 

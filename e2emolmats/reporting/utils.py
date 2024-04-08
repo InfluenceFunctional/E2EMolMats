@@ -9,7 +9,6 @@ import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter1d
 
 
-
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
     thermo_telemetry_fig = make_subplots(rows=3, cols=3, subplot_titles=traj_thermo_keys)
     ind = 0
@@ -167,7 +166,7 @@ def multi_ramp_fig(results_df):
                                      #marker_colorbar=dict(len=0.1),
                                      row=1, col=1
                                      )
-        temp_vs_pe_fig.add_scattergl(x=gaussian_filter1d(results_df['temp'][ind][3:],sigma=10),
+        temp_vs_pe_fig.add_scattergl(x=gaussian_filter1d(results_df['temp'][ind][3:], sigma=10),
                                      y=gaussian_filter1d(results_df['E_pair'][ind][3:], 10),
                                      line_color=colors[gap_dict[gap]],
                                      marker_color=gap,
@@ -188,7 +187,7 @@ def multi_ramp_fig(results_df):
                                      opacity=0.5,
                                      name=polymorphs[ind],
                                      legendgroup=polymorphs[ind],
-                                     showlegend=False, #True if not seen_polymorph[polymorphs[ind]] else False,
+                                     showlegend=False,  #True if not seen_polymorph[polymorphs[ind]] else False,
                                      row=1, col=2
                                      )
         temp_vs_pe_fig.add_scattergl(x=gaussian_filter1d(results_df['temp'][ind][3:], 10),
@@ -200,7 +199,7 @@ def multi_ramp_fig(results_df):
                                      opacity=1,
                                      name=polymorphs[ind] + " smoothed",
                                      legendgroup=polymorphs[ind] + " smoothed",
-                                     showlegend=False, #True if not seen_polymorph[polymorphs[ind]] else False,
+                                     showlegend=False,  #True if not seen_polymorph[polymorphs[ind]] else False,
                                      row=1, col=2
                                      )
         seen_polymorph[polymorphs[ind]] = True
@@ -212,12 +211,17 @@ def multi_ramp_fig(results_df):
 def make_gap_vs_tm_fig(results_df):
     polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for conf in results_df['run_config']]))
     num_polymorphs = len(polymorphs)
-    colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', max(2,num_polymorphs), colortype='rgb')
+    colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', max(2, num_polymorphs), colortype='rgb')
     melt_temps, step_sizes, polymorph_names = [], [], []
     gap_vs_tm_fig = make_subplots(cols=len(polymorphs), rows=1, subplot_titles=polymorphs)
     for ind, row in results_df.iterrows():
-        step_size, melt_temp = get_melt_point(row['temp'][3:], row['E_pair'][3:])
-        # print(f"{row['run_num']} : {step_size}, : {melt_temp}")
+        if row['Volume'][3:100].mean() < row['Volume'][3:10].mean():
+            # if the cluster collapses from the initial condition, consider it a failed run
+            step_size = 1
+            melt_temp = 1  # failed to melt
+        else:
+            step_size, melt_temp = get_melt_point(row['temp'][3:], row['E_pair'][3:])
+
         polymorph_name = row['run_config']['structure_identifier'].split('/')[1]
 
         polymorph_names.append(polymorph_name)
