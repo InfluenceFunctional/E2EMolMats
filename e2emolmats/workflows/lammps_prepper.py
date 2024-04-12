@@ -62,6 +62,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         config.min_lattice_length,
         periodic_structure=config.bulk_crystal,
         prep_crystal_in_melt=config.prep_crystal_in_melt,
+        prep_melt_interface=config.prep_melt_interface,
         prep_bulk_melt=config.prep_bulk_melt)
 
     config_dict = config.__dict__

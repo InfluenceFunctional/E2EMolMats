@@ -119,7 +119,7 @@ def generate_structure(crystals_path, structure_identifier,
                        defect_rate, defect_type, scramble_rate, gap_rate, seed,
                        min_inter_cluster_distance, min_lattice_length,
                        periodic_structure=False, prep_crystal_in_melt=False,
-                       prep_bulk_melt=False):
+                       prep_melt_interface=False, prep_bulk_melt=False):
     np.random.seed(seed=seed)
 
     '''load base crystal structure'''
@@ -159,12 +159,20 @@ def generate_structure(crystals_path, structure_identifier,
     else:  # todo consider other shapes, rods, sheets, whatever
         assert False, f"Unrecognized cluster type {cluster_type}"
 
+    if periodic_structure:
+        cell = T_fc * np.asarray(cluster_size)[None, :].T  # cell parameters are the same as the
+        # fractional->cartesian transition matrix in this code
+
     if prep_crystal_in_melt:
         melt_inds, supercell_coordinates = (
             crystal_melt_reindexing(
                 atoms_in_molecule, cluster_size, max_sphere_radius, supercell_coordinates, z_value))
+    if prep_melt_interface:
+        melt_inds, supercell_coordinates = (
+            crystal_interface_reindexing(
+                atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell))
     elif prep_bulk_melt:  # melt everything
-        num_mols = z_value * np.product(cluster_size)
+        num_mols = z_value * np.prod(cluster_size)
         melt_inds = {'melt_start_ind': 1,  # index from 1,
                      'melt_end_ind': num_mols}
         melt_inds = dict2namespace(melt_inds)
@@ -193,10 +201,7 @@ def generate_structure(crystals_path, structure_identifier,
         for ind in defect_mol_indices:  # record which molecules are which
             molind2name[ind] = defect_type
 
-    if periodic_structure:
-        cell = T_fc * np.asarray(cluster_size)[None, :].T  # cell parameters are the same as the
-        # fractional->cartesian transition matrix in this code
-    else:
+    if not periodic_structure:
         cell = (np.ptp(supercell_coordinates) + min_inter_cluster_distance) * np.eye(3) / 2
 
     supercell_coordinates += cell.sum(0) / 2 - supercell_coordinates.mean(0)  # centre the structure
@@ -221,6 +226,35 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     mol_centroid_dists = cdist(global_centroid[None, :], mol_centroids)[0, :]
     crystal_mol_inds = np.argwhere(mol_centroid_dists < max_sphere_radius)[:, 0]
     melt_mol_inds = np.argwhere(mol_centroid_dists > max_sphere_radius)[:, 0]
+
+    # complete reindexing
+    molwise_supercell_coordinates = np.concatenate(
+        [molwise_supercell_coordinates[crystal_mol_inds], molwise_supercell_coordinates[melt_mol_inds]], axis=0)
+
+    # supercell atom indexing doesn't change
+    supercell_coordinates = molwise_supercell_coordinates.reshape(
+        int(len(molwise_supercell_coordinates) * atoms_in_molecule), 3)
+    melt_inds = {'melt_start_ind': len(crystal_mol_inds) + 1,
+                 'melt_end_ind': len(molwise_supercell_coordinates),
+                 'crystal_start_ind': 1,
+                 'crystal_end_ind': len(crystal_mol_inds)}
+    melt_inds = dict2namespace(melt_inds)
+
+    return melt_inds, supercell_coordinates
+
+
+def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell):
+    # identify atoms in molecules within a sufficiently large sphere from the center
+    # reindex the whole thing to put these in the first N rows
+    num_mols = z_value * np.product(cluster_size)
+    molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
+
+    mol_centroids = molwise_supercell_coordinates.mean(1)
+
+    fractional_centroids = (np.linalg.inv(cell) @ mol_centroids.T).T
+
+    crystal_mol_inds = np.argwhere(fractional_centroids[:, 2] < 0.5).flatten()
+    melt_mol_inds = np.argwhere(fractional_centroids[:, 2] > 0.5).flatten()
 
     # complete reindexing
     molwise_supercell_coordinates = np.concatenate(

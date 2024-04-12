@@ -121,33 +121,47 @@ def get_melt_point(temperature, energy_traj):
     normed_energy_traj = energy_traj - energy_traj.min()
     normed_energy_traj /= normed_energy_traj.max()
     linreg_result = linregress(temperature[:num_points // 5], normed_energy_traj[:num_points // 5])
-    normed_energy_traj -= linreg_result.slope * temperature + linreg_result.intercept
+    normed_energy_traj2 = normed_energy_traj - (linreg_result.slope * temperature + linreg_result.intercept)
 
-    heaviside_max = np.mean(normed_energy_traj[-10:])
-    loss = lambda b: np.sum((normed_energy_traj - np.heaviside(temperature - b, heaviside_max) * heaviside_max) ** 2)
+    heaviside_max = np.mean(normed_energy_traj2[-10:])
+    loss = lambda b: np.sum((normed_energy_traj2 - np.heaviside(temperature - b, heaviside_max) * heaviside_max) ** 2)
 
     res = minimize_scalar(loss, bounds=[temperature[0], temperature[-1]], method='bounded')
     melt_temperature = res.x
     melt_temp_index = np.argmin(np.abs(temperature - melt_temperature))
     maxstep = min(len(energy_traj), melt_temp_index + 100)
     minstep = min(len(energy_traj), melt_temp_index)
-    pre_step_value = np.average(normed_energy_traj[melt_temp_index - 100: melt_temp_index])
-    post_step_value = np.average(normed_energy_traj[minstep:maxstep])
+    pre_step_value = np.average(normed_energy_traj2[melt_temp_index - 100: melt_temp_index])
+    post_step_value = np.average(normed_energy_traj2[minstep:maxstep])
     step_size = post_step_value - pre_step_value
 
-    # fig = go.Figure()  # visualize fit
-    # fig.add_scattergl(x=temperature, y=normed_energy_traj, mode='markers')
-    # fig.add_scattergl(x=temperature, y=np.heaviside(temperature - melt_temperature, step_size) * step_size, mode='markers')
-    #
-    # fig.show(renderer='browser')
+    melt_fit_fig = make_subplots(rows=1, cols=2)  # visualize fit
+    melt_fit_fig.add_scattergl(x=temperature, y=normed_energy_traj,
+                      mode='markers', name='Normalized Energy',
+                      row=1, col=1)
+    melt_fit_fig.add_scattergl(x=temperature, y=np.heaviside(temperature - melt_temperature,
+                                                    step_size) * step_size + linreg_result.slope * temperature + linreg_result.intercept,
+                      mode='markers', name='Fit',
+                      row=1, col=1)
+    melt_fit_fig.add_scattergl(x=temperature, y=normed_energy_traj2,
+                      mode='markers', name='Normalized Delinearized Energy',
+                      row=1, col=2)
+    melt_fit_fig.add_scattergl(x=temperature, y=np.heaviside(temperature - melt_temperature, step_size) * step_size,
+                      mode='markers', name='Fit',
+                      row=1, col=2)
 
-    return step_size, melt_temperature
+    melt_fit_fig.update_yaxes(title='Intermolecular Potential')
+    melt_fit_fig.update_xaxes(title='temperature')
+    #melt_fit_fig.show(renderer='browser')
+
+
+    return step_size, melt_temperature, melt_fit_fig
 
 
 def multi_ramp_fig(results_df):
-    colors = n_colors('rgb(5,120,200)', 'rgb(250,50,5)', 300, colortype='rgb')
+    colors = n_colors('rgb(5,120,200)', 'rgb(250,50,5)', 301, colortype='rgb')
     gaps = np.linspace(0, 0.3, 301)
-    gap_dict = {gap: ind for ind, gap in enumerate(gaps)}
+    gap_dict = {int(gap * 1000): ind for ind, gap in enumerate(gaps)}
     polymorphs = [thing['structure_identifier'].split('/')[-1] for thing in results_df['run_config']]
     seen_polymorph = {polymorph: False for polymorph in polymorphs}
     temp_vs_pe_fig = make_subplots(cols=2, rows=1, subplot_titles=['E_pair', 'Volume'])
@@ -155,7 +169,7 @@ def multi_ramp_fig(results_df):
         gap = results_df['gap_rate'][ind]
         temp_vs_pe_fig.add_scattergl(x=results_df['temp'][ind][3:],
                                      y=results_df['E_pair'][ind][3:],
-                                     line_color=colors[gap_dict[gap]],
+                                     line_color=colors[gap_dict[int(gap*1000)]],
                                      marker_color=gap,
                                      mode='markers',
                                      marker_size=5,
@@ -168,7 +182,7 @@ def multi_ramp_fig(results_df):
                                      )
         temp_vs_pe_fig.add_scattergl(x=gaussian_filter1d(results_df['temp'][ind][3:], sigma=10),
                                      y=gaussian_filter1d(results_df['E_pair'][ind][3:], 10),
-                                     line_color=colors[gap_dict[gap]],
+                                     line_color=colors[gap_dict[int(gap * 1000)]],
                                      marker_color=gap,
                                      #mode='markers',
                                      marker_size=5,
@@ -180,7 +194,7 @@ def multi_ramp_fig(results_df):
                                      )
         temp_vs_pe_fig.add_scattergl(x=results_df['temp'][ind][3:],
                                      y=results_df['Volume'][ind][3:],
-                                     line_color=colors[gap_dict[gap]],
+                                     line_color=colors[gap_dict[int(gap * 1000)]],
                                      marker_color=gap,
                                      mode='markers',
                                      marker_size=5,
@@ -192,7 +206,7 @@ def multi_ramp_fig(results_df):
                                      )
         temp_vs_pe_fig.add_scattergl(x=gaussian_filter1d(results_df['temp'][ind][3:], 10),
                                      y=gaussian_filter1d(results_df['Volume'][ind][3:], 10),
-                                     line_color=colors[gap_dict[gap]],
+                                     line_color=colors[gap_dict[int(gap * 1000)]],
                                      marker_color=gap,
                                      #mode='markers',
                                      marker_size=5,
@@ -212,21 +226,24 @@ def make_gap_vs_tm_fig(results_df):
     polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for conf in results_df['run_config']]))
     num_polymorphs = len(polymorphs)
     colors = n_colors('rgb(250,50,5)', 'rgb(5,120,200)', max(2, num_polymorphs), colortype='rgb')
-    melt_temps, step_sizes, polymorph_names = [], [], []
+    melt_temps, step_sizes, polymorph_names, melt_fit_figs = [], [], [], []
     gap_vs_tm_fig = make_subplots(cols=len(polymorphs), rows=1, subplot_titles=polymorphs)
     for ind, row in results_df.iterrows():
-        if row['Volume'][3:100].mean() < row['Volume'][3:10].mean():
+        linreg = linregress(row['temp'][3:250], row['Volume'][3:250])
+        if linreg.slope < 0:
             # if the cluster collapses from the initial condition, consider it a failed run
-            step_size = 1
+            step_size, melt_temp, melt_fit_fig = get_melt_point(row['temp'][3:], row['E_pair'][3:])
+            step_size = -1
             melt_temp = 1  # failed to melt
         else:
-            step_size, melt_temp = get_melt_point(row['temp'][3:], row['E_pair'][3:])
+            step_size, melt_temp, melt_fit_fig = get_melt_point(row['temp'][3:], row['E_pair'][3:])
 
         polymorph_name = row['run_config']['structure_identifier'].split('/')[1]
 
         polymorph_names.append(polymorph_name)
         step_sizes.append(step_size)
         melt_temps.append(melt_temp)
+        melt_fit_figs.append(melt_fit_fig)
         if step_size > 0.25:
             gap_vs_tm_fig.add_scattergl(y=np.asarray(melt_temp), x=np.asarray(row['gap_rate']),
                                         opacity=1,
@@ -283,4 +300,4 @@ def make_gap_vs_tm_fig(results_df):
     gap_vs_tm_fig.update_xaxes(title="Gap Rate")
     gap_vs_tm_fig.update_yaxes(title="Melt Temp(K)")
 
-    return gap_vs_tm_fig, results_df
+    return gap_vs_tm_fig, results_df, melt_fit_figs

@@ -29,7 +29,7 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('#_NPT', '')
         if config.bulk_crystal:
             newText = newText.replace('#_KSPACE', '')
-        if config.prep_crystal_in_melt:
+        if config.prep_crystal_in_melt or config.prep_melt_interface:
             newText = newText.replace('#_MELT_PREP', '')
             newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
             newText = newText.replace('_MELT_TEMP', str(config.melt_temperature))

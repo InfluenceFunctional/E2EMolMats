@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from e2emolmats.reporting.utils import process_thermo_data, make_thermo_fig, multi_ramp_fig, make_gap_vs_tm_fig
 from e2emolmats.common.utils import dict2namespace
@@ -9,11 +10,11 @@ import wandb
 import glob
 
 battery_paths = [
-    # r'D:\crystal_datasets\acridine_melt_series2_1/',
-    # r'D:\crystal_datasets\acridine_melt_series2_2/',
-    # r'D:\crystal_datasets\acridine_melt_series2_3/',
-    #r'D:\crystal_datasets\acridine_melt_series2_4/',
-    #r'D:\crystal_datasets\acridine_melt_series2_5/',
+    r'D:\crystal_datasets\acridine_melt_series2_1/',
+    r'D:\crystal_datasets\acridine_melt_series2_2/',
+    r'D:\crystal_datasets\acridine_melt_series2_3/',
+    r'D:\crystal_datasets\acridine_melt_series2_4/',
+    r'D:\crystal_datasets\acridine_melt_series2_5/',
     r'D:\crystal_datasets\acridine_melt_series2_6/',
     r'D:\crystal_datasets\acridine_melt_series2_7/'
 
@@ -109,7 +110,7 @@ for battery_path in battery_paths:
     wandb.log({"Temperature Ramp": temp_vs_pe_fig})
 
     '''defect rate vs melt point, per-polymorph'''
-    gap_vs_tm_fig, results_df = make_gap_vs_tm_fig(results_df)
+    gap_vs_tm_fig, results_df, melt_fit_figs = make_gap_vs_tm_fig(results_df)
 
     if config.show_figs:
         gap_vs_tm_fig.show(renderer='browser')
@@ -141,7 +142,7 @@ seen_polymorph = {polymorph: False for polymorph in polymorphs}
 
 fig = go.Figure()
 for polymorph in polymorphs:
-    good_inds = np.argwhere(combined_df['polymorph_name'] == polymorph).flatten()
+    good_inds = np.argwhere((combined_df['polymorph_name'] == polymorph) * (combined_df['step_size'] > 0.25)).flatten()
     fig.add_scattergl(x=np.asarray(runtimes)[good_inds],
                       y=np.asarray(combined_df.iloc[good_inds]['polymorph_melt_temp']).flatten(),
                       mode='markers',
@@ -154,5 +155,112 @@ for polymorph in polymorphs:
 
 fig.update_layout(xaxis_title='Run Time (ns)', yaxis_title='Tm (K)')
 fig.show(renderer='browser')
+fig.write_image('../../melt_vs_runtime.png')
+np.save('../../combined_analysis_dict', combined_df)
+'''big combined multivariate figure'''
 
+fig = make_subplots(rows=1, cols=3)
+for polymorph in polymorphs:
+    good_inds = np.argwhere((combined_df['polymorph_name'] == polymorph) * (combined_df['step_size'] > 0.25)).flatten()
+    y = np.asarray(combined_df.iloc[good_inds]['melt_temp']).flatten()
+    x1 = np.asarray(runtimes)[good_inds]
+    x1u = np.unique(x1)
+    y1_means = [np.mean(y[np.argwhere(x1 == unique).flatten()]) for unique in x1u]
+    x2 = np.asarray(combined_df.iloc[good_inds]['min_lattice_length'])
+    x2u = np.unique(x2)
+    y2_means = [np.mean(y[np.argwhere(x2 == unique).flatten()]) for unique in x2u]
+    x3 = np.asarray(combined_df.iloc[good_inds]['gap_rate'])
+    x3u = np.unique(x3)
+    y3_means = [np.mean(y[np.argwhere(x3 == unique).flatten()]) for unique in x3u]
+    fig.add_scattergl(x=x1,
+                      y=y,
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=True if not seen_polymorph[polymorph] else False,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      row=1, col=1
+                      )
+
+    fig.add_scattergl(x=x2,
+                      y=np.asarray(combined_df.iloc[good_inds]['melt_temp']).flatten(),
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=False,  #True if not seen_polymorph[polymorph] else False,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      row=1, col=2
+                      )
+    fig.add_scattergl(x=x3,
+                      y=np.asarray(combined_df.iloc[good_inds]['melt_temp']).flatten(),
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=False,  #True if not seen_polymorph[polymorph] else False,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      row=1, col=3
+                      )
+    fig.add_scattergl(x=x1u,
+                      y=y1_means,
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=False,
+                      marker_size=15,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      row=1, col=1
+                      )
+    fig.add_scattergl(x=x2u,
+                      y=y2_means,
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=False,
+                      marker_size=15,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      row=1, col=2
+                      )
+    fig.add_scattergl(x=x3u,
+                      y=y3_means,
+                      mode='markers',
+                      name=polymorph,
+                      legendgroup=polymorph,
+                      showlegend=False,
+                      marker_size=15,
+                      marker_color=colors[polymorphs.index(polymorph)],
+                      row=1, col=3
+                      )
+
+fig.update_yaxes(title='Melt Temperature (K)', row=1, col=1)
+fig.update_xaxes(title='Runtime (ns)', row=1, col=1)
+fig.update_xaxes(title='Supercell Edge Length (A)', row=1, col=2)
+fig.update_xaxes(title='Gap Fraction', row=1, col=3)
+
+fig.show(renderer='browser')
+fig.write_image('../../melt_vs_runtime.png')
+
+fig = go.Figure()
+for polymorph in ["Form2"]:
+    good_inds = np.argwhere((combined_df['polymorph_name'] == polymorph) * (combined_df['step_size'] > 0.25)).flatten()
+    y = np.asarray(combined_df.iloc[good_inds]['melt_temp']).flatten()
+
+    x1 = np.asarray(runtimes)[good_inds]
+    x1u = np.unique(x1)
+
+    x3 = np.asarray(combined_df.iloc[good_inds]['gap_rate'])
+    x3u = np.unique(x3)
+
+    y_means = np.asarray(
+        [np.mean(y[np.argwhere((x1 == unique1) * (x3 == unique2)).flatten()]) for unique1 in x1u for unique2 in x3u])
+    x1ul = np.asarray([unique1 for unique1 in x1u for unique2 in x3u])
+    x3ul = np.asarray([unique2 for unique1 in x1u for unique2 in x3u])
+
+    good_inds = np.argwhere(np.isfinite(y_means)).flatten().astype(int)
+    fig.add_scattergl(x=x3ul[good_inds], y=x1ul[good_inds], marker_color=y_means[good_inds], mode='markers', opacity=1,
+                      marker_colorbar=dict(title="Melt Temperature (K)"))
+
+fig.update_layout(xaxis_title='Gap Rate', yaxis_title='Runtime (ns)')
+
+fig.show(renderer='browser')
+fig.write_image('../../gap_vs_runtime_vs_melt.png')
 aa = 1
