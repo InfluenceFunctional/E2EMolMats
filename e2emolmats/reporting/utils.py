@@ -74,7 +74,7 @@ def process_thermo_data():
                 split_line = line.split(' ')
                 entries = [float(entry) for entry in split_line if entry != '']
                 for ind2, key in enumerate(results_dict.keys()):
-                    if key != 'ns_per_day':
+                    if ind2 < len(entries):
                         results_dict[key].append(entries[ind2])
 
     for key in results_dict.keys():
