@@ -23,6 +23,7 @@ max_sphere_radius:
 melt_temperature: 2000
 min_inter_cluster_distance: 0
 min_lattice_length:
+- 40
 - 60
 - 80
 prep_bulk_melt: false

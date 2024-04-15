@@ -26,11 +26,11 @@ batch_config = {
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,
     'print_steps': int(5e2),  # how many timepoints to print in sampling trajectory
-    'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations
+    'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations, 0 or None if unused
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
     'run_name': 'acridine_melt_interface2',
-    'min_lattice_length': [60, 80],
+    'min_lattice_length': [40, 60, 80],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
     'prep_melt_interface': True,  # Work in progress - split supercell in half along the fractional z direction

@@ -137,7 +137,7 @@ def generate_structure(crystals_path, structure_identifier,
 
     '''pare cluster to desired shape'''
     if cluster_type == "supercell":
-        if min_inter_cluster_distance is not None and max_sphere_radius is not None:  # force cluster radii to be separated by at least X
+        if min_inter_cluster_distance is not None and max_sphere_radius is not None and min_inter_cluster_distance != 0:  # force cluster radii to be separated by at least X
             cluster_separation = min_lattice_length - 2 * max_sphere_radius
             extra_separation = min_inter_cluster_distance - cluster_separation
             min_lattice_length += extra_separation
