@@ -4,7 +4,7 @@ import yaml
 
 batch_config = {
     # loop-overable (must be a list)
-    'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved.
+    'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
     'temperature': [300, 400, 500],  # Kelvin
     'structure_identifier': ['acridine/Form2'],
     'defect_rate': [0],

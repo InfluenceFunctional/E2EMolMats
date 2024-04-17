@@ -27,7 +27,9 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
     thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
     thermo_telemetry_fig.update_layout(title=f"{run_config['structure_identifier']}, "
                                              f"Gap Rate {run_config['gap_rate']:.2f}, "
-                                             f"System Size {run_config['min_lattice_length']} Cubic Angstrom or {thermo_results_dict['thermo_trajectory'].shape[1]} Molecules"
+                                             f"System Size {run_config['min_lattice_length']} "
+                                             f"Cubic Angstrom or {thermo_results_dict['thermo_trajectory'].shape[1]} Molecules"
+                                             f"Sampling temperature {run_config['temperature']}K"
                                        )
     return thermo_telemetry_fig
 

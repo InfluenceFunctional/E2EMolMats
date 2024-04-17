@@ -142,15 +142,26 @@ def generate_structure(crystals_path, structure_identifier,
             extra_separation = min_inter_cluster_distance - cluster_separation
             min_lattice_length += extra_separation
 
-        cluster_size, supercell_atoms, supercell_coordinates = (
-            build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
-                            min_lattice_length))
+        cluster_size = np.ceil(min_lattice_length / cell_lengths).astype(int)
+
+        if prep_melt_interface: #make z dimension double the xy dimensions
+            cluster_size[2] *= 2
+
+        supercell_atoms, supercell_coordinates = (
+            build_supercell(T_fc,
+                            cluster_size,
+                            crystal_atoms,
+                            crystal_coordinates,
+                            ))
 
     elif cluster_type == "spherical":  # exclude molecules beyond some radial cutoff
         # build initial supercell from which to carve
-        cluster_size, supercell_atoms, supercell_coordinates = (
-            build_supercell(T_fc, cell_lengths, cluster_size, crystal_atoms, crystal_coordinates,
-                            min_lattice_length=None))
+        supercell_atoms, supercell_coordinates = (
+            build_supercell(T_fc,
+                            cluster_size,
+                            crystal_atoms,
+                            crystal_coordinates,
+                            ))
 
         supercell_atoms, supercell_coordinates = (carve_spherical_cluster(
             atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
@@ -253,8 +264,10 @@ def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coor
 
     fractional_centroids = (np.linalg.inv(cell) @ mol_centroids.T).T
 
-    crystal_mol_inds = np.argwhere(fractional_centroids[:, 2] < 0.5).flatten()
-    melt_mol_inds = np.argwhere(fractional_centroids[:, 2] > 0.5).flatten()
+    half_z = np.mean(fractional_centroids[:, 2], axis=0)
+
+    crystal_mol_inds = np.argwhere(fractional_centroids[:, 2] < half_z).flatten()
+    melt_mol_inds = np.argwhere(fractional_centroids[:, 2] > half_z).flatten()
 
     # complete reindexing
     molwise_supercell_coordinates = np.concatenate(
@@ -272,31 +285,19 @@ def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coor
     return melt_inds, supercell_coordinates
 
 
-def build_supercell(T_fc: np.ndarray, cell_lengths: np.ndarray, cluster_size: list, crystal_atoms: np.ndarray,
-                    crystal_coordinates: np.ndarray, min_lattice_length: float):
-    if min_lattice_length is not None:
-        required_repeats = np.ceil(min_lattice_length / cell_lengths).astype(int)
-        supercell_coordinates = []
-        for xs in range(required_repeats[0]):
-            for ys in range(required_repeats[1]):
-                for zs in range(required_repeats[2]):
-                    supercell_coordinates.extend(crystal_coordinates + T_fc[0] * xs + T_fc[1] * ys + T_fc[2] * zs)
+def build_supercell(T_fc: np.ndarray, cluster_size: list, crystal_atoms: np.ndarray,
+                    crystal_coordinates: np.ndarray, ):
 
-        supercell_coordinates = np.asarray(supercell_coordinates)
-        supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(required_repeats))])
+    supercell_coordinates = []
+    for xs in range(cluster_size[0]):
+        for ys in range(cluster_size[1]):
+            for zs in range(cluster_size[2]):
+                supercell_coordinates.extend(crystal_coordinates + T_fc[0] * xs + T_fc[1] * ys + T_fc[2] * zs)
 
-        cluster_size = required_repeats
-    else:
-        supercell_coordinates = []
-        for xs in range(cluster_size[0]):
-            for ys in range(cluster_size[1]):
-                for zs in range(cluster_size[2]):
-                    supercell_coordinates.extend(crystal_coordinates + T_fc[0] * xs + T_fc[1] * ys + T_fc[2] * zs)
+    supercell_coordinates = np.asarray(supercell_coordinates)
+    supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(cluster_size))])
 
-        supercell_coordinates = np.asarray(supercell_coordinates)
-        supercell_atoms = np.concatenate([crystal_atoms for _ in range(np.prod(cluster_size))])
-
-    return cluster_size, supercell_atoms, supercell_coordinates
+    return supercell_atoms, supercell_coordinates
 
 
 def carve_spherical_cluster(atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
