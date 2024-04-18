@@ -16,7 +16,7 @@ equil_time: 200000.0
 gap_rate:
 - 0
 init_temperature: 200
-integrator: npt
+integrator: npzt
 machine: cluster
 max_sphere_radius:
 - 10

@@ -104,12 +104,6 @@
 #_MELT_PREP unfix f132
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled.data
 
-#_CRYSTAL_PREP fix f14 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_CRYSTAL_PREP velocity          melt create ${T_sample} ${rnd} mom yes rot yes dist gaussian
-#_CRYSTAL_PREP run ${t_equil}  # re-equilibrate npt the melt with the crystal
-#_CRYSTAL_PREP unfix f14
-#_CRYSTAL_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled_equil.data
-
 #--------------------------- Pre-Ramp Thermalization ------------------------#
 #_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_EQUIL_BEFORE_RAMP velocity          all create 1 ${rnd} mom yes rot yes dist gaussian
@@ -119,6 +113,7 @@
 
 #---------------------- Thermostat & Barostat ----------------------------------#
 #_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
 #_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
 #-------------------------------------------------------------------------------#

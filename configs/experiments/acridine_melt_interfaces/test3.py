@@ -22,7 +22,7 @@ batch_config = {
     # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
     'box_type': 'p',
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
-    'integrator': 'npt',  # nosehoover, npt, nvt
+    'integrator': 'npzt',  # nosehoover, npt, nvt
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,
     'print_steps': int(1e3),  # how many timepoints to print in sampling trajectory

@@ -27,6 +27,8 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('#_NOSE', '')
         elif config.integrator.lower() == 'npt':
             newText = newText.replace('#_NPT', '')
+        elif config.integrator.lower() == 'npzt':
+            newText = newText.replace('#_NPzT', '')
         if config.bulk_crystal:
             newText = newText.replace('#_KSPACE', '')
         if config.prep_crystal_in_melt or config.prep_melt_interface:
