@@ -90,7 +90,7 @@
 #_MELT_PREP unfix f12
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_melted.data
 
-#_MELT_PREP nvt temp ${T_sample} ${T_melt} $(100.0*dt)
+#_MELT_PREP fix 131 nvt temp ${T_sample} ${T_melt} $(100.0*dt)
 #_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
