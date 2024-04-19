@@ -262,7 +262,7 @@ def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coor
 
     mol_centroids = molwise_supercell_coordinates.mean(1)
 
-    fractional_centroids = (np.linalg.inv(cell) @ mol_centroids.T).T
+    fractional_centroids = (np.linalg.inv(cell.T) @ mol_centroids.T).T
 
     half_z = np.mean(fractional_centroids[:, 2], axis=0)
 
@@ -283,6 +283,25 @@ def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coor
     melt_inds = dict2namespace(melt_inds)
 
     return melt_inds, supercell_coordinates
+
+
+# visualize interface
+# from ase import Atoms
+# from ase.visualize import view
+#
+# interface_inds = np.zeros(len(mol_centroids))
+# interface_inds[crystal_mol_inds] = 1
+# interface_inds += 6
+# mol = Atoms(positions=fractional_centroids*50, numbers=interface_inds, cell=np.eye(3)*50)
+# view(mol)
+# from ase import Atoms
+# from ase.visualize import view
+#
+# interface_inds = np.zeros(len(mol_centroids))
+# interface_inds[crystal_mol_inds] = 1
+# interface_inds += 6
+# mol = Atoms(positions=mol_centroids, numbers=interface_inds, cell=cell)
+# view(mol)
 
 
 def build_supercell(T_fc: np.ndarray, cluster_size: list, crystal_atoms: np.ndarray,

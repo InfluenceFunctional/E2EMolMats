@@ -85,13 +85,13 @@
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #_MELT_PREP fix f12 melt nvt temp ${T_sample} ${T_melt} $(100.0*dt)
-#_MELT_PREP velocity          melt create ${T_sample} ${rnd} mom yes rot yes dist gaussian
+##_MELT_PREP velocity          melt create ${T_sample} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # melt
 #_MELT_PREP unfix f12
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_melted.data
 
 #_MELT_PREP fix f131 melt nvt temp ${T_melt} 800 $(100.0*dt)
-#_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
+##_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equil.data
@@ -99,10 +99,18 @@
 #_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
 
-#_MELT_PREP velocity          melt create 800 ${rnd} mom yes rot yes dist gaussian
-#_MELT_PREP run ${t_equil}  # cool
+##_MELT_PREP velocity          melt create 800 ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled.data
+
+#_CRYSTAL_PREP fix f133 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f133 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
+
+##_MELT_PREP velocity          melt create 800 ${rnd} mom yes rot yes dist gaussian
+#_MELT_PREP run ${t_equil}  # re equilibrate
+#_MELT_PREP unfix f133
+#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_equil_cooled.data
 
 #--------------------------- Pre-Ramp Thermalization ------------------------#
 #_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
