@@ -112,6 +112,17 @@
 #_MELT_PREP unfix f133
 #_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_equil_cooled.data
 
+#_CRYSTAL_PREP fix f133 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f133 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
+
+#_INTERFACE_PREP fix f1331 crystal npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
+#_INTERFACE_PREP run ${t_equil}  # re equilibrate
+#_INTERFACE_PREP unfix f1331
+
+#_INTERFACE_PREP fix f1332 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
+#_INTERFACE_PREP run ${t_equil}  # re equilibrate
+#_INTERFACE_PREP unfix f1332
+
 #--------------------------- Pre-Ramp Thermalization ------------------------#
 #_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_EQUIL_BEFORE_RAMP velocity          all create 1 ${rnd} mom yes rot yes dist gaussian
