@@ -22,6 +22,12 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
                              name=key, showlegend=False),
                 row=row, col=col
             )
+            thermo_telemetry_fig.add_trace(
+                go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
+                             y=gaussian_filter1d(thermo_results_dict[key], sigma=2),
+                             name=key, showlegend=False),
+                row=row, col=col
+            )
             ind += 1
 
     thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
