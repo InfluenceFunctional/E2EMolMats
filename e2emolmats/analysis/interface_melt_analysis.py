@@ -10,7 +10,7 @@ import wandb
 import glob
 
 battery_paths = [
-    r'D:\crystal_datasets\acridine_melt_interface4/',
+    r'D:\crystal_datasets\acridine_melt_interface5/',
 ]
 
 combined_df = pd.DataFrame()

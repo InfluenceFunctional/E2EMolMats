@@ -74,7 +74,7 @@
 
 #_DUMP_MODIFY
 
-#--------------------------- Crystal-in-Melt preparation------------------------#
+#--------------------------- Crystal/Melt Preparation------------------------#
 #_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
 #_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
@@ -82,54 +82,38 @@
 #_MELT_PREP velocity          all create ${T_sample} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # equilibrate
 #_MELT_PREP unfix f11
-#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #_MELT_PREP fix f12 melt nvt temp ${T_sample} ${T_melt} $(100.0*dt)
-##_MELT_PREP velocity          melt create ${T_sample} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # melt
 #_MELT_PREP unfix f12
-#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_melted.data
 
 #_MELT_PREP fix f131 melt nvt temp ${T_melt} 800 $(100.0*dt)
-##_MELT_PREP velocity          melt create ${T_melt} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
-#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_pre_equil.data
 
-#_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
-
-##_MELT_PREP velocity          melt create 800 ${rnd} mom yes rot yes dist gaussian
+#_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
 #_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
-#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_cooled.data
 
-#_CRYSTAL_PREP fix f133 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f133 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
-
-##_MELT_PREP velocity          melt create 800 ${rnd} mom yes rot yes dist gaussian
+#_CRYSTAL_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_MELT_PREP fix s1 crystal spring/self 100 xyz  # add restraining force atomwise on crystals
 #_MELT_PREP run ${t_equil}  # re equilibrate
 #_MELT_PREP unfix f133
-#_MELT_PREP write_data        cluster_${nx}x${ny}x${nz}_equil_cooled.data
+#_MELT_PREP unfix s1
 
-#_INTERFACE_PREP fix f1331 crystal npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
-#_INTERFACE_PREP run ${t_equil}  # re equilibrate
-#_INTERFACE_PREP unfix f1331
-
-#_INTERFACE_PREP fix f1332 melt npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
-#_INTERFACE_PREP run ${t_equil}  # re equilibrate
-#_INTERFACE_PREP unfix f1332
 
 #--------------------------- Pre-Ramp Thermalization ------------------------#
-#_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
+#_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
 #_EQUIL_BEFORE_RAMP velocity          all create 1 ${rnd} mom yes rot yes dist gaussian
 #_EQUIL_BEFORE_RAMP run ${t_equil}  # equilibrate
 #_EQUIL_BEFORE_RAMP unfix f11
 #_EQUIL_BEFORE_RAMP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
-#_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 0.0 0.0 $(1000.0*dt)
+#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
 #_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
 #-------------------------------------------------------------------------------#
