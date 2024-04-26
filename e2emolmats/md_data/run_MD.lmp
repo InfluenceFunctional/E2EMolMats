@@ -87,12 +87,19 @@
 #_MELT_PREP run ${t_equil}  # melt
 #_MELT_PREP unfix f12
 
-#_MELT_PREP fix f131 melt nvt temp ${T_melt} 700 $(100.0*dt)
+#_MELT_PREP fix f131 melt nvt temp ${T_melt} 800 $(100.0*dt)
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
 
-#_CRYSTAL_PREP fix f132 melt npt temp 500 ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f132 melt npt temp 500 ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_CRYSTAL_PREP fix f1311 melt npt temp 800 800 $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f1311 melt npt temp 800 800 $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_MELT_PREP fix s2 melt spring/self 10 xyz  # add restraining force atomwise on melt
+#_MELT_PREP run 10000  # NPT relax
+#_MELT_PREP unfix f1311
+#_MELT_PREP unfix s2
+
+#_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
 #_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
 
