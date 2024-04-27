@@ -91,35 +91,35 @@
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
 
-#_CRYSTAL_PREP fix f1311 melt npt temp 800 800 $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f1311 melt npt temp 800 800 $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_CRYSTAL_PREP fix f1311 melt npt temp 800 800 $(100.0*dt) iso 0 0 $(1000.0*dt)
+#_INTERFACE_PREP fix f1311 melt npt temp 800 800 $(100.0*dt) z 0 0 $(1000.0*dt)
 #_MELT_PREP fix s2 melt spring/self 10 xyz  # add restraining force atomwise on melt
 #_MELT_PREP run 10000  # NPT relax
 #_MELT_PREP unfix f1311
 #_MELT_PREP unfix s2
 
-#_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso 0 0 $(1000.0*dt)
+#_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z 0 0 $(1000.0*dt)
 #_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
 
-#_CRYSTAL_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_CRYSTAL_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 0 0 $(1000.0*dt)
+#_INTERFACE_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) z 0 0 $(1000.0*dt)
 #_MELT_PREP fix s1 crystal spring/self 10 xyz  # add restraining force atomwise on crystals
 #_MELT_PREP run ${t_equil}  # re equilibrate
 #_MELT_PREP unfix f133
 #_MELT_PREP unfix s1
 
 #--------------------------- Pre-Ramp Thermalization ------------------------#
-#_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 0 0 $(1000.0*dt)
 #_EQUIL_BEFORE_RAMP velocity          all create 1 ${rnd} mom yes rot yes dist gaussian
 #_EQUIL_BEFORE_RAMP run ${t_equil}  # equilibrate
 #_EQUIL_BEFORE_RAMP unfix f11
 #_EQUIL_BEFORE_RAMP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 0 0 $(1000.0*dt)
+#_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 0 0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
 #_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
 #-------------------------------------------------------------------------------#
