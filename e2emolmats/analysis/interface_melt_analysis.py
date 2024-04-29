@@ -10,7 +10,7 @@ import wandb
 import glob
 
 battery_paths = [
-    r'D:\crystal_datasets\acridine_melt_interface10/',
+    r'D:\crystal_datasets\acridine_melt_interface11/',
 ]
 
 combined_df = pd.DataFrame()
@@ -44,7 +44,7 @@ for battery_path in battery_paths:
                                            "E_tot",
                                            ])
 
-    traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'Press', 'Volume', 'molwise_mean_temp',
+    traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng', 'Press', 'Volume', 'molwise_mean_temp',
                         'molwise_mean_kecom', 'molwise_mean_internal']
 
     dirs = os.listdir()

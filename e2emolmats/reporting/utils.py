@@ -10,12 +10,12 @@ from scipy.ndimage import gaussian_filter1d
 
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
-    thermo_telemetry_fig = make_subplots(rows=3, cols=3, subplot_titles=traj_thermo_keys)
+    thermo_telemetry_fig = make_subplots(rows=2, cols=5, subplot_titles=traj_thermo_keys)
     ind = 0
     for i, key in enumerate(thermo_results_dict.keys()):
         if key in traj_thermo_keys:
-            row = ind // 3 + 1
-            col = ind % 3 + 1
+            row = ind // 5 + 1
+            col = ind % 5 + 1
             thermo_telemetry_fig.add_trace(
                 go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
                              y=thermo_results_dict[key],
@@ -52,6 +52,7 @@ def process_thermo_data():
                     'E_pair': [],
                     'E_mol': [],
                     'E_tot': [],
+                    'PotEng': [],
                     'Press': [],
                     'Volume': [],
                     }
