@@ -92,8 +92,8 @@
 #_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
 
-#_CRYSTAL_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_CRYSTAL_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso ${press} 1.0 $(1000.0*dt)
+#_INTERFACE_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) z ${press} 1.0 $(1000.0*dt)
 #_MELT_PREP fix s1 crystal spring/self 10 xyz  # add restraining force atomwise on crystals
 #_MELT_PREP run ${t_equil}  # re equilibrate
 #_MELT_PREP unfix f133

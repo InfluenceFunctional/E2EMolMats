@@ -35,7 +35,7 @@ batch_config = {
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
     'prep_melt_interface': True,  # Work in progress - split supercell in half along the fractional z direction
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
-    'equil_time': 4e5,  # equilibration time, mostly for prep_crystal_in_melt steps
+    'equil_time': 2e5,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs
     'atom_style': 'full',  # 'full' or 'full2' depending on if we want symmetry information
     'submit_lammps_slurm': False,
