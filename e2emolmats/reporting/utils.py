@@ -146,23 +146,22 @@ def get_melt_point(temperature, energy_traj):
 
     melt_fit_fig = make_subplots(rows=1, cols=2)  # visualize fit
     melt_fit_fig.add_scattergl(x=temperature, y=normed_energy_traj,
-                      mode='markers', name='Normalized Energy',
-                      row=1, col=1)
+                               mode='markers', name='Normalized Energy',
+                               row=1, col=1)
     melt_fit_fig.add_scattergl(x=temperature, y=np.heaviside(temperature - melt_temperature,
-                                                    step_size) * step_size + linreg_result.slope * temperature + linreg_result.intercept,
-                      mode='markers', name='Fit',
-                      row=1, col=1)
+                                                             step_size) * step_size + linreg_result.slope * temperature + linreg_result.intercept,
+                               mode='markers', name='Fit',
+                               row=1, col=1)
     melt_fit_fig.add_scattergl(x=temperature, y=normed_energy_traj2,
-                      mode='markers', name='Normalized Delinearized Energy',
-                      row=1, col=2)
+                               mode='markers', name='Normalized Delinearized Energy',
+                               row=1, col=2)
     melt_fit_fig.add_scattergl(x=temperature, y=np.heaviside(temperature - melt_temperature, step_size) * step_size,
-                      mode='markers', name='Fit',
-                      row=1, col=2)
+                               mode='markers', name='Fit',
+                               row=1, col=2)
 
     melt_fit_fig.update_yaxes(title='Intermolecular Potential')
     melt_fit_fig.update_xaxes(title='temperature')
     #melt_fit_fig.show(renderer='browser')
-
 
     return step_size, melt_temperature, melt_fit_fig
 
@@ -178,7 +177,7 @@ def multi_ramp_fig(results_df):
         gap = results_df['gap_rate'][ind]
         temp_vs_pe_fig.add_scattergl(x=results_df['temp'][ind][3:],
                                      y=results_df['E_pair'][ind][3:],
-                                     line_color=colors[gap_dict[int(gap*1000)]],
+                                     line_color=colors[gap_dict[int(gap * 1000)]],
                                      marker_color=gap,
                                      mode='markers',
                                      marker_size=5,
@@ -310,3 +309,34 @@ def make_gap_vs_tm_fig(results_df):
     gap_vs_tm_fig.update_yaxes(title="Melt Temp(K)")
 
     return gap_vs_tm_fig, results_df, melt_fit_figs
+
+
+def get_melt_progress(results_df):
+    melt_slopes = np.zeros(len(results_df))
+    melt_magnitudes = np.zeros(len(results_df))
+    for ind, row in results_df.iterrows():
+        equil_time = row['run_config']['equil_time']
+        run_time = row['run_config']['run_time']
+
+        crystal_reference_time = equil_time
+        crystal_time_index = np.argmin(np.abs(row['time step'] - crystal_reference_time))
+
+        melt_reference_time = 2 * equil_time
+        melt_time_index = np.argmin(np.abs(row['time step'] - melt_reference_time))
+
+        sampling_start_time = 5 * equil_time
+        sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
+
+        sampling_end_time = 5 * equil_time + run_time
+        sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
+
+        inter_energy = row['E_pair']
+        crystal_energy = inter_energy[crystal_time_index]
+        melt_energy = inter_energy[melt_time_index]
+        sampling_energy = inter_energy[sampling_start_index:sampling_end_index]
+
+        lr = linregress(row['time step'][sampling_start_index:sampling_end_index], sampling_energy)
+        melt_slopes[ind] = lr.slope
+        melt_magnitudes[ind] = (sampling_energy[-10:].mean() - crystal_energy) / (melt_energy - crystal_energy)
+
+    return melt_slopes, melt_magnitudes
