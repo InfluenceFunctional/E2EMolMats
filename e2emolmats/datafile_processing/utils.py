@@ -25,8 +25,12 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('#_LANGEVIN', '')
         elif config.integrator.lower() == 'nosehoover':
             newText = newText.replace('#_NOSE', '')
-        elif config.integrator.lower() == 'npt':
-            newText = newText.replace('#_NPT', '')
+        elif config.integrator.lower() == 'npt_iso':
+            newText = newText.replace('#_NPT_ISO', '')
+        elif config.integrator.lower() == 'npt_aniso':
+            newText = newText.replace('#_NPT_ANISO', '')
+        elif config.integrator.lower() == 'npt_tri':
+            newText = newText.replace('#_NPT_TRI', '')
         elif config.integrator.lower() == 'npzt':
             newText = newText.replace('#_NPzT', '')
         if config.bulk_crystal:
@@ -76,6 +80,9 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
         else:
             newText = newText.replace('_INIT_TEMP', str(config.temperature))
+
+        if config.fix_com:
+            newText = newText.replace('#_FIX_COM', '')
 
         # dump modify
         molecule = config.structure_identifier.split('/')[0]

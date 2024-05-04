@@ -13,10 +13,11 @@ defect_rate:
 defect_type:
 - anthracene
 equil_time: 100000.0
+fix_com: false
 gap_rate:
 - 0
 init_temperature: 0
-integrator: nosehoover
+integrator: npt_iso
 machine: local
 max_sphere_radius:
 - 10

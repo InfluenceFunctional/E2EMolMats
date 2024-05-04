@@ -107,11 +107,16 @@
 #_EQUIL_BEFORE_RAMP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_NPT_ISO  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_NPT_ANISO  fix             f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) aniso 1.0 1.0 $(1000.0*dt)
+#_NPT_TRI fix                f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) tri 1.0 1.0 $(1000.0*dt)
 #_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
 #_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
 #-------------------------------------------------------------------------------#
+
+#--------------------------- Fix center of mass---------------------------------#
+#_FIX_COM  fix recenter all recenter INIT INIT INIT units box
 
   velocity          all create ${T_init} ${rnd} mom yes rot yes dist gaussian
   run               ${t_run}

@@ -24,7 +24,8 @@ batch_config = {
     'run_time': int(1e5),  # sampling time in femtoseconds
     'box_type': 'p',
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
-    'integrator': 'nosehoover',  # nosehoover, npt, nvt
+    'integrator': 'npt_iso',  # nosehoover, npt_iso, npt_aniso, npt_tri, nvt
+    'fix_com': False,  # fix center of mass motion
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 0,
     'print_steps': int(1e2),  # how many timepoints to print in sampling trajectory
