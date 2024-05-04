@@ -53,8 +53,8 @@
 
 #--------------------------- Thermo stylepa and settings -------------------------#
   timestep          1.0
-  thermo_style      custom step temp epair emol etotal pe press vol
-  thermo            ${t_print}
+  thermo_style      custom step time vol temp press ke pe etotal epair emol vol density cella cellb cellc cellalpha cellbeta cellgamma
+  thermo            200
 
 
 #--------------------------- Computes ------------------------------------------#
@@ -122,3 +122,4 @@
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
 
+  write_restart   cluster_${nx}x${ny}x${nz}_equi.restart
