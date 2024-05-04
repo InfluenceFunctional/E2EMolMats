@@ -1,0 +1,8 @@
+# user-specified paths
+local_structures_dir: '/Users/philipphoellmer/Documents/ProjectTuckerman/E2EMolMats/cluster_structures/'
+local_crystals_dir: '/Users/philipphoellmer/Documents/ProjectTuckerman/E2EMolMats/reference_structures/'
+local_ltemplify_path: '/opt/homebrew/Caskroom/miniconda/base/envs/ProjectTuckerman/bin/ltemplify.py'
+
+cluster_structures_dir: '/vast/mk8347/molecule_clusters/'
+cluster_crystals_dir: '/scratch/mk8347/lammps_prep/reference_structures/'
+cluster_ltemplify_path: '~/.local/bin/ltemplify.py'
