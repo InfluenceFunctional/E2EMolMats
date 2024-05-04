@@ -14,9 +14,9 @@ import glob
 if __name__ == '__main__':
     battery_paths = [
         r'D:\crystal_datasets\acridine_melt_interface14/',
+        r'D:\crystal_datasets\acridine_melt_interface15/',
     ]
-
-    results_df = pd.DataFrame()
+    combined_df = pd.DataFrame()
 
     for battery_path in battery_paths:
         params = {
@@ -26,7 +26,6 @@ if __name__ == '__main__':
             'make_run_wise_figs': True,
         }
         config = dict2namespace(params)
-
         wandb.init(config=params, project="E2EMolMats",
                    entity="mkilgour", tags=[config.battery_path],
                    settings=wandb.Settings(code_dir="../../analysis"))
@@ -96,53 +95,125 @@ if __name__ == '__main__':
                     results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
                     results_df.to_pickle(battery_full_path + '/results_df')
 
-        results_df['melt_slope'], results_df['melt_magnitude'] = get_melt_progress(results_df)
-
-        polymorph_names = []
-        seeds = []
-        for _, row in results_df.iterrows():
-            polymorph_names.append(row['run_config']['structure_identifier'].split('/')[1])
-            seeds.append(row['run_config']['seed'])
-        results_df['polymorph_name'] = polymorph_names
-        results_df['seed'] = seeds
         results_df.reset_index(drop=True, inplace=True)
+        results_df['melt_slope'], results_df['melt_magnitude'] = get_melt_progress(results_df)
+        results_df.to_pickle(battery_full_path + '/results_df')
 
-        seeds = list(np.unique(results_df['seed']))
-        polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for conf in results_df['run_config']]))
-        num_polymorphs = len(polymorphs)
+        wandb.finish()
+        if len(combined_df) > 0:
+            combined_df = pd.concat([combined_df, results_df])
+        else:
+            combined_df = results_df
 
-        colors = px.colors.qualitative.G10
-        seen_polymorph = {polymorph: False for polymorph in polymorphs}
+    polymorph_names = []
+    seeds = []
+    for _, row in combined_df.iterrows():
+        polymorph_names.append(row['run_config']['structure_identifier'].split('/')[1])
+        seeds.append(row['run_config']['seed'])
+    combined_df['polymorph_name'] = polymorph_names
+    combined_df['seed'] = seeds
+    combined_df.reset_index(drop=True, inplace=True)
 
-        fig = make_subplots(rows=1, cols=2, subplot_titles=['Normed Intermolecular Energy', 'Intermolecular Energy Slope'])
-        for polymorph in polymorphs:
-            good_inds = np.argwhere(results_df['polymorph_name'] == polymorph).flatten()
+    seeds = list(np.unique(combined_df['seed']))
+    polymorphs = list(np.unique([conf['structure_identifier'].split('/')[-1] for conf in combined_df['run_config']]))
+    num_polymorphs = len(polymorphs)
 
-            temperatures = np.asarray([elem['temperature'] for elem in results_df.iloc[good_inds]['run_config']])
-            melt_magnitudes = np.asarray(results_df.iloc[good_inds]['melt_magnitude']).flatten()
-            melt_slopes = np.asarray(results_df.iloc[good_inds]['melt_slope']).flatten()
+    colors = px.colors.qualitative.G10
+    seen_polymorph = {polymorph: False for polymorph in polymorphs}
+    min_temp = np.amin([combined_df.iloc[ind]['run_config']['temperature'] for ind in range(len(combined_df))])
+    max_temp = np.amax([combined_df.iloc[ind]['run_config']['temperature'] for ind in range(len(combined_df))])
 
-            fig.add_scattergl(x=temperatures,
-                              y=melt_magnitudes,
-                              mode='markers',
-                              name=polymorph,
-                              legendgroup=polymorph,
-                              # marker_size=15,
-                              showlegend=True if not seen_polymorph[polymorph] else False,
-                              marker_color=colors[polymorphs.index(polymorph)],
-                              row=1, col=1
-                              )
+    temprange = np.linspace(min_temp, max_temp, 1000)
+    melt_temps = {}
+    fig = make_subplots(rows=1, cols=2, subplot_titles=['Normed Intermolecular Energy', 'Intermolecular Energy Slope'])
+    for polymorph in polymorphs:
+        good_inds = np.argwhere(combined_df['polymorph_name'] == polymorph).flatten()
 
-            fig.add_scattergl(x=temperatures,
-                              y=melt_slopes,
-                              mode='markers',
-                              name=polymorph,
-                              legendgroup=polymorph,
-                              # marker_size=15,
-                              showlegend=False,
-                              marker_color=colors[polymorphs.index(polymorph)],
-                              row=1, col=2
-                              )
+        temperatures = np.asarray([elem['temperature'] for elem in combined_df.iloc[good_inds]['run_config']])
+        melt_magnitudes = np.asarray(combined_df.iloc[good_inds]['melt_magnitude']).flatten()
+        melt_slopes = np.asarray(combined_df.iloc[good_inds]['melt_slope']).flatten()
 
-        fig.update_xaxes(title='Run Time (ns)')
-        fig.show(renderer='browser')
+        temps = np.unique(temperatures)
+        mag_at_t = np.array([np.mean([melt_magnitudes[i] for i in range(len(melt_magnitudes)) if temperatures[i] == temp]) for temp in temps])
+        slope_at_t = np.array([np.mean([melt_slopes[i] for i in range(len(melt_slopes)) if temperatures[i] == temp]) for temp in temps])
+
+        mag_spline = np.interp(temprange, temps, np.maximum.accumulate(mag_at_t))
+        slope_spline = np.interp(temprange, temps, np.maximum.accumulate(slope_at_t))
+
+        melt_T = temprange[np.argmin(np.abs(slope_spline))]
+        melt_temps[polymorph] = melt_T
+        fig.add_scattergl(x=temperatures,
+                          y=melt_magnitudes,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=7,
+                          opacity=0.5,
+                          showlegend=False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=1
+                          )
+
+        fig.add_scattergl(x=temperatures,
+                          y=melt_slopes,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=7,
+                          opacity=0.5,
+                          showlegend=False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=2
+                          )
+
+        fig.add_scattergl(x=temps,
+                          y=mag_at_t,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=15,
+                          showlegend=True if not seen_polymorph[polymorph] else False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=1
+                          )
+
+        fig.add_scattergl(x=temps,
+                          y=slope_at_t,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=15,
+                          showlegend=False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=2
+                          )
+        #
+        # fig.add_scattergl(x=temprange,
+        #                   y=mag_spline,
+        #                   name=polymorph,
+        #                   legendgroup=polymorph,
+        #                   showlegend=False,
+        #                   marker_color=colors[polymorphs.index(polymorph)],
+        #                   row=1, col=1
+        #                   )
+        #
+        # fig.add_scattergl(x=temprange,
+        #                   y=slope_spline,
+        #                   name=polymorph,
+        #                   legendgroup=polymorph,
+        #                   showlegend=False,
+        #                   marker_color=colors[polymorphs.index(polymorph)],
+        #                   row=1, col=2
+        #                   )
+
+    fig.update_xaxes(title='Temperature (K)')
+    fig.show(renderer='browser')
+
+    '''
+    use all data to estimate the melt point for each polymorph
+    '''
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=list(melt_temps.keys()), y=list(melt_temps.values())))
+    fig.show(renderer='browser')
+
+    aa = 1
