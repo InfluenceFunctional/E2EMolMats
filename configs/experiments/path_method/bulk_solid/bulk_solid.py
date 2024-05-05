@@ -41,7 +41,7 @@ batch_config = {
     'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs
     'atom_style': 'full',  # 'full' or 'full2' depending on if we want symmetry information
-    'submit_lammps_slurm': False,
+    'submit_lammps_slurm': True,
 }
 
 filename = __file__
