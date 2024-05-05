@@ -34,6 +34,9 @@
 
   # load force field parameters
   include "system.in.settings"
+
+  #_NPT_TRI change_box all triclinic
+
   #_KSPACE kspace_style    pppm 0.0001
   comm_style tiled
   balance 1.1 rcb
