@@ -1,0 +1,8 @@
+# user-specified paths
+local_structures_dir: '/Users/philipp/Documents/NYU/ProjectTuckerman/E2EMolMats/cluster_structures/'
+local_crystals_dir: '/Users/philipp/Documents/NYU/ProjectTuckerman/E2EMolMats/reference_structures/'
+local_ltemplify_path: '/opt/homebrew/anaconda3/envs/ProjectTuckerman/bin/'
+
+cluster_structures_dir: '/scratch/ph2484/ProjectTuckerman/cluster_structures/'
+cluster_crystals_dir: '/home/ph2484/ProjectTuckerman/E2EMolMats/reference_structures/'
+cluster_ltemplify_path: '/ext3/miniconda3/bin/'
