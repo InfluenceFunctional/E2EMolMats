@@ -98,7 +98,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
 
     '''ltemplify'''
     #ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py") # alternate method
-    os.system(f"{ltemplify_path} 3.data > 4.lt")
+    os.system(f"{ltemplify_path}/ltemplify.py 3.data > 4.lt")
 
     print("============================")
     print("Templify to runnable")
@@ -113,13 +113,13 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     print("============================")
 
     '''run moltemplate and cleanup'''  # todo change to user-config path
-    os.system("~/.local/bin/moltemplate.sh system.lt -nocheck")  # nocheck means it will skip over missing @bond type issues
+    os.system(f"{ltemplify_path}/moltemplate.sh system.lt -nocheck")  # nocheck means it will skip over missing @bond type issues
 
     print("============================")
     print("Moltemplate cleanup")
     print("============================")
 
-    os.system("~/.local/bin/cleanup_moltemplate.sh")
+    os.system(f"{ltemplify_path}/cleanup_moltemplate.sh")
 
     print("============================")
     print("Indexing cleanup")
