@@ -10,7 +10,7 @@ def main():
 
     fluid_directory = "../bulk_fluid/0/"
     solid_directory = "../bulk_solid/0/"
-    copy_filenames = ["new_system.in.init", "system.in.settings"]
+    copy_filenames = ["system.in.settings"]
     number_steps = 2000000
     number_equilibration_steps = 1000000
     restart_filename = "cluster_1x1x1_equi.restart"
