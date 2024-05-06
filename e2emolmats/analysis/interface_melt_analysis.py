@@ -15,6 +15,11 @@ if __name__ == '__main__':
     battery_paths = [
         r'D:\crystal_datasets\acridine_melt_interface14/',
         r'D:\crystal_datasets\acridine_melt_interface15/',
+        r'D:\crystal_datasets\acridine_melt_interface16_1/',
+        r'D:\crystal_datasets\acridine_melt_interface16_2/',
+        r'D:\crystal_datasets\acridine_melt_interface16_3/',
+        r'D:\crystal_datasets\acridine_melt_interface16_4/',
+
     ]
     combined_df = pd.DataFrame()
 
@@ -134,8 +139,11 @@ if __name__ == '__main__':
         melt_slopes = np.asarray(combined_df.iloc[good_inds]['melt_slope']).flatten()
 
         temps = np.unique(temperatures)
-        mag_at_t = np.array([np.mean([melt_magnitudes[i] for i in range(len(melt_magnitudes)) if temperatures[i] == temp]) for temp in temps])
-        slope_at_t = np.array([np.mean([melt_slopes[i] for i in range(len(melt_slopes)) if temperatures[i] == temp]) for temp in temps])
+        mag_at_t = np.array(
+            [np.mean([melt_magnitudes[i] for i in range(len(melt_magnitudes)) if temperatures[i] == temp]) for temp in
+             temps])
+        slope_at_t = np.array(
+            [np.mean([melt_slopes[i] for i in range(len(melt_slopes)) if temperatures[i] == temp]) for temp in temps])
 
         mag_spline = np.interp(temprange, temps, np.maximum.accumulate(mag_at_t))
         slope_spline = np.interp(temprange, temps, np.maximum.accumulate(slope_at_t))
@@ -212,8 +220,18 @@ if __name__ == '__main__':
     '''
     use all data to estimate the melt point for each polymorph
     '''
+    true_melt_temps = {
+        'Form2': 273+109.8,
+        'Form3': 273+106.8,
+        'Form4': 273+89,
+        'Form6': 273+99,
+        'Form7': 273+101,
+        'Form8': 273+109,
+        'Form9': 273+108.8
+    }
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=list(melt_temps.keys()), y=list(melt_temps.values())))
+    fig.add_trace(go.Bar(x=list(melt_temps.keys()), y=list(melt_temps.values()), name='Interface Estimate'))
+    fig.add_trace(go.Bar(x=list(true_melt_temps.keys()), y=list(true_melt_temps.values()), name='Reference'))
     fig.show(renderer='browser')
 
     aa = 1
