@@ -12,7 +12,7 @@ def main():
     solid_directory = "../bulk_solid/0/"
     copy_filenames = ["system.in.settings"]
     number_steps = 2000000
-    number_equilibration_steps = 1000000
+    number_equilibration_steps = 5000000
     restart_filename = "cluster_1x1x1_equi.restart"
     slurm_filename = "sub_job.slurm"
 
