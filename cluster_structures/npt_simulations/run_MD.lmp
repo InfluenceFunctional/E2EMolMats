@@ -5,13 +5,13 @@
   variable          t_equil equal _N_EQUIL     # number of equilibration steps
   variable          t_print equal ${t_run}/200  #how often to print histogram
 
-  read_restart _RESTART_FILE
-
   # load function definition
   include "new_system.in.init"
 
   # load force field parameters
   include "system.in.settings"
+
+  read_restart _RESTART_FILE
 
   kspace_style    pppm 0.0001
   comm_style tiled
