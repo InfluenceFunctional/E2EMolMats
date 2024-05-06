@@ -42,12 +42,14 @@
   velocity all create ${T_init} ${rnd} mom yes rot yes dist gaussian
   run ${t_equil}  # equilibrate
   unfix f11
+  #_NPT_TRI unfix recenter
   write_data cluster_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
 #_NPT_ISO  fix               f2 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
 #_NPT_ANISO  fix             f2 all npt temp ${T_sample} ${T_sample} $(100.0*dt) aniso 1.0 1.0 $(1000.0*dt)
 #_NPT_TRI fix                f2 all npt temp ${T_sample} ${T_sample} $(100.0*dt) tri 1.0 1.0 $(1000.0*dt)
+#_NPT_TRI fix recenter2 all recenter INIT INIT INIT units box
 
   run               ${t_run}
 
