@@ -48,7 +48,7 @@ def main():
                 text = text.replace("_N_EQUIL", str(number_equilibration_steps))
                 text = text.replace("_RESTART_FILE", restart_filename)
                 if t == "fluid":
-                    text = text.replace("#_NPT_ANISO", "")
+                    text = text.replace("#_NPT_ISO", "")
                 else:
                     assert t == "solid"
                     text = text.replace("#_NPT_TRI", "")
