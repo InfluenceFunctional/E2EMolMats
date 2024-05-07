@@ -37,6 +37,6 @@ seed:
 - 1
 structure_identifier:
 - acridine/Form4
-submit_lammps_slurm: true
+submit_lammps_slurm: false
 temperature:
 - 700
