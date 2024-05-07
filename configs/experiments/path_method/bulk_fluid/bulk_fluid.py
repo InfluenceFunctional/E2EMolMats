@@ -5,7 +5,7 @@ import yaml
 batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[15, 15, 15]],  # size of initial bulk supercell, from which finite subsamples may be carved.
-    'temperature': [1000],  # Kelvin - the temperature at which to carry out primary sampling
+    'temperature': [700],  # Kelvin - the temperature at which to carry out primary sampling
     'structure_identifier': ['acridine/Form4'],
     # ['acridine/Form2'], # ['nicotinamide/NICOAM17'], #'["nicotinamide/NICOAM16"],  # , "NICOAM17"],  # names of molecule and polymorph structures to be used as bases.
     'defect_rate': [0],
@@ -26,19 +26,19 @@ batch_config = {
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
     'integrator': 'npt_aniso',  # nosehoover, npt_iso, npt_aniso, npt_tri, nvt
     'fix_com': False,  # fix center of mass motion
-    'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
+    'ramp_temperature': True,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 0,
     'print_steps': int(2e2),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
-    'machine': 'local',  # 'local' or 'cluster' have different associated paths
+    'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
     'run_name': 'bulk_fluid',
     'min_lattice_length': 40,
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
     'prep_melt_interface': False,  # Work in progress - split supercell in half along the fractional z direction
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
-    'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
+    'equil_time': 2000000,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs
     'atom_style': 'full',  # 'full' or 'full2' depending on if we want symmetry information
     'submit_lammps_slurm': True,

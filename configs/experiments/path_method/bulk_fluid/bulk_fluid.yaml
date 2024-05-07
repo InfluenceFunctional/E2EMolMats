@@ -12,13 +12,13 @@ defect_rate:
 - 0
 defect_type:
 - anthracene
-equil_time: 100000.0
+equil_time: 2000000
 fix_com: false
 gap_rate:
 - 0
 init_temperature: 0
 integrator: npt_aniso
-machine: local
+machine: cluster
 max_sphere_radius:
 - 10
 melt_temperature: 2000
@@ -28,7 +28,7 @@ prep_bulk_melt: false
 prep_crystal_in_melt: false
 prep_melt_interface: false
 print_steps: 200
-ramp_temperature: false
+ramp_temperature: true
 run_name: bulk_fluid
 run_time: 2000000
 scramble_rate:
@@ -39,4 +39,4 @@ structure_identifier:
 - acridine/Form4
 submit_lammps_slurm: true
 temperature:
-- 1000
+- 700
