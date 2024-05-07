@@ -103,10 +103,14 @@
 #_MELT_PREP unfix s1
 
 #--------------------------- Pre-Ramp Thermalization ------------------------#
-#_EQUIL_BEFORE_RAMP fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_EQUIL_BEFORE_RAMP #_NPT_ISO fix f11 all npt temp 1 ${T_init} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
+#_EQUIL_BEFORE_RAMP #_NPT_ANISO fix f11 all npt temp 1 ${T_init} $(100.0*dt) aniso 1.0 1.0 $(1000.0*dt)
+#_EQUIL_BEFORE_RAMP #_NPT_TRI fix f11 all npt temp 1 ${T_init} $(100.0*dt) tri 1.0 1.0 $(1000.0*dt)
+#_EQUIL_BEFORE_RAMP #_FIX_COM fix recenter1 all recenter INIT INIT INIT units box
 #_EQUIL_BEFORE_RAMP velocity          all create 1 ${rnd} mom yes rot yes dist gaussian
 #_EQUIL_BEFORE_RAMP run ${t_equil}  # equilibrate
 #_EQUIL_BEFORE_RAMP unfix f11
+#_EQUIL_BEFORE_RAMP #_FIX_COM unfix recenter 1
 #_EQUIL_BEFORE_RAMP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#

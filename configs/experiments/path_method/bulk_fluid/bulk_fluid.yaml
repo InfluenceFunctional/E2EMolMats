@@ -16,7 +16,7 @@ equil_time: 2000000
 fix_com: false
 gap_rate:
 - 0
-init_temperature: 0
+init_temperature: 700
 integrator: npt_aniso
 machine: cluster
 max_sphere_radius:

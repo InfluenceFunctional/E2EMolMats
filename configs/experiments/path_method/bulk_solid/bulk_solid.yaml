@@ -16,7 +16,7 @@ equil_time: 2000000
 fix_com: true
 gap_rate:
 - 0
-init_temperature: 0
+init_temperature: 100
 integrator: npt_tri
 machine: cluster
 max_sphere_radius:

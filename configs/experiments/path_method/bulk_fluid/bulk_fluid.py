@@ -27,7 +27,7 @@ batch_config = {
     'integrator': 'npt_aniso',  # nosehoover, npt_iso, npt_aniso, npt_tri, nvt
     'fix_com': False,  # fix center of mass motion
     'ramp_temperature': True,  # linearly ramp temperature in main sampling run from 0-temperature
-    'init_temperature': 0,
+    'init_temperature': 700,
     'print_steps': int(2e2),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
