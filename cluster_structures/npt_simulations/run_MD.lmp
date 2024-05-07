@@ -1,6 +1,5 @@
   variable          T_sample      equal _T_SAMPLE    # Temperature
   variable          T_init      equal _T_INIT    # Initial Temperature
-  variable          rnd    equal _RND     # seed for random velocities
   variable          t_run  equal _N_STEPS     # number of MD steps
   variable          t_equil equal _N_EQUIL     # number of equilibration steps
   variable          t_print equal ${t_run}/200  #how often to print histogram
@@ -39,7 +38,7 @@
   #_NPT_ANISO fix f11 all npt temp ${T_init} ${T_sample} $(100.0*dt) aniso 1.0 1.0 $(1000.0*dt)
   #_NPT_TRI fix f11 all npt temp ${T_init} ${T_sample} $(100.0*dt) tri 1.0 1.0 $(1000.0*dt)
   #_NPT_TRI fix recenter all recenter INIT INIT INIT units box
-  velocity all create ${T_init} ${rnd} mom yes rot yes dist gaussian
+
   run ${t_equil}  # equilibrate
   unfix f11
   #_NPT_TRI unfix recenter
