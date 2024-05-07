@@ -12,11 +12,11 @@ def main():
     solid_directory = "../bulk_solid/0/"
     copy_filenames = ["system.in.settings"]
     number_steps = 2000000
-    number_equilibration_steps = 5000000
+    number_equilibration_steps = 2000000
     restart_filename = "cluster_1x1x1_equi.restart"
     slurm_filename = "sub_job.slurm"
 
-    starting_temperature_fluid = 1000
+    starting_temperature_fluid = 700
     starting_temperature_solid = 100
 
     temperatures = np.arange(minimum_temperature, maximum_temperature + temperature_step, temperature_step)
