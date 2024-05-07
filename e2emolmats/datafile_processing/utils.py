@@ -80,6 +80,7 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
         else:
             newText = newText.replace('_INIT_TEMP', str(config.temperature))
+            newText = newText.replace('#_NOT_EQUIL_BEFORE_RAMP', '')
 
         if config.fix_com:
             newText = newText.replace('#_FIX_COM', '')

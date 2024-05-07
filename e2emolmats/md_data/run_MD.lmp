@@ -110,7 +110,7 @@
 #_EQUIL_BEFORE_RAMP velocity          all create 1 ${rnd} mom yes rot yes dist gaussian
 #_EQUIL_BEFORE_RAMP run ${t_equil}  # equilibrate
 #_EQUIL_BEFORE_RAMP unfix f11
-#_EQUIL_BEFORE_RAMP #_FIX_COM unfix recenter 1
+#_EQUIL_BEFORE_RAMP #_FIX_COM unfix recenter1
 #_EQUIL_BEFORE_RAMP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
@@ -125,7 +125,7 @@
 #--------------------------- Fix center of mass---------------------------------#
 #_FIX_COM  fix recenter all recenter INIT INIT INIT units box
 
-  velocity          all create ${T_init} ${rnd} mom yes rot yes dist gaussian
+#_NOT_EQUIL_BEFORE_RAMP velocity          all create ${T_init} ${rnd} mom yes rot yes dist gaussian
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
 
