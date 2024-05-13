@@ -36,7 +36,7 @@ scramble_rate:
 seed:
 - 1
 structure_identifier:
-- acridine/Form2
+- nicotinamide/NICOAM17
 submit_lammps_slurm: false
 temperature:
 - 100
