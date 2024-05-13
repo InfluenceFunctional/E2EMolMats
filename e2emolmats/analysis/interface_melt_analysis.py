@@ -19,7 +19,9 @@ if __name__ == '__main__':
         r'D:\crystal_datasets\acridine_melt_interface16_2/',
         r'D:\crystal_datasets\acridine_melt_interface16_3/',
         r'D:\crystal_datasets\acridine_melt_interface16_4/',
-
+        r'D:\crystal_datasets\acridine_melt_interface17_1/',
+        r'D:\crystal_datasets\acridine_melt_interface17_3/',
+        r'D:\crystal_datasets\acridine_melt_interface17_4/',
     ]
     combined_df = pd.DataFrame()
 
@@ -232,6 +234,7 @@ if __name__ == '__main__':
     fig = go.Figure()
     fig.add_trace(go.Bar(x=list(melt_temps.keys()), y=list(melt_temps.values()), name='Interface Estimate'))
     fig.add_trace(go.Bar(x=list(true_melt_temps.keys()), y=list(true_melt_temps.values()), name='Reference'))
+    fig.update_layout(yaxis_range=[340, 410])
     fig.show(renderer='browser')
 
     aa = 1

@@ -65,7 +65,6 @@
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
 
-# dump              d1 all dcd ${t_print} traj.dcd
   dump              d2 all custom ${t_print} traj.dump id mol element xu yu zu
 
 #_DUMP_MODIFY
@@ -87,13 +86,11 @@
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
 
-#_CRYSTAL_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) iso ${press} 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) z ${press} 1.0 $(1000.0*dt)
+#_MELT_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) #_p_dim ${press} 1.0 $(1000.0*dt)
 #_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
 
-#_CRYSTAL_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) iso ${press} 1.0 $(1000.0*dt)
-#_INTERFACE_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) z ${press} 1.0 $(1000.0*dt)
+#_MELT_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) #_p_dim ${press} 1.0 $(1000.0*dt)
 #_MELT_PREP fix s1 crystal spring/self 10 xyz  # add restraining force atomwise on crystals
 #_MELT_PREP run ${t_equil}  # re equilibrate
 #_MELT_PREP unfix f133
@@ -107,8 +104,7 @@
 #_EQUIL_BEFORE_RAMP write_data        cluster_${nx}x${ny}x${nz}_pre_equi.data
 
 #---------------------- Thermostat & Barostat ----------------------------------#
-#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 1.0 1.0 $(1000.0*dt)
-#_NPzT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) z 1.0 1.0 $(1000.0*dt)
+#_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
 #_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
 #-------------------------------------------------------------------------------#

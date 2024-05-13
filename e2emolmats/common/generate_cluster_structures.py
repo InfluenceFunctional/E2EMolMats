@@ -119,7 +119,7 @@ def generate_structure(crystals_path, structure_identifier,
                        defect_rate, defect_type, scramble_rate, gap_rate, seed,
                        min_inter_cluster_distance, min_lattice_length,
                        periodic_structure=False, prep_crystal_in_melt=False,
-                       prep_melt_interface=False, prep_bulk_melt=False):
+                       prep_melt_interface=False, prep_bulk_melt=False, melt_interface_direction=None):
     np.random.seed(seed=seed)
 
     '''load base crystal structure'''
@@ -144,8 +144,9 @@ def generate_structure(crystals_path, structure_identifier,
 
         cluster_size = np.ceil(min_lattice_length / cell_lengths).astype(int)
 
-        if prep_melt_interface: #make z dimension double the xy dimensions
-            cluster_size[2] *= 2
+        if prep_melt_interface:  #make one dimension double the other dimensions
+            interface_dimension = ['x', 'y', 'z'].index(melt_interface_direction)
+            cluster_size[interface_dimension] *= 2
 
         supercell_atoms, supercell_coordinates = (
             build_supercell(T_fc,
@@ -181,7 +182,7 @@ def generate_structure(crystals_path, structure_identifier,
     if prep_melt_interface:
         melt_inds, supercell_coordinates = (
             crystal_interface_reindexing(
-                atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell))
+                atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell, interface_dimension))
     elif prep_bulk_melt:  # melt everything
         num_mols = z_value * np.prod(cluster_size)
         melt_inds = {'melt_start_ind': 1,  # index from 1,
@@ -254,7 +255,7 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     return melt_inds, supercell_coordinates
 
 
-def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell):
+def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell, interface_dimension):
     # identify atoms in molecules within a sufficiently large sphere from the center
     # reindex the whole thing to put these in the first N rows
     num_mols = z_value * np.product(cluster_size)
@@ -264,10 +265,10 @@ def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coor
 
     fractional_centroids = (np.linalg.inv(cell.T) @ mol_centroids.T).T
 
-    half_z = np.mean(fractional_centroids[:, 2], axis=0)
+    half_z = np.mean(fractional_centroids[:, interface_dimension], axis=0)
 
-    crystal_mol_inds = np.argwhere(fractional_centroids[:, 2] < half_z).flatten()
-    melt_mol_inds = np.argwhere(fractional_centroids[:, 2] > half_z).flatten()
+    crystal_mol_inds = np.argwhere(fractional_centroids[:, interface_dimension] < half_z).flatten()
+    melt_mol_inds = np.argwhere(fractional_centroids[:, interface_dimension] > half_z).flatten()
 
     # complete reindexing
     molwise_supercell_coordinates = np.concatenate(
@@ -306,7 +307,6 @@ def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coor
 
 def build_supercell(T_fc: np.ndarray, cluster_size: list, crystal_atoms: np.ndarray,
                     crystal_coordinates: np.ndarray, ):
-
     supercell_coordinates = []
     for xs in range(cluster_size[0]):
         for ys in range(cluster_size[1]):

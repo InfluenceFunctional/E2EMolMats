@@ -27,16 +27,11 @@ def generate_MD_script(config, melt_inds):
             newText = newText.replace('#_NOSE', '')
         elif config.integrator.lower() == 'npt':
             newText = newText.replace('#_NPT', '')
-        elif config.integrator.lower() == 'npzt':
-            newText = newText.replace('#_NPzT', '')
+            newText = newText.replace('#_p_dim', str(config.pressure_direction))
         if config.bulk_crystal:
             newText = newText.replace('#_KSPACE', '')
         if config.prep_crystal_in_melt or config.prep_melt_interface:
             newText = newText.replace('#_MELT_PREP', '')
-            if config.prep_crystal_in_melt:
-                newText = newText.replace('#_CRYSTAL_PREP', '')
-            elif config.prep_melt_interface:
-                newText = newText.replace('#_INTERFACE_PREP', '')
 
             newText = newText.replace('_EQUIL_TIME', str(config.equil_time))
             newText = newText.replace('_MELT_TEMP', str(config.melt_temperature))
