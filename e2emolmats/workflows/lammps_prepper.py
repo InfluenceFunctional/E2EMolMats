@@ -88,8 +88,10 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     initial_setup('1.data', '2.data', molecule_name, molind2name)
 
     pipeline.source.load('2.data')
-    create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
-    #create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
+    if 'acridine' in config.structure_identifier:
+        create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
+    else:
+        create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
     pipeline.modifiers.append(create_bonds_modifier)
     export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
