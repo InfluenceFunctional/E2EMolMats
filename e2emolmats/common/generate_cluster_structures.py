@@ -179,7 +179,7 @@ def generate_structure(crystals_path, structure_identifier,
         melt_inds, supercell_coordinates = (
             crystal_melt_reindexing(
                 atoms_in_molecule, cluster_size, max_sphere_radius, supercell_coordinates, z_value))
-    if prep_melt_interface:
+    elif prep_melt_interface:
         melt_inds, supercell_coordinates = (
             crystal_interface_reindexing(
                 atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell, interface_dimension))

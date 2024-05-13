@@ -29,14 +29,14 @@ batch_config = {
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 0,
     'print_steps': int(1e2),  # how many timepoints to print in sampling trajectory
-    'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations
+    'min_inter_cluster_distance': 40,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'local',  # 'local' or 'cluster' have different associated paths
     'run_name': 'dev',
     'min_lattice_length': 40,
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
-    'prep_crystal_in_melt': False,  # prepare a frozen nanocrystal in a melted environment
-    'prep_melt_interface': True,  # split supercell in half and melt half then reequilibrate
+    'prep_crystal_in_melt': True,  # prepare a frozen nanocrystal in a melted environment
+    'prep_melt_interface': False,  # split supercell in half and melt half then reequilibrate
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
     'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs

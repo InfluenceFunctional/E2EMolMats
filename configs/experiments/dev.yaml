@@ -21,11 +21,12 @@ machine: local
 max_sphere_radius:
 - 10
 melt_temperature: 2000
-min_inter_cluster_distance: 0
+min_inter_cluster_distance: 40
 min_lattice_length: 40
 prep_bulk_melt: false
-prep_crystal_in_melt: false
-prep_melt_interface: true
+prep_crystal_in_melt: true
+prep_melt_interface: false
+pressure_direction: z
 print_steps: 100
 ramp_temperature: false
 run_name: dev
