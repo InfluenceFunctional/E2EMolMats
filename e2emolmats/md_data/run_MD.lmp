@@ -56,7 +56,7 @@
 
 #--------------------------- Thermo stylepa and settings -------------------------#
   timestep          1.0
-  thermo_style      custom step time vol temp press ke pe etotal epair emol vol density cella cellb cellc cellalpha cellbeta cellgamma
+  thermo_style      custom step time temp press ke pe etotal epair emol vol density cella cellb cellc cellalpha cellbeta cellgamma
   thermo            200
 
 
