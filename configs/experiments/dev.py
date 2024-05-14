@@ -6,7 +6,7 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved.
     'temperature': [100],  # Kelvin - the temperature at which to carry out primary sampling
-    'structure_identifier': ['nicotinamide/NICOAM17'],
+    'structure_identifier': ['acridine/Form2'],
     # ['acridine/Form2'], # ['nicotinamide/NICOAM17'], #'["nicotinamide/NICOAM16"],  # , "NICOAM17"],  # names of molecule and polymorph structures to be used as bases.
     'defect_rate': [0],
     # fraction of molecules to be substituted with appropriately aligned defects - only works for Benzamide in Nicotinamide

@@ -34,7 +34,7 @@ def initial_setup(original_filename, new_filename, molecule_name, molind2name):
         if 'Atoms' in line:
             hit_atoms = True
 
-        if counter == 3:  # line 4 in the file, counter indexes from 0
+        if counter == 4:  # line 4 in the file, counter indexes from 0
             new_datafile.write(f"{num_atom_types} atom types\n")
 
         elif hit_masses and not hit_atoms and not printed_masses:
