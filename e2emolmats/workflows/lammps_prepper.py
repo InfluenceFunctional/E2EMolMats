@@ -19,7 +19,8 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     main working script
     """
     config = Namespace(**config_i)
-    molecule_name = config.structure_identifier.split('/')[0]  # molecule name is 1st half of structure identifier with format "molecule/form"
+    molecule_name = config.structure_identifier.split('/')[
+        0]  # molecule name is 1st half of structure identifier with format "molecule/form"
 
     '''make new workdir'''
     if head_dir.split('/')[-1] != 'dev':  # if not dev
@@ -84,30 +85,29 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     pipeline = import_file(xyz_filename)
     export_file(pipeline, '1.data', 'lammps/data', atom_style='full')
 
-
     '''prep atom types and make bonds'''
-    initial_setup('1.data', '2.data', molecule_name, molind2name)
-
-    pipeline.source.load('2.data')
-    if 'acridine' in config.structure_identifier:
-        create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
-    else:
-        create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
-    pipeline.modifiers.append(create_bonds_modifier)
-    export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
-
+    # initial_setup('1.data', '2.data', molecule_name, molind2name)
     #
-    #
-    # pipeline.source.load('1.data')
+    # pipeline.source.load('2.data')
     # if 'acridine' in config.structure_identifier:
     #     create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
     # else:
     #     create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
     # pipeline.modifiers.append(create_bonds_modifier)
-    # export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
+    # export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
     #
-    # '''prep atom types and make bonds'''
-    # initial_setup('2.data', '3.data', molecule_name, molind2name)
+    #
+
+    pipeline.source.load('1.data')
+    if 'acridine' in config.structure_identifier:
+        create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
+    else:
+        create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
+    pipeline.modifiers.append(create_bonds_modifier)
+    export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
+
+    '''prep atom types and make bonds'''
+    initial_setup('2.data', '3.data', molecule_name, molind2name)
 
     print("============================")
     print("Ltemplifying")
@@ -130,7 +130,8 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     print("============================")
 
     '''run moltemplate and cleanup'''  # todo change to user-config path
-    os.system("~/.local/bin/moltemplate.sh system.lt -nocheck")  # nocheck means it will skip over missing @bond type issues
+    os.system(
+        "~/.local/bin/moltemplate.sh system.lt -nocheck")  # nocheck means it will skip over missing @bond type issues
 
     print("============================")
     print("Moltemplate cleanup")
@@ -153,5 +154,3 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         # '''optionally - directly run MD''' # will not work from within a Singularity instance
         # use instead batch_sub_lmp.sh in /md_data to submit after all templates are built
         os.system("/opt/slurm/bin/sbatch sub_job.slurm")
-
-

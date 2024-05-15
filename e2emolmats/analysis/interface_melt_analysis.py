@@ -13,15 +13,16 @@ import glob
 
 if __name__ == '__main__':
     battery_paths = [
-        r'D:\crystal_datasets\acridine_melt_interface14/',
-        r'D:\crystal_datasets\acridine_melt_interface15/',
-        r'D:\crystal_datasets\acridine_melt_interface16_1/',
-        r'D:\crystal_datasets\acridine_melt_interface16_2/',
-        r'D:\crystal_datasets\acridine_melt_interface16_3/',
-        r'D:\crystal_datasets\acridine_melt_interface16_4/',
-        r'D:\crystal_datasets\acridine_melt_interface17_1/',
-        r'D:\crystal_datasets\acridine_melt_interface17_3/',
-        r'D:\crystal_datasets\acridine_melt_interface17_4/',
+        # r'D:\crystal_datasets\acridine_melt_interface14/',
+        # r'D:\crystal_datasets\acridine_melt_interface15/',
+        # r'D:\crystal_datasets\acridine_melt_interface16_1/',
+        # r'D:\crystal_datasets\acridine_melt_interface16_2/',
+        # r'D:\crystal_datasets\acridine_melt_interface16_3/',
+        # r'D:\crystal_datasets\acridine_melt_interface16_4/',
+        # r'D:\crystal_datasets\acridine_melt_interface17_1/',
+        # r'D:\crystal_datasets\acridine_melt_interface17_3/',
+        # r'D:\crystal_datasets\acridine_melt_interface17_4/',
+        r'D:\crystal_datasets\acridine_melt_interface18/'
     ]
     combined_df = pd.DataFrame()
 
