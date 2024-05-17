@@ -29,7 +29,7 @@ batch_config = {
     'init_temperature': 200,  # for ramps only
     'print_steps': int(5e2),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': 40,  # 40,  # sets periodic box size in cluster simulations, 0 or None if unused
-    'bulk_crystal': True,  # if true, periodic structure
+    'bulk_crystal': True,  # if true, periodic structu:wqre
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
     'run_name': 'acridine_cluster1',
     'min_lattice_length': [40],

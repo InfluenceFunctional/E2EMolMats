@@ -10,6 +10,7 @@ damping:
 - '100.0'
 defect_rate:
 - 0
+- 0.05
 defect_type:
 - benzamide
 equil_time: 500000.0
@@ -19,9 +20,7 @@ init_temperature: 200
 integrator: npt
 machine: cluster
 max_sphere_radius:
-- 10
 - 15
-- 20
 - 25
 melt_temperature: 2000
 min_inter_cluster_distance: 40
@@ -42,6 +41,7 @@ seed:
 - 2
 structure_identifier:
 - nicotinamide/NICOAM07
+- nicotinamide/NICOAM16
 submit_lammps_slurm: false
 temperature:
 - 350
