@@ -7,6 +7,7 @@ from scipy.stats import linregress
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter1d
+import plotly.express as px
 
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
@@ -340,3 +341,153 @@ def get_melt_progress(results_df):
         melt_magnitudes[ind] = (sampling_energy[-10:].mean() - crystal_energy) / (melt_energy - crystal_energy)
 
     return melt_slopes, melt_magnitudes
+
+
+def compute_and_plot_melt_slopes(df, show_fig=True):
+    polymorph_names = []
+    seeds = []
+    for _, row in df.iterrows():
+        polymorph_names.append(row['run_config']['structure_identifier'].split('/')[1])
+        seeds.append(row['run_config']['seed'])
+    df['polymorph_name'] = polymorph_names
+    df['seed'] = seeds
+    df.reset_index(drop=True, inplace=True)
+    seeds = list(np.unique(df['seed']))
+    polymorphs = list(
+        np.unique([conf['structure_identifier'].split('/')[-1] for conf in df['run_config']]))
+    num_polymorphs = len(polymorphs)
+    colors = px.colors.qualitative.G10
+    seen_polymorph = {polymorph: False for polymorph in polymorphs}
+    min_temp = np.amin([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
+    max_temp = np.amax([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
+    temprange = np.linspace(min_temp, max_temp, 1000)
+    melt_temps = {}
+    fig = make_subplots(rows=1, cols=2,
+                        subplot_titles=['Normed Intermolecular Energy', 'Intermolecular Energy Slope'])
+    for polymorph in polymorphs:
+        good_inds = np.argwhere(df['polymorph_name'] == polymorph).flatten()
+
+        temperatures = np.asarray([elem['temperature'] for elem in df.iloc[good_inds]['run_config']])
+        melt_magnitudes = np.asarray(df.iloc[good_inds]['melt_magnitude']).flatten()
+        melt_slopes = np.asarray(df.iloc[good_inds]['melt_slope']).flatten()
+
+        temps = np.unique(temperatures)
+        mag_at_t = np.array(
+            [np.mean([melt_magnitudes[i] for i in range(len(melt_magnitudes)) if temperatures[i] == temp]) for temp
+             in
+             temps])
+        slope_at_t = np.array(
+            [np.mean([melt_slopes[i] for i in range(len(melt_slopes)) if temperatures[i] == temp]) for temp in
+             temps])
+
+        mag_spline = np.interp(temprange, temps, np.maximum.accumulate(mag_at_t))
+        slope_spline = np.interp(temprange, temps, np.maximum.accumulate(slope_at_t))
+
+        melt_T = temprange[np.argmin(np.abs(slope_spline))]
+        melt_temps[polymorph] = melt_T
+        fig.add_scattergl(x=temperatures,
+                          y=melt_magnitudes,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=7,
+                          opacity=0.5,
+                          showlegend=False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=1
+                          )
+
+        fig.add_scattergl(x=temperatures,
+                          y=melt_slopes,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=7,
+                          opacity=0.5,
+                          showlegend=False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=2
+                          )
+
+        fig.add_scattergl(x=temps,
+                          y=mag_at_t,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=15,
+                          showlegend=True if not seen_polymorph[polymorph] else False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=1
+                          )
+
+        fig.add_scattergl(x=temps,
+                          y=slope_at_t,
+                          mode='markers',
+                          name=polymorph,
+                          legendgroup=polymorph,
+                          marker_size=15,
+                          showlegend=False,
+                          marker_color=colors[polymorphs.index(polymorph)],
+                          row=1, col=2
+                          )
+        #
+        # fig.add_scattergl(x=temprange,
+        #                   y=mag_spline,
+        #                   name=polymorph,
+        #                   legendgroup=polymorph,
+        #                   showlegend=False,
+        #                   marker_color=colors[polymorphs.index(polymorph)],
+        #                   row=1, col=1
+        #                   )
+        #
+        # fig.add_scattergl(x=temprange,
+        #                   y=slope_spline,
+        #                   name=polymorph,
+        #                   legendgroup=polymorph,
+        #                   showlegend=False,
+        #                   marker_color=colors[polymorphs.index(polymorph)],
+        #                   row=1, col=2
+        #                   )
+    fig.update_xaxes(title='Temperature (K)')
+    if show_fig:
+        fig.show(renderer='browser')
+    return fig, melt_temps
+
+
+def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
+    """
+    use all data to estimate the melt point for each polymorph
+    """
+    melt_temps = np.asarray(list(melt_estimate_dict.values()))
+    true_melt_temps = np.asarray(list(true_melts_dict.values()))
+    fig2 = go.Figure()
+    fig2.add_trace(go.Bar(x=list(melt_estimate_dict.keys()), y=list(melt_estimate_dict.values()), name='Estimate'))
+    fig2.add_trace(go.Bar(x=list(true_melts_dict.keys()), y=list(true_melts_dict.values()), name='Reference'))
+    fig2.update_layout(yaxis_range=[min(np.amin(melt_temps), np.amin(true_melt_temps)) - 5,
+                                    max(np.amax(melt_temps), np.amax(true_melt_temps))] + 5)
+    if show_fig:
+        fig2.show(renderer='browser')
+    return fig2
+
+
+POLYMORPH_MELT_POINTS = {'acridine':
+    {
+        'Form2': 273 + 109.8,
+        'Form3': 273 + 106.8,
+        'Form4': 273 + 89,
+        'Form6': 273 + 99,
+        'Form7': 273 + 101,
+        'Form8': 273 + 109,
+        'Form9': 273 + 108.8
+    },
+    'nicotinamide': {"NICOAM07": 444,  # form 5
+                     "NICOAM08": 381,  # form 7, Tm 381, eta
+                     "NICOAM09": 377.5,  # form 8, Tm 377.5, theta
+                     "NICOAM13": 402,  # form 1, Tm 402K, alpha
+                     "NICOAM14": 390,  # form 2, Tm 390K, beta
+                     "NICOAM15": 388,  # form 3, Tm 388K, gamma
+                     "NICOAM16": 387,  # form 4, Tm 387K, delta
+                     "NICOAM17": 376,  # form 9, Tm 376K, iota
+                     "NICOAM18": 382.5,  # form 6, Tm 382.5K, zeta}
+                     },
+}

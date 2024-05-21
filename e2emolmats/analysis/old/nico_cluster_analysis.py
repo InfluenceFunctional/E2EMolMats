@@ -250,7 +250,7 @@ if config.do_reference_analysis:
 
                     results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
 
-            os.chdir('../../')
+            os.chdir('../../../')
     results_df.to_pickle(config.reference_df_path)
 
 aa = 1
