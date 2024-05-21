@@ -7,7 +7,7 @@ batch_config = {
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
     'temperature': [365, 370, 375, 385, 390, 395, 400, 405, 410, 415],  # Kelvin
-    'structure_identifier': ["nicotinamide/NICOAM07"
+    'structure_identifier': ["nicotinamide/NICOAM07",
                              "nicotinamide/NICOAM08",
                              "nicotinamide/NICOAM09",
                              "nicotinamide/NICOAM13",

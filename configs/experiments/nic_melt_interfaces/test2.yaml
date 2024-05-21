@@ -41,7 +41,8 @@ seed:
 - 1
 - 2
 structure_identifier:
-- nicotinamide/NICOAM07nicotinamide/NICOAM08
+- nicotinamide/NICOAM07
+- nicotinamide/NICOAM08
 - nicotinamide/NICOAM09
 - nicotinamide/NICOAM13
 - nicotinamide/NICOAM14
