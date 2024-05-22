@@ -185,7 +185,7 @@ def generate_structure(crystals_path, structure_identifier,
                 atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell, interface_dimension))
     elif prep_bulk_melt:  # melt everything
         num_mols = z_value * np.prod(cluster_size)
-        melt_inds = {'melt_start_ind': 1,  # index from 1,
+        melt_inds = {'melt_start_ind': 1,  # index from 1->N_mols
                      'melt_end_ind': num_mols}
         melt_inds = dict2namespace(melt_inds)
     else:
@@ -551,4 +551,4 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
     # mol = Atoms(positions=supercell_coordinates[:1200], numbers=supercell_atoms[:1200])
     # view(mol)
 
-    return supercell_atoms, supercell_coordinates, defect_molecule_indices
+    return supercell_atoms, supercell_coordinates, defect_molecule_indices + 1  # add one to align with normal molecule indexing

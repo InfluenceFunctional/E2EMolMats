@@ -31,7 +31,8 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 # ]
 'paths for analysis of nicotinamide melt point'
 battery_paths = [
-    r'D:\crystal_datasets\nic_melt_interface1/'
+    #r'D:\crystal_datasets\nic_melt_interface1/',
+    r'D:\crystal_datasets\nic_melt_interface2/'
 ]
 if __name__ == '__main__':
     config_i = {

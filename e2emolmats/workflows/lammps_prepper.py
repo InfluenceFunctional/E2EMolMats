@@ -7,7 +7,7 @@ from ovito.modifiers import *
 from argparse import Namespace
 
 from e2emolmats.common.generate_cluster_structures import generate_structure
-from e2emolmats.datafile_processing.initial_setup import initial_setup
+from e2emolmats.datafile_processing.initial_setup import atom_type_renumbering
 from e2emolmats.datafile_processing.moltemp_final import moltemp_final
 from e2emolmats.datafile_processing.templify_to_runnable import templify_to_runnable
 from e2emolmats.datafile_processing.utils import update_atom_style_in_settings, generate_MD_script
@@ -19,8 +19,8 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     main working script
     """
     config = Namespace(**config_i)
-    molecule_name = config.structure_identifier.split('/')[
-        0]  # molecule name is 1st half of structure identifier with format "molecule/form"
+    # molecule name is 1st half of structure identifier with format "molecule/form"
+    molecule_name = config.structure_identifier.split('/')[0]
 
     '''make new workdir'''
     if head_dir.split('/')[-1] != 'dev':  # if not dev
@@ -38,8 +38,8 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
             else:
                 found_new_workdir = True
                 workdir += str(ind)
-
-    os.mkdir(workdir)
+    if not os.path.exists(workdir):
+        os.mkdir(workdir)
     os.chdir(workdir)
     '''copy in md_data elements'''
     copy_tree('../md_data', './')
@@ -86,18 +86,6 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     export_file(pipeline, '1.data', 'lammps/data', atom_style='full')
 
     '''prep atom types and make bonds'''
-    # initial_setup('1.data', '2.data', molecule_name, molind2name)
-    #
-    # pipeline.source.load('2.data')
-    # if 'acridine' in config.structure_identifier:
-    #     create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
-    # else:
-    #     create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
-    # pipeline.modifiers.append(create_bonds_modifier)
-    # export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
-    #
-    #
-
     pipeline.source.load('1.data')
     if 'acridine' in config.structure_identifier:
         create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
@@ -107,7 +95,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
 
     '''prep atom types and make bonds'''
-    initial_setup('2.data', '3.data', molecule_name, molind2name)
+    atom_type_renumbering('2.data', '3.data', molecule_name, molind2name)
 
     print("============================")
     print("Ltemplifying")

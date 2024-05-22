@@ -3,7 +3,7 @@ from e2emolmats.md_data.constants import (MOLECULE_ATOM_TYPES_MASSES,
                                           ATOM_TYPES, ATOM_CHARGES)
 
 
-def initial_setup(original_filename, new_filename, molecule_name, molind2name):
+def atom_type_renumbering(original_filename, new_filename, molecule_name, molind2name):
     datafile = open(original_filename, 'r')
     new_datafile = open(new_filename, 'w')
     lines = datafile.readlines()
@@ -57,11 +57,11 @@ def initial_setup(original_filename, new_filename, molecule_name, molind2name):
                 atom_counter = 1
                 new_mol = False
                 
-            line[1] = str(mol_counter)
+            line[1] = str(mol_counter)  # assign molecule index
             if atom_counter == mol_num_atoms:  # reset and check for new molecule type on the next line
                 new_mol = True
             
-            write_molecule(line, atom_counter, new_datafile, molecule_type)
+            write_atom_info(line, atom_counter, new_datafile, molecule_type)
             atom_counter += 1
 
         elif inside_atoms_block and line == '\n':
@@ -79,7 +79,7 @@ def initial_setup(original_filename, new_filename, molecule_name, molind2name):
     datafile.close()
 
 
-def write_molecule(line, atom_counter, new_datafile, molecule_type):
+def write_atom_info(line, atom_counter, new_datafile, molecule_type):
     line[2] = str(ATOM_TYPES[molecule_type][atom_counter])
     line[3] = str(ATOM_CHARGES[molecule_type][atom_counter])
     new_datafile.write(' '.join(line) + "\n")
