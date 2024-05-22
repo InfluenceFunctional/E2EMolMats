@@ -7,15 +7,16 @@ batch_config = {
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
     'temperature': [350],  # Kelvin
-    'structure_identifier': ['acridine/Form2'],
+    'structure_identifier': ['acridine/Form2',
+                             'acridine/Form3'],
     'defect_rate': [0],
-    'defect_type': ['benzamide'],
+    'defect_type': ['anthracene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
     'seed': [1, 2],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
-    'max_sphere_radius': [10, 15, 20, 25],  # if carving a finite cluster from a bulk structure, the radius of the sphere
+    'max_sphere_radius': [15, 25, 35],  # if carving a finite cluster from a bulk structure, the radius of the sphere
 
     # static items - DO NOT SET AS LIST
     'run_time': 1e7,  # sampling time in femtoseconds
@@ -28,7 +29,7 @@ batch_config = {
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,  # for ramps only
     'print_steps': int(5e2),  # how many timepoints to print in sampling trajectory
-    'min_inter_cluster_distance': 40,  # 40,  # sets periodic box size in cluster simulations, 0 or None if unused
+    'min_inter_cluster_distance': 40,  # sets periodic box size in cluster simulations, 0 or None if unused
     'bulk_crystal': True,  # if true, periodic structu:wqre
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
     'run_name': 'acridine_cluster1',

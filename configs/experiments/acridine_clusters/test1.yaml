@@ -11,7 +11,7 @@ damping:
 defect_rate:
 - 0
 defect_type:
-- benzamide
+- anthracene
 equil_time: 500000.0
 gap_rate:
 - 0
@@ -19,10 +19,9 @@ init_temperature: 200
 integrator: npt
 machine: cluster
 max_sphere_radius:
-- 10
 - 15
-- 20
 - 25
+- 35
 melt_temperature: 2000
 min_inter_cluster_distance: 40
 min_lattice_length:
@@ -42,6 +41,7 @@ seed:
 - 2
 structure_identifier:
 - acridine/Form2
+- acridine/Form3
 submit_lammps_slurm: false
 temperature:
 - 350
