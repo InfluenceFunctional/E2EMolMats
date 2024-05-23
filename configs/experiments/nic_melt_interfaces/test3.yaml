@@ -33,7 +33,7 @@ pressure_direction:
 - z
 print_steps: 250
 ramp_temperature: false
-run_name: nic_melt_interface2
+run_name: nic_melt_interface3
 run_time: 10000000.0
 scramble_rate:
 - 0
