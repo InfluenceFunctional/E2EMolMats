@@ -2,7 +2,6 @@
 
 import os
 import numpy as np
-import plotly.graph_objects as go
 
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
@@ -34,6 +33,10 @@ battery_paths = [
     #r'D:\crystal_datasets\nic_melt_interface1/',
     r'D:\crystal_datasets\nic_melt_interface2/'
 ]
+'paths for analysis of nicotinamide cluster stabilitypoint'
+#battery_paths = [
+#    r'D:\crystal_datasets\nic_cluster1/'
+#]
 if __name__ == '__main__':
     config_i = {
         'molecule': 'nicotinamide',

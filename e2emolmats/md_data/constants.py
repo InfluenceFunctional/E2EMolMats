@@ -107,7 +107,32 @@ ATOM_TYPES = {
         21: 3,
         22: 3,
         23: 3
-    }  # todo add anthracene and isonicotinamide
+    },
+    # 'anthracene': {
+    #
+    # },
+    # '2,7-dihydroxynaphthalene': {  # 1:Ca, 2:Ha, 3:HO, 4:OH
+    #     1: 1,
+    #     2: 1,
+    #     3: 1,
+    #     4: 1,
+    #     5: 1,
+    #     6: 1,
+    #     7: 1,
+    #     8: 1,
+    #     9: 1,
+    #     10: 1,
+    #     11: 2,
+    #     12: 2,
+    #     13: 3,
+    #     14: 2,
+    #     15: 2,
+    #     16: 3,
+    #     17: 2,
+    #     18: 2,
+    #     19: 4,
+    #     20: 4,
+    # }
 }
 
 ATOM_CHARGES = {

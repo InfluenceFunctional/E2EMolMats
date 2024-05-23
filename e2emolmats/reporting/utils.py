@@ -1,3 +1,4 @@
+import io
 import os
 
 import numpy as np
@@ -42,12 +43,6 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
 
 
 def process_thermo_data():
-    f = open('screen.log', "r")
-    text = f.read()
-    lines = text.split('\n')
-    f.close()
-    hit_minimization = False
-    skip = True
     results_dict = {'time step': [],
                     'temp': [],
                     'E_pair': [],
@@ -57,6 +52,18 @@ def process_thermo_data():
                     'Press': [],
                     'Volume': [],
                     }
+    try:
+        f = open('screen.log', "r")
+        text = f.read()
+    except FileNotFoundError or io.UnsupportedOperation:
+        for key in results_dict.keys():
+            results_dict[key] = np.zeros(1)
+        return results_dict
+    lines = text.split('\n')
+    f.close()
+    hit_minimization = False
+    skip = True
+
 
     if "Total wall time" not in text:  # skip analysis if the run crashed
         for key in results_dict.keys():
@@ -464,7 +471,7 @@ def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
     fig2.add_trace(go.Bar(x=list(melt_estimate_dict.keys()), y=list(melt_estimate_dict.values()), name='Estimate'))
     fig2.add_trace(go.Bar(x=list(true_melts_dict.keys()), y=list(true_melts_dict.values()), name='Reference'))
     fig2.update_layout(yaxis_range=[min(np.amin(melt_temps), np.amin(true_melt_temps)) - 5,
-                                    max(np.amax(melt_temps), np.amax(true_melt_temps))] + 5)
+                                    max(np.amax(melt_temps), np.amax(true_melt_temps)) + 5])
     if show_fig:
         fig2.show(renderer='browser')
     return fig2
