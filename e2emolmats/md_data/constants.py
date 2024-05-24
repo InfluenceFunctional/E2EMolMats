@@ -1,31 +1,60 @@
+from e2emolmats.md_data.process_molecule_data import MOLECULE_DATA
+
 FF_PATH_DICT = {'nicotinamide': 'gaff2_nicotinamid_long.lt',
-                'acridine': 'gaff2_acridine.lt'}
-
-MOLECULE_SYM_INDICES = {'acridine': {ind: ind for ind in range(1, 24)},
-                        'anthracene': {ind: ind for ind in range(1, 25)},
-                        '2,7-dihydroxynaphthalene': {ind: ind for ind in range(1, 21)},
-
-                        'nicotinamide': {ind: ind for ind in range(1, 16)},
-                        # todo get correct ordering of atom indices
-                        'benzamide': {ind: ind for ind in range(1, 17)},
-                        'isonicotinamide': {ind: ind for ind in range(1, 16)},
-                        }
+                'acridine': 'gaff2_acridine_w_additive.lt'}
 
 MOLECULE_ATOM_TYPES_MASSES = {
-    'nicotinamide': "Masses\n\n1 1.008  # ha\n2 1.008  # h4\n3 1.008  # hn\n4 14.01  # n\n5 14.01  # nb\n6 12.01  # c\n7 12.01  # ca\n8 16.00  # o\n",
-    # 'nicotinamide': "Masses\n\n1 1.008  # H\n2 12.01  # C\n3 14.01  # N\n4 16.00  # O\n",  # simplified atom types
-    'acridine': "Masses\n\n1 14.01  # nb\n2 12.01  # ca\n3 1.008  # ha\n"}
+    'nicotinamide': "Masses\n\n"
+                    "1 1.008  # ha\n"
+                    "2 1.008  # h4\n"
+                    "3 1.008  # hn\n"
+                    "4 14.01  # n\n"
+                    "5 14.01  # nb\n"
+                    "6 12.01  # c\n"
+                    "7 12.01  # ca\n"
+                    "8 16.00  # o\n",
+    'acridine': "Masses\n\n"
+                "1 12.01  # ca\n"
+                "2 1.008  # ha\n"
+                "3 14.01  # nb\n"
+                "4 15.9994  # oh\n"
+                "5 1.00794  # ho\n"
+}
 
-MOLECULE_NUM_ATOM_TYPES = {'nicotinamide': 8,  # 1-8
-                           'acridine': 3}  # CHNO (oxygen from defects)  # todo adjust this when we have carbon-containing additives
+MOLECULE_STR_TO_TYPE = {}  # mapping from atom type string to numerical index, as defined in the masses block
+for key in MOLECULE_ATOM_TYPES_MASSES.keys():
+    MOLECULE_STR_TO_TYPE[key] = {}
+    mass_block = MOLECULE_ATOM_TYPES_MASSES[key]
+    lines = mass_block.split('\n')
+    for line in lines:
+        splitline = line.split(' ')
+        if len(line) > 0:
+            try:
+                int(line[0])
+                MOLECULE_STR_TO_TYPE[key][splitline[-1]] = int(splitline[0])
+            except ValueError:
+                pass
+
+MOLECULE_STR_TO_ATOMIC_NUM = {
+    'h': 1,
+    'c': 6,
+    'n': 7,
+    'o': 8
+}  # mapping from atom type string to numerical index, as defined in the masses block
+
+MOLECULE_NUM_ATOM_TYPES = {key: len(values) for key, values in MOLECULE_STR_TO_TYPE.items()}
 
 MOLECULE_NUM_ATOMS = {'acridine': 23,
-                      'anthracene': 24,
-                      '2,7-dihydroxynaphthalene': 20,
+                      'anthracene': len(MOLECULE_DATA['anthracene']['types']),
+                      '2,7-dihydroxynaphthalene': len(MOLECULE_DATA['2,7-dihydroxynaphthalene']['types']),
                       'nicotinamide': 15,
                       'benzamide': 16,
                       'isonicotinamide': 15,
                       }
+
+# assumes straightforward 1,2,3... indexing
+MOLECULE_SYM_INDICES = {key: {ind: ind for ind in range(1, MOLECULE_NUM_ATOMS[key] + 1)} for key in
+                        MOLECULE_NUM_ATOMS.keys()}
 
 MOLECULE_SHORTHAND = {'nicotinamide': 'nic1',
                       'acridine': 'AC1'}
@@ -108,31 +137,12 @@ ATOM_TYPES = {
         22: 3,
         23: 3
     },
-    # 'anthracene': {
-    #
-    # },
-    # '2,7-dihydroxynaphthalene': {  # 1:Ca, 2:Ha, 3:HO, 4:OH
-    #     1: 1,
-    #     2: 1,
-    #     3: 1,
-    #     4: 1,
-    #     5: 1,
-    #     6: 1,
-    #     7: 1,
-    #     8: 1,
-    #     9: 1,
-    #     10: 1,
-    #     11: 2,
-    #     12: 2,
-    #     13: 3,
-    #     14: 2,
-    #     15: 2,
-    #     16: 3,
-    #     17: 2,
-    #     18: 2,
-    #     19: 4,
-    #     20: 4,
-    # }
+    'anthracene': {int(key): MOLECULE_STR_TO_TYPE['acridine'][val] for key, val in
+                   zip(MOLECULE_DATA['anthracene']['indices'],
+                       MOLECULE_DATA['anthracene']['types'])},
+    '2,7-dihydroxynaphthalene': {int(key): MOLECULE_STR_TO_TYPE['acridine'][val] for key, val in
+                                 zip(MOLECULE_DATA['2,7-dihydroxynaphthalene']['indices'],
+                                     MOLECULE_DATA['2,7-dihydroxynaphthalene']['types'])},
 }
 
 ATOM_CHARGES = {
@@ -212,5 +222,11 @@ ATOM_CHARGES = {
         21: 0.130168,
         22: 0.128637,
         23: 0.152509
-    }  # todo add anthracene and isonicotinamide
+    },
+    'anthracene': {int(key): float(val) for key, val in
+                   zip(MOLECULE_DATA['anthracene']['indices'],
+                       MOLECULE_DATA['anthracene']['charges'])},
+    '2,7-dihydroxynaphthalene': {int(key): float(val) for key, val in
+                                 zip(MOLECULE_DATA['2,7-dihydroxynaphthalene']['indices'],
+                                     MOLECULE_DATA['2,7-dihydroxynaphthalene']['charges'])},
 }

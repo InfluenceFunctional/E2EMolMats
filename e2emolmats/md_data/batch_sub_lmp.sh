@@ -6,6 +6,9 @@
 #SBATCH --mem=10GB
 #SBATCH --time=7-00:00:00
 #SBATCH --array=0
+#SBATCH --mail-user=mjakilgour@gmail.com
+#SBATCH --mail-type=END
+
 
 module purge
 module load lammps/openmpi/intel/20231214

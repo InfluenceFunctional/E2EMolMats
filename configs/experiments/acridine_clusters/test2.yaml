@@ -9,34 +9,40 @@ cluster_type: supercell
 damping:
 - '100.0'
 defect_rate:
-- 0.5
+- 0
+- 0.25
 defect_type:
+- anthracene
 - 2,7-dihydroxynaphthalene
-equil_time: 100000.0
+equil_time: 500000.0
 gap_rate:
 - 0
-init_temperature: 0
-integrator: nosehoover
-machine: local
+init_temperature: 200
+integrator: npt
+machine: cluster
 max_sphere_radius:
-- 20
+- 15
+- 25
 melt_temperature: 2000
-min_inter_cluster_distance: 5
-min_lattice_length: 5
+min_inter_cluster_distance: 40
+min_lattice_length:
+- 40
 prep_bulk_melt: false
 prep_crystal_in_melt: true
 prep_melt_interface: false
-pressure_direction: z
-print_steps: 100
+pressure_direction: iso
+print_steps: 500
 ramp_temperature: false
-run_name: dev
-run_time: 100000
+run_name: acridine_cluster1
+run_time: 20000000.0
 scramble_rate:
 - 0
 seed:
 - 1
+- 2
 structure_identifier:
 - acridine/Form2
+- acridine/Form3
 submit_lammps_slurm: false
 temperature:
-- 100
+- 350

@@ -257,7 +257,7 @@ def get_run_config(override_args=None):
         return batch_config
 
 
-def compute_principal_axes_np(coords):
+def compute_principal_axes_np(coords, canonicalize=True):
     """
     compute the principal axes for a given set of particle coordinates, ignoring particle mass
     use our overlap rules to ensure a fixed direction for all axes under almost all circumstances
@@ -278,26 +278,27 @@ def compute_principal_axes_np(coords):
     Ipm = Ipm[sort_inds]
     Ip = Ip.T[sort_inds]  # want eigenvectors to be sorted row-wise (rather than column-wise)
 
-    # cardinal direction is vector from CoM to the farthest atom
-    dists = np.linalg.norm(points, axis=1)
-    max_ind = np.argmax(dists)
-    max_equivs = np.argwhere(np.round(dists, 8) == np.round(dists[max_ind], 8))[:,
-                 0]  # if there are multiple equidistant atoms - pick the one with the lowest index
-    max_ind = int(np.amin(max_equivs))
-    direction = points[max_ind]
-    direction = np.divide(direction, np.linalg.norm(direction))
-    overlaps = Ip.dot(direction)  # check if the principal components point towards or away from the CoG
-    signs = np.sign(overlaps)  # returns zero for zero overlap, but we want it to default to +1 in this case
-    signs[signs == 0] = 1
+    if canonicalize:  # attempt a 'canonical' directionality
+        # cardinal direction is vector from CoM to the farthest atom
+        dists = np.linalg.norm(points, axis=1)
+        max_ind = np.argmax(dists)
+        max_equivs = np.argwhere(np.round(dists, 8) == np.round(dists[max_ind], 8))[:,
+                     0]  # if there are multiple equidistant atoms - pick the one with the lowest index
+        max_ind = int(np.amin(max_equivs))
+        direction = points[max_ind]
+        direction = np.divide(direction, np.linalg.norm(direction))
+        overlaps = Ip.dot(direction)  # check if the principal components point towards or away from the CoG
+        signs = np.sign(overlaps)  # returns zero for zero overlap, but we want it to default to +1 in this case
+        signs[signs == 0] = 1
 
-    Ip = (Ip.T * signs).T  # if the vectors have negative overlap, flip the direction
-    if np.any(
-            np.abs(
-                overlaps) < 1e-3):  # if any overlaps are vanishing, determine the direction via the RHR (if two overlaps are vanishing, this will not work)
-        # align the 'good' vectors
-        fix_ind = np.argmin(np.abs(overlaps))  # vector with vanishing overlap
-        if compute_Ip_handedness(Ip) < 0:  # make sure result is right handed
-            Ip[fix_ind] = -Ip[fix_ind]
+        Ip = (Ip.T * signs).T  # if the vectors have negative overlap, flip the direction
+        if np.any(
+                np.abs(
+                    overlaps) < 1e-3):  # if any overlaps are vanishing, determine the direction via the RHR (if two overlaps are vanishing, this will not work)
+            # align the 'good' vectors
+            fix_ind = np.argmin(np.abs(overlaps))  # vector with vanishing overlap
+            if compute_Ip_handedness(Ip) < 0:  # make sure result is right handed
+                Ip[fix_ind] = -Ip[fix_ind]
 
     return Ip, Ipm, I
 

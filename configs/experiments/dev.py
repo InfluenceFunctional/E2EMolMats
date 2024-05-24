@@ -6,17 +6,17 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved.
     'temperature': [100],  # Kelvin - the temperature at which to carry out primary sampling
-    'structure_identifier': ['nicotinamide/NICOAM07'],
+    'structure_identifier': ['acridine/Form2'],
     # ['acridine/Form2'], # ['nicotinamide/NICOAM17'], #'["nicotinamide/NICOAM16"],  # , "NICOAM17"],  # names of molecule and polymorph structures to be used as bases.
     'defect_rate': [.5],
     # fraction of molecules to be substituted with appropriately aligned defects - only works for Benzamide in Nicotinamide
-    'defect_type': ['benzamide'],
+    'defect_type': ['2,7-dihydroxynaphthalene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
     'seed': [1],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
-    'max_sphere_radius': [5],  # if carving a finite cluster from a bulk structure, the radius of the sphere
+    'max_sphere_radius': [20],  # if carving a finite cluster from a bulk structure, the radius of the sphere
 
     # static items - DO NOT SET AS LIST
     'cluster_type': 'supercell',

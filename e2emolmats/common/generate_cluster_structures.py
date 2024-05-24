@@ -13,6 +13,7 @@ from ase import io
 from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation
 from e2emolmats.common.utils import dict2namespace, compute_principal_axes_np
+from e2emolmats.md_data.constants import MOLECULE_DATA, MOLECULE_STR_TO_ATOMIC_NUM
 
 
 def get_crystal_properties(structure_identifier):
@@ -410,57 +411,34 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
     defect_molecule_indices = np.random.choice(np.arange(num_mols), size=num_defect_molecules)
     molwise_supercell_coordinates = supercell_coordinates.reshape(num_mols, atoms_in_molecule, 3)
 
-    if defect_type == 'benzamide':
+    if defect_type == 'benzamide':  # todo replace with fresh coords like anthracene
         defect_atoms = np.concatenate((single_mol_atoms, np.ones(1))).astype(int)  # append a proton
         atom_switch_coord = 2
         defect_atoms[atom_switch_coord] = 6  # replace ring nitrogen by carbon
         BENZENE_C_H_BOND_LENGTH = 1.09  # angstrom
 
     elif defect_type == 'anthracene':
-        defect_atoms = np.concatenate((single_mol_atoms, np.ones(1))).astype(int)  # append a proton
-        atom_switch_coord = int(np.argwhere(defect_atoms == 7))
-        defect_atoms[atom_switch_coord] = 6  # swap nitrogen for carbon
+        # need to bodily replace the acridine with an anthracene in the appropriate orientation
+        defect_atoms = np.array([MOLECULE_STR_TO_ATOMIC_NUM[val[0]] for val in MOLECULE_DATA['anthracene']['types']])
+        defect_coordinates = np.array([val for val in MOLECULE_DATA['anthracene']['coordinates']])
+        defect_coordinates -= defect_coordinates.mean(0)
+        ip_defect, _, _ = compute_principal_axes_np(defect_coordinates)
 
-    elif defect_type == 'isonicotinamide':
+    elif defect_type == 'isonicotinamide':  # todo replace with fresh coords like anthracene
         defect_atoms = single_mol_atoms
         atom_switch_coord = 2  # ring nitrogen by carbon
         defect_atoms[atom_switch_coord] = 6  # replace ring nitrogen by carbon
 
         # also sub the ring carbon by nitrogen and pick the proton which will be moved
         defect_atoms[3] = 7
-        move_proton_ind = 12
 
     elif defect_type == '2,7-dihydroxynaphthalene':
         # need to bodily replace the acridine with a naphthalene in the appropriate orientation
-        defect_atoms = np.asarray([
-            8, 8,
-            6, 6, 6, 6, 6, 6, 6, 6, 6, 6,
-            1, 1, 1, 1, 1, 1, 1, 1,
-        ])
-        defect_coordinates = np.asarray([
-            [3.6117, - 1.1467, 0.0000],
-            [- 3.6117, - 1.1468, - 0.0011],
-            [0.0000, - 0.4782, 0.0002],
-            [0.0000, 0.9370, 0.0000],
-            [1.2250, - 1.1651, 0.0002],
-            [- 1.2250, - 1.1650, 0.0005],
-            [1.2250, 1.6238, - 0.0002],
-            [- 1.2252, 1.6238, 0.0001],
-            [2.4327, - 0.4665, - 0.0001],
-            [- 2.4326, - 0.4666, 0.0005],
-            [2.4326, 0.9252, - 0.0003],
-            [- 2.4327, 0.9251, 0.0003],
-            [1.2424, - 2.2536, 0.0003],
-            [- 1.2424, - 2.2535, 0.0003],
-            [1.2487, 2.7116, - 0.0004],
-            [- 1.2490, 2.7116, - 0.0001],
-            [3.3667, 1.4807, - 0.0005],
-            [- 3.3668, 1.4805, 0.0000],
-            [4.3447, - 0.5074, - 0.0001],
-            [- 4.3447, - 0.5074, - 0.0013],
-        ])
+        defect_atoms = np.array([MOLECULE_STR_TO_ATOMIC_NUM[val[0]] for val in MOLECULE_DATA['2,7-dihydroxynaphthalene']['types']])
+        defect_coordinates = np.array([val for val in MOLECULE_DATA['2,7-dihydroxynaphthalene']['coordinates']])
         defect_coordinates -= defect_coordinates.mean(0)
-        Ip_defect, _, _ = compute_principal_axes_np(defect_coordinates)
+    else:
+        assert False, f"No such defect type! {defect_type}"
 
     # apply defect
     defected_supercell_coordinates = []
@@ -500,40 +478,25 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
                 proton_position = new_carbon_coord + proton_vector
                 defect_mol_coordinates = original_mol_coords.copy()
                 defect_mol_coordinates[12] = proton_position
-                # np.concatenate(
-                #   (original_mol_coords, proton_position[None, :]))  # append proton position to end of list
 
-            elif defect_type == 'anthracene':
-                # simply convert the nitrogen to a carbon, don't move any atoms around
-                new_carbon_coord = original_mol_coords[atom_switch_coord]
-                neighboring_carbon_inds = list(
-                    np.argwhere(cdist(new_carbon_coord[None, :], original_mol_coords)[0, :] < 1.45)[:, 0])
-                neighboring_carbon_inds.remove(atom_switch_coord)  # remove self
-                neighbor_vectors = new_carbon_coord - original_mol_coords[neighboring_carbon_inds]
-
-                # to project a trigonal planar proton, take the mean of the neighbors directions, and reverse it
-                normed_neighbor_vectors = neighbor_vectors / np.linalg.norm(neighbor_vectors, axis=1)[:, None]
-                proton_direction = normed_neighbor_vectors.mean(0)  # switch direction
-                proton_vector = proton_direction / np.linalg.norm(proton_direction) * BENZENE_C_H_BOND_LENGTH
-                proton_position = new_carbon_coord + proton_vector
-                defect_mol_coordinates = np.concatenate(
-                    (original_mol_coords, proton_position[None, :]))  # append proton position to end of list
-
-            elif defect_type == '2,7-dihydroxynaphthalene':
-                # compute the intertial tensor for the acridine molecule
-                # and align it with the napthalene
-                Ip_host, _, _ = compute_principal_axes_np(original_mol_coords)
-                Rmat = Ip_host @ np.linalg.inv(Ip_defect)
-                oriented_defect_coords = (Rmat @ defect_coordinates.T).T
-
-                # test
-                if i == 10:
-                    defect_test_Ip, _, _ = compute_principal_axes_np(oriented_defect_coords)
-                    assert np.sum(
-                        np.abs(defect_test_Ip - Ip_host)) <= 1e-3, "Defect naphthalene is not in correct orientation"
+            elif defect_type == 'anthracene' or defect_type == '2,7-dihydroxynaphthalene':
+                # compute the intertial tensor for the original host molecule
+                # and align it with the defected molecule
+                ip_defect, _, _ = compute_principal_axes_np(defect_coordinates)
+                ip_host, _, _ = compute_principal_axes_np(original_mol_coords)
+                rotmat = np.matmul(ip_host.T, np.linalg.inv(ip_defect.T))
+                oriented_defect_coords = np.matmul(rotmat, defect_coordinates.T).T
+                defect_test_Ip, _, _ = compute_principal_axes_np(oriented_defect_coords)
+                if np.sum(np.abs(defect_test_Ip - ip_host)) <= 1e-3:
+                    if np.sum(np.abs(defect_test_Ip) - np.abs(ip_host)) <= 1e-3:
+                        print(f"Defect {defect_type}:{i} symmetries scrambled in defect placement")
+                    else:
+                        assert False, f"Defect {defect_type}:{i} is not in correct orientation"
 
                 oriented_defect_coords += original_mol_coords.mean(0)  # put it in place
                 defect_mol_coordinates = oriented_defect_coords
+            else:
+                assert False, f"No such defect type! {defect_type}"
 
             defected_supercell_coordinates.append(defect_mol_coordinates)
             defected_supercell_atoms.extend(defect_atoms)
@@ -544,7 +507,7 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
     supercell_coordinates = np.concatenate(defected_supercell_coordinates)
     supercell_atoms = np.asarray(defected_supercell_atoms)
 
-    # visualize cluster
+    # # visualize cluster
     # from ase import Atoms
     # from ase.visualize import view
     #
