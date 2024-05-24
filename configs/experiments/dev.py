@@ -8,7 +8,7 @@ batch_config = {
     'temperature': [100],  # Kelvin - the temperature at which to carry out primary sampling
     'structure_identifier': ['acridine/Form2'],
     # ['acridine/Form2'], # ['nicotinamide/NICOAM17'], #'["nicotinamide/NICOAM16"],  # , "NICOAM17"],  # names of molecule and polymorph structures to be used as bases.
-    'defect_rate': [.5],
+    'defect_rate': [0],
     # fraction of molecules to be substituted with appropriately aligned defects - only works for Benzamide in Nicotinamide
     'defect_type': ['2,7-dihydroxynaphthalene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
