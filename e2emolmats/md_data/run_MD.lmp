@@ -51,11 +51,10 @@
   variable          press   equal press
   variable          etot    equal etotal
 
-#--------------------------- Thermo stylepa and settings -------------------------#
+#--------------------------- Thermo style and settings -------------------------#
   timestep          1.0
   thermo_style      custom step temp epair emol etotal pe press vol
   thermo            ${t_print}
-
 
 #--------------------------- Computes ------------------------------------------#
 
@@ -64,8 +63,11 @@
 
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
+  fix 3 all ave/time ${t_print} 10 ${t_print} c_thermo_press[*]
 
-  dump              d2 all custom ${t_print} traj.dump id mol element xu yu zu
+  variable runningPressure equal f_3
+
+  dump d2 all custom ${t_print} traj.dump id mol element xu yu zu
 
 #_DUMP_MODIFY
 
@@ -86,11 +88,11 @@
 #_MELT_PREP run ${t_equil}  # cool
 #_MELT_PREP unfix f131
 
-#_MELT_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) #_p_dim ${press} 1.0 $(1000.0*dt)
+#_MELT_PREP fix f132 melt npt temp 800 ${T_sample} $(100.0*dt) #_p_dim ${runningPressure} 1.0 $(1000.0*dt)
 #_MELT_PREP run ${t_equil}  # NPT cool
 #_MELT_PREP unfix f132
 
-#_MELT_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) #_p_dim ${press} 1.0 $(1000.0*dt)
+#_MELT_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) #_p_dim ${runningPressure} 1.0 $(1000.0*dt)
 #_MELT_PREP fix s1 crystal spring/self 10 xyz  # add restraining force atomwise on crystals
 #_MELT_PREP run ${t_equil}  # re equilibrate
 #_MELT_PREP unfix f133

@@ -29,17 +29,24 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 #     r'D:\crystal_datasets\acridine_melt_interface18/'
 # ]
 'paths for analysis of nicotinamide melt point'
+# battery_paths = [
+#     #r'D:\crystal_datasets\nic_melt_interface1/',
+#     #r'D:\crystal_datasets\nic_melt_interface2/',
+#     r'D:\crystal_datasets\nic_melt_interface3/'
+# ]
+'paths for analysis of nicotinamide cluster stability'
+# battery_paths = [
+#     r'D:\crystal_datasets\nic_cluster1/',
+#     r'D:\crystal_datasets\nic_cluster2/'
+# ]
+'paths for analysis of acridine cluster stability'
 battery_paths = [
-    #r'D:\crystal_datasets\nic_melt_interface1/',
-    r'D:\crystal_datasets\nic_melt_interface2/'
+    r'D:\crystal_datasets\acridine_cluster1/',
+    r'D:\crystal_datasets\acridine_cluster2/'
 ]
-'paths for analysis of nicotinamide cluster stabilitypoint'
-#battery_paths = [
-#    r'D:\crystal_datasets\nic_cluster1/'
-#]
 if __name__ == '__main__':
     config_i = {
-        'molecule': 'nicotinamide',
+        'molecule': 'nicotinamide' if 'nic' in battery_paths else 'acridine',
         'battery_paths': battery_paths,
         'redo_analysis': False,
         'run_name': 'test_analysis',
@@ -89,7 +96,7 @@ if __name__ == '__main__':
                     thermo_results_dict = process_thermo_data()
                     if 'thermo_trajectory' not in thermo_results_dict.keys():
                         print(f'Processing {run_dir} failed')
-                        continue  # if processing failed, skip this run
+                        continue  # if processing failed, skip this run   # todo add failure condition
 
                     if config.log_figs:
                         thermo_telemetry_fig = make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config)
