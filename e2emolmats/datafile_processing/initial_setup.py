@@ -3,12 +3,15 @@ from e2emolmats.md_data.constants import (MOLECULE_ATOM_TYPES_MASSES,
                                           ATOM_TYPES, ATOM_CHARGES)
 
 
-def atom_type_renumbering(original_filename, new_filename, molecule_name, molind2name):
+def atom_type_renumbering(original_filename, new_filename, molecule_name, molind2name, defect_rate, defect_name):
     datafile = open(original_filename, 'r')
     new_datafile = open(new_filename, 'w')
     lines = datafile.readlines()
 
-    num_atom_types = MOLECULE_NUM_ATOM_TYPES[molecule_name]
+    if defect_rate > 0:
+        num_atom_types = MOLECULE_NUM_ATOM_TYPES[molecule_name + '+' + defect_name]
+    else:
+        num_atom_types = MOLECULE_NUM_ATOM_TYPES[molecule_name]
 
     mol_counter = 0
     atom_counter = 1
@@ -38,7 +41,11 @@ def atom_type_renumbering(original_filename, new_filename, molecule_name, molind
             new_datafile.write(f"{num_atom_types} atom types\n")
 
         elif hit_masses and not hit_atoms and not printed_masses:
-            new_datafile.write(MOLECULE_ATOM_TYPES_MASSES[molecule_name])
+            if defect_rate > 0:
+                new_datafile.write(MOLECULE_NUM_ATOM_TYPES[molecule_name + '+' + defect_name])
+            else:
+                new_datafile.write(MOLECULE_ATOM_TYPES_MASSES[molecule_name])
+
             new_datafile.write("\n")
             printed_masses = True
 

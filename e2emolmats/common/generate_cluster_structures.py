@@ -256,7 +256,8 @@ def crystal_melt_reindexing(atoms_in_molecule, cluster_size, max_sphere_radius, 
     return melt_inds, supercell_coordinates
 
 
-def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell, interface_dimension):
+def crystal_interface_reindexing(atoms_in_molecule, cluster_size, supercell_coordinates, z_value, cell,
+                                 interface_dimension):
     # identify atoms in molecules within a sufficiently large sphere from the center
     # reindex the whole thing to put these in the first N rows
     num_mols = z_value * np.product(cluster_size)
@@ -434,7 +435,8 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
 
     elif defect_type == '2,7-dihydroxynaphthalene':
         # need to bodily replace the acridine with a naphthalene in the appropriate orientation
-        defect_atoms = np.array([MOLECULE_STR_TO_ATOMIC_NUM[val[0]] for val in MOLECULE_DATA['2,7-dihydroxynaphthalene']['types']])
+        defect_atoms = np.array(
+            [MOLECULE_STR_TO_ATOMIC_NUM[val[0]] for val in MOLECULE_DATA['2,7-dihydroxynaphthalene']['types']])
         defect_coordinates = np.array([val for val in MOLECULE_DATA['2,7-dihydroxynaphthalene']['coordinates']])
         defect_coordinates -= defect_coordinates.mean(0)
     else:

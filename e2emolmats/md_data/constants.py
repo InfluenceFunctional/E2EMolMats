@@ -13,10 +13,36 @@ MOLECULE_ATOM_TYPES_MASSES = {
                     "6 12.01  # c\n"
                     "7 12.01  # ca\n"
                     "8 16.00  # o\n",
+    'nicotinamide+benzamide': "Masses\n\n"
+                    "1 1.008  # ha\n"
+                    "2 1.008  # h4\n"
+                    "3 1.008  # hn\n"
+                    "4 14.01  # n\n"
+                    "5 14.01  # nb\n"
+                    "6 12.01  # c\n"
+                    "7 12.01  # ca\n"
+                    "8 16.00  # o\n",
+    'nicotinamide+isonicotinamide': "Masses\n\n"
+                    "1 1.008  # ha\n"
+                    "2 1.008  # h4\n"
+                    "3 1.008  # hn\n"
+                    "4 14.01  # n\n"
+                    "5 14.01  # nb\n"
+                    "6 12.01  # c\n"
+                    "7 12.01  # ca\n"
+                    "8 16.00  # o\n",
     'acridine': "Masses\n\n"
                 "1 12.01  # ca\n"
                 "2 1.008  # ha\n"
-                "3 14.01  # nb\n"
+                "3 14.01  # nb\n",
+    'acridine+anthracene': "Masses\n\n"
+                    "1 12.01  # ca\n"
+                    "2 1.008  # ha\n"
+                    "3 14.01  # nb\n",
+    'acridine+2,7-dihydroxynaphthalene': "Masses\n\n"
+                    "1 12.01  # ca\n"
+                    "2 1.008  # ha\n"
+                    "3 14.01  # nb\n"
                 "4 15.9994  # oh\n"
                 "5 1.00794  # ho\n"
 }
@@ -140,7 +166,7 @@ ATOM_TYPES = {
     'anthracene': {int(key): MOLECULE_STR_TO_TYPE['acridine'][val] for key, val in
                    zip(MOLECULE_DATA['anthracene']['indices'],
                        MOLECULE_DATA['anthracene']['types'])},
-    '2,7-dihydroxynaphthalene': {int(key): MOLECULE_STR_TO_TYPE['acridine'][val] for key, val in
+    '2,7-dihydroxynaphthalene': {int(key): MOLECULE_STR_TO_TYPE['acridine+2,7-dihydroxynaphthalene'][val] for key, val in
                                  zip(MOLECULE_DATA['2,7-dihydroxynaphthalene']['indices'],
                                      MOLECULE_DATA['2,7-dihydroxynaphthalene']['types'])},
 }

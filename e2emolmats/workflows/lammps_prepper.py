@@ -95,7 +95,8 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
 
     '''prep atom types and make bonds'''
-    atom_type_renumbering('2.data', '3.data', molecule_name, molind2name)
+    atom_type_renumbering('2.data', '3.data',
+                          molecule_name, molind2name, config.defect_rate, config.defect_type)
 
     print("============================")
     print("Ltemplifying")

@@ -21,6 +21,8 @@
 #_MELT_PREP  variable          melt_end_ind    equal _MELT_END_IND
 #_MELT_PREP  variable          crystal_start_ind  equal _CRYSTAL_START_IND
 #_MELT_PREP  variable          crystal_end_ind    equal _CRYSTAL_END_IND
+  variable	    t_press equal round(${t_print}*5)
+
 
 #-------------------------------------------------------------------------------#
   boundary			_BOUND _BOUND _BOUND
@@ -63,7 +65,7 @@
 
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
-  fix 3 all ave/time ${t_print} 10 ${t_print} c_thermo_press[*]
+  fix 3 all ave/time ${t_print} 5 ${t_press} c_thermo_press
 
   variable runningPressure equal f_3
 
