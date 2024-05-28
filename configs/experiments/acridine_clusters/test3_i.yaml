@@ -9,6 +9,7 @@ cluster_type: supercell
 damping:
 - '100.0'
 defect_rate:
+- 0
 - 0.25
 defect_type:
 - anthracene

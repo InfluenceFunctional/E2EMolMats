@@ -42,7 +42,7 @@ def atom_type_renumbering(original_filename, new_filename, molecule_name, molind
 
         elif hit_masses and not hit_atoms and not printed_masses:
             if defect_rate > 0:
-                new_datafile.write(MOLECULE_NUM_ATOM_TYPES[molecule_name + '+' + defect_name])
+                new_datafile.write(MOLECULE_ATOM_TYPES_MASSES[molecule_name + '+' + defect_name])
             else:
                 new_datafile.write(MOLECULE_ATOM_TYPES_MASSES[molecule_name])
 

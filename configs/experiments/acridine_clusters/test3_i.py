@@ -9,7 +9,7 @@ batch_config = {
     'temperature': [350],  # Kelvin
     'structure_identifier': ['acridine/Form2',
                              ],
-    'defect_rate': [0.25],
+    'defect_rate': [0, 0.25],
     'defect_type': ['anthracene', '2,7-dihydroxynaphthalene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
