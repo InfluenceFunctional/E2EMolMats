@@ -33,13 +33,22 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
             ind += 1
 
     thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
-    thermo_telemetry_fig.update_layout(title=f"{run_config['structure_identifier']}, "
-                                             f"Gap Rate {run_config['gap_rate']:.2f}, "
-                                             f"System Size {run_config['min_lattice_length']} "
-                                             f"Cubic Angstrom or {thermo_results_dict['thermo_trajectory'].shape[1]} Molecules"
-                                             f"Sampling temperature {run_config['temperature']}K"
-                                       )
-    return thermo_telemetry_fig
+    good_keys = ['box_type', 'min_inter_cluster_distance', 'pressure_direction', 'run_name', 'damping',
+                 'defect_rate', 'defect_type', 'gap_rate', 'max_sphere_radius', 'min_lattice_length',
+                 'scramble_rate', 'seed', 'structure_identifier', 'temperature']
+    thermo_telemetry_fig.update_layout(title=str({key: run_config[key] for key in good_keys[0:5]})
+                                             + '<br>' + str({key: run_config[key] for key in good_keys[5:10]})
+                                             + '<br>' + str({key: run_config[key] for key in good_keys[10:]}),
+                                       title_automargin=True,
+                                       title_pad_t=20,
+                                       margin_t=180)
+    # thermo_telemetry_fig.update_layout(title=f"{run_config['structure_identifier']}, "
+    #                                          f"Gap Rate {run_config['gap_rate']:.2f}, "
+    #                                          f"System Size {run_config['min_lattice_length']} "
+    #                                          f"Cubic Angstrom or {thermo_results_dict['thermo_trajectory'].shape[1]} Molecules"
+    #                                          f"Sampling temperature {run_config['temperature']}K"
+    #                                    )
+    return thermo_telemetry_fig, thermo_results_dict['thermo_trajectory'].shape[1]
 
 
 def process_thermo_data():
@@ -58,17 +67,16 @@ def process_thermo_data():
     except FileNotFoundError or io.UnsupportedOperation:
         for key in results_dict.keys():
             results_dict[key] = np.zeros(1)
-        return results_dict
+        return results_dict, 'screen.log missing!'
     lines = text.split('\n')
     f.close()
     hit_minimization = False
     skip = True
 
-
-    if "Total wall time" not in text:  # skip analysis if the run crashed
+    if "Total wall time" not in text:  # skip analysis if the run crashed or is unfinished
         for key in results_dict.keys():
             results_dict[key] = np.zeros(1)
-        return results_dict
+        return results_dict, 'Run unfinished!'
 
     for ind, line in enumerate(lines):
         if 'ns/day' in line:
@@ -98,7 +106,6 @@ def process_thermo_data():
         results_dict[key] = np.asarray(results_dict[key])
 
     if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
-
         f = open('tmp.out', "r")
         text = f.read()
         lines = text.split('\n')
@@ -129,8 +136,10 @@ def process_thermo_data():
         results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
         results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
         results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
+        return results_dict, 'Thermo analysis succeeded'
 
-    return results_dict
+    else:
+        return results_dict, 'Missing thermo analysis!'
 
 
 def get_melt_point(temperature, energy_traj):
@@ -498,3 +507,19 @@ POLYMORPH_MELT_POINTS = {'acridine':
                      "NICOAM18": 382.5,  # form 6, Tm 382.5K, zeta}
                      },
 }
+
+
+def runs_summary_table(runs_dict):
+    runs = np.asarray(list(runs_dict.keys())).astype(int)
+    runs = np.sort(runs)
+    codes = [runs_dict[str(key)][0] for key in runs]
+    defects = [runs_dict[str(key)][1]['defect_type'] for key in runs]
+    defect_rates = [runs_dict[str(key)][1]['defect_rate'] for key in runs]
+    sizes = [runs_dict[str(key)][1]['max_sphere_radius'] for key in runs]
+    polymorph = [runs_dict[str(key)][1]['structure_identifier'].split('/')[-1] for key in runs]
+
+    fig = go.Figure(
+        data=go.Table(header=dict(
+            values=['run_num', 'run_status', 'defect_type', 'defect_rate', 'cluster_radius', 'polymorph']),
+            cells=dict(values=[runs, codes, defects, defect_rates, sizes, polymorph])))
+    return fig

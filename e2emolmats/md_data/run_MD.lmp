@@ -75,6 +75,9 @@
 #_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
 #_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
+#_MELT_PREP compute crystalChunk crystal hybrid lj/charmm/coul/long 9.0 10.0 10.0
+#_MELT_PREP fix 4 all ave/time ${t_print} 1 ${t_print} c_crystalChunk[*] file crystal.out mode vector
+
 #_MELT_PREP fix f11 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_MELT_PREP velocity          all create ${T_sample} ${rnd} mom yes rot yes dist gaussian
 #_MELT_PREP run ${t_equil}  # equilibrate

@@ -1,15 +1,17 @@
 """central script for the analysis of MD trajectories"""
 
+import glob
 import os
-import numpy as np
 
+import numpy as np
+import pandas as pd
+import plotly.graph_objects as go
+import wandb
+
+from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
-                                        plot_melt_points, POLYMORPH_MELT_POINTS)
-from e2emolmats.common.utils import dict2namespace
-import pandas as pd
-import wandb
-import glob
+                                        plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -30,8 +32,8 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 # ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
-#     #r'D:\crystal_datasets\nic_melt_interface1/',
-#     #r'D:\crystal_datasets\nic_melt_interface2/',
+#     r'D:\crystal_datasets\nic_melt_interface1/',
+#     r'D:\crystal_datasets\nic_melt_interface2/',
 #     r'D:\crystal_datasets\nic_melt_interface3/'
 # ]
 'paths for analysis of nicotinamide cluster stability'
@@ -46,9 +48,9 @@ battery_paths = [
 ]
 if __name__ == '__main__':
     config_i = {
-        'molecule': 'nicotinamide' if 'nic' in battery_paths else 'acridine',
+        'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
         'battery_paths': battery_paths,
-        'redo_analysis': False,
+        'redo_analysis': True,
         'run_name': 'test_analysis',
         'log_figs': True,
         'compute_melt_temps': True
@@ -62,7 +64,7 @@ if __name__ == '__main__':
     wandb.run.save()
 
     combined_df = pd.DataFrame()
-
+    runs_dict = {}
     for battery_path in battery_paths:
         'process and collect results battery-wise'
 
@@ -84,7 +86,7 @@ if __name__ == '__main__':
                 continue
             try:
                 int(run_dir)
-                skip_dir = False  # run directories aren integer-listed
+                skip_dir = False  # run directories are integer-listed
             except ValueError:
                 skip_dir = True
             if not skip_dir:
@@ -93,13 +95,15 @@ if __name__ == '__main__':
                     run_config = np.load('run_config.npy', allow_pickle=True).item()
 
                     'always do thermo analysis'
-                    thermo_results_dict = process_thermo_data()
-                    if 'thermo_trajectory' not in thermo_results_dict.keys():
-                        print(f'Processing {run_dir} failed')
-                        continue  # if processing failed, skip this run   # todo add failure condition
+                    thermo_results_dict, analysis_code = process_thermo_data()
+                    runs_dict[run_dir] = [analysis_code, run_config]
+                    if analysis_code != 'Thermo analysis succeeded':
+                        print(f'Processing {run_dir} failed ' + analysis_code)
+                        continue  # if processing failed, skip this run
 
                     if config.log_figs:
-                        thermo_telemetry_fig = make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config)
+                        thermo_telemetry_fig, num_molecules = make_thermo_fig(traj_thermo_keys, thermo_results_dict,
+                                                                              run_config)
                         wandb.log({'Thermo Data': thermo_telemetry_fig})
 
                     '''save results'''
@@ -117,6 +121,10 @@ if __name__ == '__main__':
                     results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
                     results_df.to_pickle(battery_full_path + '/results_df')
 
+        # visualize something with runs dict, maybe as a table
+        summary_fig = runs_summary_table(runs_dict)
+        summary_fig.show(renderer='browser')
+
         if config.compute_melt_temps:
             results_df.reset_index(drop=True, inplace=True)
             results_df['melt_slope'], results_df['melt_magnitude'] = get_melt_progress(results_df)
@@ -127,6 +135,7 @@ if __name__ == '__main__':
         else:
             combined_df = results_df
 
+    'multi-battery analysis'
     if config.compute_melt_temps:
         fig, melt_estimate_dict = compute_and_plot_melt_slopes(combined_df)
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
