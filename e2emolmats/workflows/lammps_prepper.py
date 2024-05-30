@@ -72,6 +72,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     config_dict.update({'molecule_num_atoms_dict': MOLECULE_NUM_ATOMS})
     config_dict.update({'molecule_atom_types': ATOM_TYPES})
     config_dict.update({'molecule_sym_indices': MOLECULE_SYM_INDICES})
+    config_dict.update({'melt_indices': melt_inds})
     np.save('run_config', config_dict)
 
     '''set temperature, run time, and print step in lmp file'''

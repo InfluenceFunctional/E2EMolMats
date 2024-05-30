@@ -45,7 +45,7 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 battery_paths = [
     #r'D:\crystal_datasets\acridine_cluster1/',
     #r'D:\crystal_datasets\acridine_cluster2/',
-    r'D:\crystal_datasets\acridine_cluster3_i/'
+    r'D:\crystal_datasets\acridine_cluster3/'
 ]
 if __name__ == '__main__':
     config_i = {
