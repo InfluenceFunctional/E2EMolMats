@@ -87,17 +87,14 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     export_file(pipeline, '1.data', 'lammps/data', atom_style='full')
 
     '''prep atom types and make bonds'''
-    pipeline.source.load('1.data')
-    if 'acridine' in config.structure_identifier:
-        create_bonds_modifier = CreateBondsModifier(cutoff=1.7)
-    else:
-        create_bonds_modifier = CreateBondsModifier(mode=CreateBondsModifier.Mode.VdWRadius)
-    pipeline.modifiers.append(create_bonds_modifier)
-    export_file(pipeline, '2.data', 'lammps/data', atom_style='full')
-
-    '''prep atom types and make bonds'''
-    atom_type_renumbering('2.data', '3.data',
+    atom_type_renumbering('1.data', '2.data',
                           molecule_name, molind2name, config.defect_rate, config.defect_type)
+
+    pipeline.source.load('2.data')
+    create_bonds_modifier = CreateBondsModifier(cutoff=1.7, intra_molecule_only=True, prevent_hh_bonds=True)
+
+    pipeline.modifiers.append(create_bonds_modifier)
+    export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
     print("============================")
     print("Ltemplifying")
