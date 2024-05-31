@@ -54,7 +54,8 @@ if __name__ == '__main__':
         'redo_analysis': True,
         'run_name': 'test_analysis',
         'log_figs': True,
-        'compute_melt_temps': True
+        'compute_melt_temps': False,
+        'CoM_analysis': True,
     }
     config = dict2namespace(config_i)
 
@@ -96,7 +97,7 @@ if __name__ == '__main__':
                     run_config = np.load('run_config.npy', allow_pickle=True).item()
 
                     'always do thermo analysis'
-                    thermo_results_dict, analysis_code = process_thermo_data()
+                    thermo_results_dict, analysis_code = process_thermo_data(run_config)
                     runs_dict[run_dir] = [analysis_code, run_config]
                     if analysis_code != 'Thermo analysis succeeded':
                         print(f'Processing {run_dir} failed ' + analysis_code)

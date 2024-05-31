@@ -12,25 +12,31 @@ import plotly.express as px
 
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
-    thermo_telemetry_fig = make_subplots(rows=2, cols=5, subplot_titles=traj_thermo_keys)
+    if 'crystal_radius_trajectory' in thermo_results_dict.keys():
+        keys_to_use = traj_thermo_keys + ['crystal_radius_trajectory']
+        cols = 6
+    else:
+        keys_to_use = traj_thermo_keys.copy()
+        cols = 5
+
+    thermo_telemetry_fig = make_subplots(rows=2, cols=cols, subplot_titles=keys_to_use)
     ind = 0
-    for i, key in enumerate(thermo_results_dict.keys()):
-        if key in traj_thermo_keys:
-            row = ind // 5 + 1
-            col = ind % 5 + 1
-            thermo_telemetry_fig.add_trace(
-                go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
-                             y=thermo_results_dict[key],
-                             name=key, showlegend=False),
-                row=row, col=col
-            )
-            thermo_telemetry_fig.add_trace(
-                go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
-                             y=gaussian_filter1d(thermo_results_dict[key], sigma=2),
-                             name=key, showlegend=False),
-                row=row, col=col
-            )
-            ind += 1
+    for i, key in enumerate(keys_to_use):
+        row = ind // cols + 1
+        col = ind % cols + 1
+        thermo_telemetry_fig.add_trace(
+            go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
+                         y=thermo_results_dict[key],
+                         name=key, showlegend=False),
+            row=row, col=col
+        )
+        thermo_telemetry_fig.add_trace(
+            go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
+                         y=gaussian_filter1d(thermo_results_dict[key], sigma=2),
+                         name=key, showlegend=False),
+            row=row, col=col
+        )
+        ind += 1
 
     thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
     good_keys = ['box_type', 'min_inter_cluster_distance', 'pressure_direction', 'run_name', 'damping',
@@ -51,7 +57,7 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
     return thermo_telemetry_fig, thermo_results_dict['thermo_trajectory'].shape[1]
 
 
-def process_thermo_data():
+def process_thermo_data(run_config):
     results_dict = {'time step': [],
                     'temp': [],
                     'E_pair': [],
@@ -105,32 +111,21 @@ def process_thermo_data():
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
 
+    if os.path.exists('com.out'):  # molecule-wise temperature analysis
+        frames = read_lammps_thermo_traj('com.out')
+        results_dict['com_trajectory'] = np.asarray(list(frames.values()))
+        crystal_radius_traj = results_dict['com_trajectory'][:,
+                              run_config['melt_indices'].crystal_start_ind - 1:
+                              run_config['melt_indices'].crystal_end_ind - 1]
+
+        crystal_radius = np.zeros(len(crystal_radius_traj))
+        for ind, step in enumerate(crystal_radius_traj):
+            crystal_radius[ind] = np.mean(np.linalg.norm(step - step.mean(0), axis=1))
+
+        results_dict['crystal_radius_trajectory'] = crystal_radius
+
     if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
-        f = open('tmp.out', "r")
-        text = f.read()
-        lines = text.split('\n')
-        f.close()
-
-        frames = {}
-        frame_data = []  # temp kecom internal
-        for ind, line in enumerate(lines):
-            if line == '\n':
-                pass
-            elif len(line.split()) == 0:
-                pass
-            elif line[0] == '#':
-                pass
-            elif len(line.split()) == 2:
-                if len(frame_data) > 0:
-                    frames[frame_num] = frame_data
-                a, b = line.split()
-                frame_num = int(a)
-                n_mols = int(b)
-                frame_data = np.zeros((n_mols, 3))
-            else:
-                mol_num, temp, kecom, internal = np.asarray(line.split()).astype(float)
-                frame_data[int(mol_num) - 1] = temp, kecom, internal
-
+        frames = read_lammps_thermo_traj('tmp.out')
         results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
         # averages over molecules
         results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
@@ -138,9 +133,34 @@ def process_thermo_data():
         results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
         return results_dict, 'Thermo analysis succeeded'
 
-    else:
-        return results_dict, 'Missing thermo analysis!'
 
+def read_lammps_thermo_traj(filename):
+    f = open(filename, "r")
+    text = f.read()
+    lines = text.split('\n')
+    f.close()
+
+    frames = {}
+    frame_data = []  # temp kecom internal
+    for ind, line in enumerate(lines):
+        if line == '\n':
+            pass
+        elif len(line.split()) == 0:
+            pass
+        elif line[0] == '#':
+            pass
+        elif len(line.split()) == 2:
+            if len(frame_data) > 0:
+                frames[frame_num] = frame_data
+            a, b = line.split()
+            frame_num = int(a)
+            n_mols = int(b)
+            frame_data = np.zeros((n_mols, 3))
+        else:
+            mol_num, temp, kecom, internal = np.asarray(line.split()).astype(float)
+            frame_data[int(mol_num) - 1] = temp, kecom, internal
+
+    return frames
 
 def get_melt_point(temperature, energy_traj):
     num_points = len(energy_traj)
