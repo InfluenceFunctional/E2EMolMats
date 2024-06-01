@@ -19,10 +19,9 @@ init_temperature: 200
 integrator: npt
 machine: cluster
 max_sphere_radius:
-- 7.5
-- 12.5
-- 17.5
-- 22.5
+- 10
+- 20
+- 30
 melt_temperature: 2000
 min_inter_cluster_distance: 20
 min_lattice_length:
@@ -33,16 +32,16 @@ prep_melt_interface: false
 pressure_direction: iso
 print_steps: 200
 ramp_temperature: false
-run_name: acridine_cluster4
+run_name: acridine_cluster5
 run_time: 5000000.0
 scramble_rate:
 - 0
 seed:
-- 2
 - 1
+- 2
 structure_identifier:
 - acridine/Form2
-- acridine/Form3
 submit_lammps_slurm: false
 temperature:
-- 350
+- 200
+- 300

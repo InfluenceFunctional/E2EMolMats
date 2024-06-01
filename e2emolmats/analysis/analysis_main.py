@@ -45,13 +45,13 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 battery_paths = [
     #r'D:\crystal_datasets\acridine_cluster1/',
     #r'D:\crystal_datasets\acridine_cluster2/',
-    r'D:\crystal_datasets\acridine_cluster3/'
+    r'D:\crystal_datasets\acridine_cluster4/'
 ]
 if __name__ == '__main__':
     config_i = {
         'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
         'battery_paths': battery_paths,
-        'redo_analysis': True,
+        'redo_analysis': False,
         'run_name': 'test_analysis',
         'log_figs': True,
         'compute_melt_temps': False,
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                                }
                     for key in run_config.keys():
                         new_row.update({key: [run_config[key]]})
-                    for key in traj_thermo_keys:
+                    for key in thermo_results_dict.keys():
                         new_row.update({key: [thermo_results_dict[key]]})
                     new_row.update({'time step': [thermo_results_dict['time step']]})
                     results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
@@ -145,4 +145,19 @@ if __name__ == '__main__':
         wandb.log({'Melt Slopes': fig,
                    'Melt Temps': fig2,
                    })
+
+    if config.CoM_analysis:
+        crystal_size = []
+        stability = []
+        temperature = []
+        defect_rate = []
+        for ind in range(len(combined_df)):
+            crystal_size.append(combined_df.iloc[ind]['max_sphere_radius'])
+            stability.append(np.mean(combined_df.iloc[ind]['crystal_radius_trajectory'][0:5]) / np.amax(combined_df.iloc[ind]['crystal_radius_trajectory']))
+
+        fig = go.Figure()
+        fig.add_scattergl(x=crystal_size,y=stability,mode='markers')
+        fig.show(renderer='browser')
+        wandb.log({'Crystal Nucleus Stability': fig})
+
     wandb.finish()

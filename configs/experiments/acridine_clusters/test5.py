@@ -6,17 +6,17 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
-    'temperature': [350],  # Kelvin
-    'structure_identifier': ['acridine/Form2',
-                             'acridine/Form3'],
+    'temperature': [200, 300],  # Kelvin
+    'structure_identifier': ['acridine/Form2'
+                             ],
     'defect_rate': [0],
     'defect_type': ['anthracene'], #, '2,7-dihydroxynaphthalene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
-    'seed': [2, 1],  # integers greater than zero
+    'seed': [1, 2],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
-    'max_sphere_radius': [7.5, 12.5, 17.5, 22.5],  # if carving a finite cluster from a bulk structure, the radius of the sphere
+    'max_sphere_radius': [10, 20, 30],  # if carving a finite cluster from a bulk structure, the radius of the sphere
 
     # static items - DO NOT SET AS LIST
     'run_time': 5e6,  # sampling time in femtoseconds
@@ -32,7 +32,7 @@ batch_config = {
     'min_inter_cluster_distance': 20,  # sets periodic box size in cluster simulations, 0 or None if unused
     'bulk_crystal': True,  # if true, periodic structu:wqre
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'acridine_cluster4',
+    'run_name': 'acridine_cluster5',
     'min_lattice_length': [20],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': True,  # Work in progress - prepare a frozen nanocrystal in a melted environment

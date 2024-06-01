@@ -5,6 +5,7 @@ import numpy as np
 from _plotly_utils.colors import n_colors
 from scipy.optimize import minimize_scalar
 from scipy.stats import linregress
+from scipy.spatial.distance import cdist
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter1d
@@ -119,10 +120,21 @@ def process_thermo_data(run_config):
                               run_config['melt_indices'].crystal_end_ind - 1]
 
         crystal_radius = np.zeros(len(crystal_radius_traj))
+        crystal_min_dist = np.zeros_like(crystal_radius)
+        crystal_mean_dist = np.zeros_like(crystal_radius)
+        crystal_max_dist = np.zeros_like(crystal_radius)
+
         for ind, step in enumerate(crystal_radius_traj):
             crystal_radius[ind] = np.mean(np.linalg.norm(step - step.mean(0), axis=1))
+            dmat = cdist(step,step)
+            crystal_min_dist[ind] = np.amin(dmat + np.eye(dmat.shape[-1]) * 100)
+            crystal_mean_dist[ind] = np.mean(dmat)
+            crystal_max_dist[ind] = np.amax(dmat)
 
         results_dict['crystal_radius_trajectory'] = crystal_radius
+        results_dict['crystal_minimum_distance'] = crystal_min_dist
+        results_dict['crystal_mean_distance'] = crystal_mean_dist
+        results_dict['crystal_mean_distance'] = crystal_max_dist
 
     if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
         frames = read_lammps_thermo_traj('tmp.out')
