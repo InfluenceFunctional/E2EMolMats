@@ -45,7 +45,9 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 battery_paths = [
     #r'D:\crystal_datasets\acridine_cluster1/',
     #r'D:\crystal_datasets\acridine_cluster2/',
-    r'D:\crystal_datasets\acridine_cluster4/'
+    r'D:\crystal_datasets\acridine_cluster4/',
+    r'D:\crystal_datasets\acridine_cluster5/'
+
 ]
 if __name__ == '__main__':
     config_i = {
@@ -150,13 +152,23 @@ if __name__ == '__main__':
         crystal_size = []
         stability = []
         temperature = []
-        defect_rate = []
-        for ind in range(len(combined_df)):
-            crystal_size.append(combined_df.iloc[ind]['max_sphere_radius'])
-            stability.append(np.mean(combined_df.iloc[ind]['crystal_radius_trajectory'][0:5]) / np.amax(combined_df.iloc[ind]['crystal_radius_trajectory']))
+        for ind, row in combined_df.iterrows():
+            equil_time = row['run_config']['equil_time']
+            run_time = row['run_config']['run_time']
+            sampling_start_time = 5 * equil_time
+            sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
+
+            sampling_end_time = 5 * equil_time + run_time
+            sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
+
+            crystal_size.append(row['max_sphere_radius'])
+            temperature.append(row['temperature'])
+            stability.append(np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
+                             np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
 
         fig = go.Figure()
-        fig.add_scattergl(x=crystal_size,y=stability,mode='markers')
+        fig.add_scattergl(x=crystal_size, y=stability, marker_color=temperature, mode='markers',
+                          marker_colorscale='jet', marker_colorbar=dict(title="temperature"))
         fig.show(renderer='browser')
         wandb.log({'Crystal Nucleus Stability': fig})
 
