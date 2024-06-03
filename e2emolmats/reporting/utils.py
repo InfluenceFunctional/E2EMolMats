@@ -3,7 +3,7 @@ import os
 
 import numpy as np
 from _plotly_utils.colors import n_colors
-from scipy.optimize import minimize_scalar
+from scipy.optimize import minimize_scalar, minimize
 from scipy.stats import linregress
 from scipy.spatial.distance import cdist
 from plotly.subplots import make_subplots
@@ -554,4 +554,67 @@ def runs_summary_table(runs_dict):
         data=go.Table(header=dict(
             values=['run_num', 'run_status', 'defect_type', 'defect_rate', 'cluster_radius', 'polymorph']),
             cells=dict(values=[runs, codes, defects, defect_rates, sizes, polymorph])))
+    return fig
+
+
+def crystal_stability_analysis(combined_df):
+    crystal_size = []
+    stability = []
+    temperature = []
+    for ind, row in combined_df.iterrows():
+        equil_time = row['run_config']['equil_time']
+        run_time = row['run_config']['run_time']
+        sampling_start_time = 5 * equil_time
+        sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
+
+        sampling_end_time = 5 * equil_time + run_time
+        sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
+
+        crystal_size.append(row['max_sphere_radius'])
+        temperature.append(row['temperature'])
+        stability.append(np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
+                         np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
+
+    fig = go.Figure()
+    prediction_table = {}
+    colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)), colortype='rgb')
+    for t_ind, temp in enumerate(np.unique(temperature)):
+        good_inds = np.where(temperature == temp)[0]
+        stab = np.array(stability)[good_inds]
+        size = np.array(crystal_size)[good_inds]
+
+        sigmoid = lambda x, m, b, c: (1 + c) / (1 + np.exp(-m * x + b)) - c
+        loss = lambda x: np.sum((stab - sigmoid(size, x[0], x[1], x[2])) ** 2)
+
+        res = minimize(loss, x0=[1, 0, 1], options={'disp': False}, bounds=((None, None), (None, None), (1, None)))
+
+        m, b, c = res.x
+
+        xspace = np.linspace(0, 100, 1000)
+        fig.add_scattergl(x=size, y=stab, mode='markers',
+                          legendgroup=temp, name=temp, showlegend=True, marker_color=colors[t_ind], marker_size=20,
+                          opacity=0.5, )
+
+        fig.add_scattergl(x=xspace, y=sigmoid(xspace, m, b, c), mode='lines',
+                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind], )
+
+        critical_size_prediction = xspace[np.argmin(0.975 - sigmoid(xspace, m, b, c))]
+        # if any clusters were observed stable below the predicted size, trust this instead
+        stable_inds = np.argwhere(stab > 0.975)
+        if len(stable_inds) > 0:
+            minimum_stable_size = np.amin(size[stable_inds])
+            if minimum_stable_size < critical_size_prediction:
+                critical_size_prediction = minimum_stable_size
+
+        prediction_table[temp] = critical_size_prediction
+        fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
+                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                          marker_size=15, marker_line_color='black', marker_line_width=8, opacity=0.7, )
+
+    print(prediction_table)
+    fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
+                      marker_color='black')
+    fig.update_layout(xaxis_title='Nucleus Size', yaxis_title='Nucleus Stability', yaxis_range=[0, 1.1],
+                      xaxis_range=[5, 40])
+    fig.show(renderer='browser')
     return fig

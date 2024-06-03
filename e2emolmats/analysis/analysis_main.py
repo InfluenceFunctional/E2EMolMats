@@ -7,11 +7,15 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import wandb
+from scipy.stats import linregress
+from plotly.colors import n_colors
+
 
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
-                                        plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table)
+                                        plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table,
+                                        crystal_stability_analysis)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -46,7 +50,8 @@ battery_paths = [
     #r'D:\crystal_datasets\acridine_cluster1/',
     #r'D:\crystal_datasets\acridine_cluster2/',
     r'D:\crystal_datasets\acridine_cluster4/',
-    r'D:\crystal_datasets\acridine_cluster5/'
+    r'D:\crystal_datasets\acridine_cluster5/',
+    r'D:\crystal_datasets\acridine_cluster6/'
 
 ]
 if __name__ == '__main__':
@@ -126,8 +131,9 @@ if __name__ == '__main__':
                     results_df.to_pickle(battery_full_path + '/results_df')
 
         # visualize something with runs dict, maybe as a table
-        summary_fig = runs_summary_table(runs_dict)
-        summary_fig.show(renderer='browser')
+        if len(runs_dict) > 0:
+            summary_fig = runs_summary_table(runs_dict)
+            summary_fig.show(renderer='browser')
 
         if config.compute_melt_temps:
             results_df.reset_index(drop=True, inplace=True)
@@ -149,27 +155,8 @@ if __name__ == '__main__':
                    })
 
     if config.CoM_analysis:
-        crystal_size = []
-        stability = []
-        temperature = []
-        for ind, row in combined_df.iterrows():
-            equil_time = row['run_config']['equil_time']
-            run_time = row['run_config']['run_time']
-            sampling_start_time = 5 * equil_time
-            sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
+        fig = crystal_stability_analysis(combined_df)
 
-            sampling_end_time = 5 * equil_time + run_time
-            sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
-
-            crystal_size.append(row['max_sphere_radius'])
-            temperature.append(row['temperature'])
-            stability.append(np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
-                             np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
-
-        fig = go.Figure()
-        fig.add_scattergl(x=crystal_size, y=stability, marker_color=temperature, mode='markers',
-                          marker_colorscale='jet', marker_colorbar=dict(title="temperature"))
-        fig.show(renderer='browser')
         wandb.log({'Crystal Nucleus Stability': fig})
 
     wandb.finish()
