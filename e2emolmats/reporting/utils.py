@@ -40,7 +40,7 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
         ind += 1
 
     thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
-    good_keys = ['box_type', 'min_inter_cluster_distance', 'pressure_direction', 'run_name', 'damping',
+    good_keys = ['box_type', 'min_inter_cluster_distance', 'run_name', 'damping',
                  'defect_rate', 'defect_type', 'gap_rate', 'max_sphere_radius', 'min_lattice_length',
                  'scramble_rate', 'seed', 'structure_identifier', 'temperature']
     thermo_telemetry_fig.update_layout(title=str({key: run_config[key] for key in good_keys[0:5]})
@@ -126,7 +126,7 @@ def process_thermo_data(run_config):
 
         for ind, step in enumerate(crystal_radius_traj):
             crystal_radius[ind] = np.mean(np.linalg.norm(step - step.mean(0), axis=1))
-            dmat = cdist(step,step)
+            dmat = cdist(step, step)
             crystal_min_dist[ind] = np.amin(dmat + np.eye(dmat.shape[-1]) * 100)
             crystal_mean_dist[ind] = np.mean(dmat)
             crystal_max_dist[ind] = np.amax(dmat)
@@ -173,6 +173,7 @@ def read_lammps_thermo_traj(filename):
             frame_data[int(mol_num) - 1] = temp, kecom, internal
 
     return frames
+
 
 def get_melt_point(temperature, energy_traj):
     num_points = len(energy_traj)
@@ -561,9 +562,11 @@ def crystal_stability_analysis(combined_df):
     crystal_size = []
     stability = []
     temperature = []
+    polymorphs = []
     for ind, row in combined_df.iterrows():
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
+        polymorphs.append(row['structure_identifier'].split('/')[-1])
         sampling_start_time = 5 * equil_time
         sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
 
@@ -575,46 +578,71 @@ def crystal_stability_analysis(combined_df):
         stability.append(np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
                          np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
 
-    fig = go.Figure()
+    present_polymorphs = np.unique(polymorphs)
+    n_columns = int(np.ceil(len(present_polymorphs) / 2))
+    fig = make_subplots(rows=2, cols=n_columns, subplot_titles=present_polymorphs)
     prediction_table = {}
+    xspace = np.linspace(0, 100, 1000)
     colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)), colortype='rgb')
-    for t_ind, temp in enumerate(np.unique(temperature)):
-        good_inds = np.where(temperature == temp)[0]
-        stab = np.array(stability)[good_inds]
-        size = np.array(crystal_size)[good_inds]
+    for p_ind, polymorph in enumerate(present_polymorphs):
+        row = p_ind // n_columns + 1
+        col = p_ind % n_columns + 1
+        for t_ind, temp in enumerate(np.unique(temperature)):
+            good_inds = np.where((temperature == temp) * (np.array(polymorphs) == polymorph))[0]
+            stab = np.array(stability)[good_inds]
+            size = np.array(crystal_size)[good_inds]
 
-        sigmoid = lambda x, m, b, c: (1 + c) / (1 + np.exp(-m * x + b)) - c
-        loss = lambda x: np.sum((stab - sigmoid(size, x[0], x[1], x[2])) ** 2)
+            if len(good_inds) > 0:
+                # fitting function
+                #fitting_func = lambda x, m, b, c: (1 + c) / (1 + np.exp(-m * x + b)) - c
+                # fitting_func = lambda x, m, b: np.minimum(1, m * x + b)
+                # loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
+                # res = minimize(loss, x0=[0.01, 0], options={'disp': False}, bounds=((0, .1), (None, 0.1)))
+                # m, b = res.x
 
-        res = minimize(loss, x0=[1, 0, 1], options={'disp': False}, bounds=((None, None), (None, None), (1, None)))
+                regress = linregress(size, stab)
+                fitting_func = lambda x, m, b: np.minimum(1,m * x + b)
+                m = regress.slope
+                b = regress.intercept
 
-        m, b, c = res.x
+                # plot raw scatter
+                fig.add_scattergl(x=size, y=stab, mode='markers',
+                                  legendgroup=temp, name=temp, showlegend=True, marker_color=colors[t_ind], marker_size=20,
+                                  opacity=0.5,
+                                  row=row, col=col)
+                # plot fitting function
+                fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
+                                  legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                  row=row, col=col)
 
-        xspace = np.linspace(0, 100, 1000)
-        fig.add_scattergl(x=size, y=stab, mode='markers',
-                          legendgroup=temp, name=temp, showlegend=True, marker_color=colors[t_ind], marker_size=20,
-                          opacity=0.5, )
+                # extract critical size prediction
+                critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
+                # if any clusters were observed stable below the predicted size, trust this instead
+                stable_inds = np.argwhere(stab > 0.975)
+                if len(stable_inds) > 0:
+                    minimum_stable_size = np.amin(size[stable_inds])
+                    critical_size_prediction = minimum_stable_size
 
-        fig.add_scattergl(x=xspace, y=sigmoid(xspace, m, b, c), mode='lines',
-                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind], )
-
-        critical_size_prediction = xspace[np.argmin(0.975 - sigmoid(xspace, m, b, c))]
-        # if any clusters were observed stable below the predicted size, trust this instead
-        stable_inds = np.argwhere(stab > 0.975)
-        if len(stable_inds) > 0:
-            minimum_stable_size = np.amin(size[stable_inds])
-            if minimum_stable_size < critical_size_prediction:
-                critical_size_prediction = minimum_stable_size
-
-        prediction_table[temp] = critical_size_prediction
-        fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
-                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                          marker_size=15, marker_line_color='black', marker_line_width=8, opacity=0.7, )
+                # record and plot critical size prediction
+                prediction_table[polymorph + '_' + str(temp)] = critical_size_prediction
+                fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
+                                  legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                  marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
+                                  row=row, col=col)
+                fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
+                                  marker_color='black',
+                                  row=row, col=col)
 
     print(prediction_table)
-    fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
-                      marker_color='black')
-    fig.update_layout(xaxis_title='Nucleus Size', yaxis_title='Nucleus Stability', yaxis_range=[0, 1.1],
-                      xaxis_range=[5, 40])
+
+    fig.update_xaxes(title='Nucleus Size',range=[5, 40])
+    fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1],)
     fig.show(renderer='browser')
-    return fig
+
+    sum_table = go.Figure(
+        data=go.Table(header=dict(
+            values=['Sample', 'Cluster Radius']),
+            cells=dict(values=[list(prediction_table.keys()), list(prediction_table.values())])))
+    sum_table.show(renderer='browser')
+
+    return fig, sum_table
