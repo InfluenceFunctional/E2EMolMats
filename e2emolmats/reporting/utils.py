@@ -595,19 +595,18 @@ def crystal_stability_analysis(combined_df):
             if len(good_inds) > 0:
                 # fitting function
                 #fitting_func = lambda x, m, b, c: (1 + c) / (1 + np.exp(-m * x + b)) - c
-                # fitting_func = lambda x, m, b: np.minimum(1, m * x + b)
-                # loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
-                # res = minimize(loss, x0=[0.01, 0], options={'disp': False}, bounds=((0, .1), (None, 0.1)))
-                # m, b = res.x
+                fitting_func = lambda x, m, b: np.minimum(1, m * x + b)
+                loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
 
                 regress = linregress(size, stab)
-                fitting_func = lambda x, m, b: np.minimum(1,m * x + b)
-                m = regress.slope
-                b = regress.intercept
+                res = minimize(loss, x0=np.array([regress.slope, regress.intercept]), options={'disp': False},
+                               bounds=((None, None), (None, None)))
+                m, b = res.x
 
                 # plot raw scatter
                 fig.add_scattergl(x=size, y=stab, mode='markers',
-                                  legendgroup=temp, name=temp, showlegend=True, marker_color=colors[t_ind], marker_size=20,
+                                  legendgroup=temp, name=temp, showlegend=True, marker_color=colors[t_ind],
+                                  marker_size=20,
                                   opacity=0.5,
                                   row=row, col=col)
                 # plot fitting function
@@ -635,8 +634,8 @@ def crystal_stability_analysis(combined_df):
 
     print(prediction_table)
 
-    fig.update_xaxes(title='Nucleus Size',range=[5, 40])
-    fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1],)
+    fig.update_xaxes(title='Nucleus Size', range=[5, 40])
+    fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
     fig.show(renderer='browser')
 
     sum_table = go.Figure(

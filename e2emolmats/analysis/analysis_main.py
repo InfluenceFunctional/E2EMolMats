@@ -22,18 +22,18 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'molwise_mean_kecom', 'molwise_mean_internal']
 
 'paths for analysis of acridine melt point'
-battery_paths = [
-    r'D:\crystal_datasets\acridine_melt_interface14/',
-    r'D:\crystal_datasets\acridine_melt_interface15/',
-    r'D:\crystal_datasets\acridine_melt_interface16_1/',
-    r'D:\crystal_datasets\acridine_melt_interface16_2/',
-    r'D:\crystal_datasets\acridine_melt_interface16_3/',
-    r'D:\crystal_datasets\acridine_melt_interface16_4/',
-    r'D:\crystal_datasets\acridine_melt_interface17_1/',
-    r'D:\crystal_datasets\acridine_melt_interface17_3/',
-    r'D:\crystal_datasets\acridine_melt_interface17_4/',
-    r'D:\crystal_datasets\acridine_melt_interface18/'
-]
+# battery_paths = [
+#     r'D:\crystal_datasets\acridine_melt_interface14/',
+#     r'D:\crystal_datasets\acridine_melt_interface15/',
+#     r'D:\crystal_datasets\acridine_melt_interface16_1/',
+#     r'D:\crystal_datasets\acridine_melt_interface16_2/',
+#     r'D:\crystal_datasets\acridine_melt_interface16_3/',
+#     r'D:\crystal_datasets\acridine_melt_interface16_4/',
+#     r'D:\crystal_datasets\acridine_melt_interface17_1/',
+#     r'D:\crystal_datasets\acridine_melt_interface17_3/',
+#     r'D:\crystal_datasets\acridine_melt_interface17_4/',
+#     r'D:\crystal_datasets\acridine_melt_interface18/'
+# ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
 #     r'D:\crystal_datasets\nic_melt_interface1/',
@@ -46,24 +46,21 @@ battery_paths = [
 #     r'D:\crystal_datasets\nic_cluster2/'
 # ]
 'paths for analysis of acridine cluster stability'
-# battery_paths = [
-#     #r'D:\crystal_datasets\acridine_cluster1/',
-#     #r'D:\crystal_datasets\acridine_cluster2/',
-#     r'D:\crystal_datasets\acridine_cluster4/',
-#     r'D:\crystal_datasets\acridine_cluster5/',
-#     r'D:\crystal_datasets\acridine_cluster6/',
-#     r'D:\crystal_datasets\acridine_cluster7/'
-#
-# ]
+battery_paths = [
+    r'D:\crystal_datasets\acridine_cluster4/',
+    r'D:\crystal_datasets\acridine_cluster5/',
+    r'D:\crystal_datasets\acridine_cluster6/',
+    r'D:\crystal_datasets\acridine_cluster7/'
+]
 if __name__ == '__main__':
     config_i = {
         'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
         'battery_paths': battery_paths,
-        'redo_analysis': True,
+        'redo_analysis': False,
         'run_name': 'test_analysis',
         'log_figs': True,
-        'compute_melt_temps': True,
-        'CoM_analysis': False,
+        'compute_melt_temps': False,
+        'CoM_analysis': True,
     }
     config = dict2namespace(config_i)
 
@@ -132,6 +129,7 @@ if __name__ == '__main__':
                     results_df.to_pickle(battery_full_path + '/results_df')
 
         # visualize something with runs dict, maybe as a table
+        # only for unfinished runs or when reprocessing
         if len(runs_dict) > 0:
             summary_fig = runs_summary_table(runs_dict)
             summary_fig.show(renderer='browser')
