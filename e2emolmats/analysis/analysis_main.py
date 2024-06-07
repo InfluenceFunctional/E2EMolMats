@@ -10,7 +10,6 @@ import wandb
 from scipy.stats import linregress
 from plotly.colors import n_colors
 
-
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
@@ -22,18 +21,18 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'molwise_mean_kecom', 'molwise_mean_internal']
 
 'paths for analysis of acridine melt point'
-# battery_paths = [
-#     r'D:\crystal_datasets\acridine_melt_interface14/',
-#     r'D:\crystal_datasets\acridine_melt_interface15/',
-#     r'D:\crystal_datasets\acridine_melt_interface16_1/',
-#     r'D:\crystal_datasets\acridine_melt_interface16_2/',
-#     r'D:\crystal_datasets\acridine_melt_interface16_3/',
-#     r'D:\crystal_datasets\acridine_melt_interface16_4/',
-#     r'D:\crystal_datasets\acridine_melt_interface17_1/',
-#     r'D:\crystal_datasets\acridine_melt_interface17_3/',
-#     r'D:\crystal_datasets\acridine_melt_interface17_4/',
-#     r'D:\crystal_datasets\acridine_melt_interface18/'
-# ]
+acridine_melt_paths = [
+    r'D:\crystal_datasets\acridine_melt_interface14/',
+    r'D:\crystal_datasets\acridine_melt_interface15/',
+    r'D:\crystal_datasets\acridine_melt_interface16_1/',
+    r'D:\crystal_datasets\acridine_melt_interface16_2/',
+    r'D:\crystal_datasets\acridine_melt_interface16_3/',
+    r'D:\crystal_datasets\acridine_melt_interface16_4/',
+    r'D:\crystal_datasets\acridine_melt_interface17_1/',
+    r'D:\crystal_datasets\acridine_melt_interface17_3/',
+    r'D:\crystal_datasets\acridine_melt_interface17_4/',
+    r'D:\crystal_datasets\acridine_melt_interface18/'
+]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
 #     r'D:\crystal_datasets\nic_melt_interface1/',
@@ -46,21 +45,36 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 #     r'D:\crystal_datasets\nic_cluster2/'
 # ]
 'paths for analysis of acridine cluster stability'
-battery_paths = [
+acridine_cluster_paths = [
     r'D:\crystal_datasets\acridine_cluster4/',
     r'D:\crystal_datasets\acridine_cluster5/',
     r'D:\crystal_datasets\acridine_cluster6/',
-    r'D:\crystal_datasets\acridine_cluster7/'
+    r'D:\crystal_datasets\acridine_cluster7/',
+    r'D:\crystal_datasets\acridine_cluster8/'
 ]
+
+MODE = 'acridine_cluster'
+
 if __name__ == '__main__':
+    if MODE == 'acridine_cluster':
+        battery_paths = acridine_cluster_paths
+        compute_melt_temps = False
+        CoM_analysis = True
+    elif MODE == 'acridine_melt':
+        battery_paths = acridine_melt_paths
+        compute_melt_temps = True
+        CoM_analysis = False
+    else:
+        assert False, "Unrecognized mode !!"
+
     config_i = {
         'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
         'battery_paths': battery_paths,
         'redo_analysis': False,
         'run_name': 'test_analysis',
         'log_figs': True,
-        'compute_melt_temps': False,
-        'CoM_analysis': True,
+        'compute_melt_temps': compute_melt_temps,
+        'CoM_analysis': CoM_analysis,
     }
     config = dict2namespace(config_i)
 

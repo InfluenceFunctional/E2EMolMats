@@ -10,6 +10,8 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter1d
 import plotly.express as px
+import pandas as pd
+import plotly.colors as pc
 
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
@@ -563,10 +565,16 @@ def crystal_stability_analysis(combined_df):
     stability = []
     temperature = []
     polymorphs = []
+    defects = []
+    defect_types = []
     for ind, row in combined_df.iterrows():
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
+        defects.append(row['run_config']['defect_rate'])
+        defect_types.append(row['run_config']['defect_type'])
+
         polymorphs.append(row['structure_identifier'].split('/')[-1])
+
         sampling_start_time = 5 * equil_time
         sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
 
@@ -579,69 +587,92 @@ def crystal_stability_analysis(combined_df):
                          np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
 
     present_polymorphs = np.unique(polymorphs)
-    n_columns = int(np.ceil(len(present_polymorphs) / 2))
-    fig = make_subplots(rows=2, cols=n_columns, subplot_titles=present_polymorphs)
-    prediction_table = {}
+    present_defect_rates = np.unique(defects)
+    n_columns = len(present_polymorphs)
+    n_rows = len(present_defect_rates)
+    fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.025,
+                        vertical_spacing=0.08)
+    prediction_df = []
     xspace = np.linspace(0, 100, 1000)
     colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)), colortype='rgb')
+    seen_t = {temp: False for temp in np.unique(temperature)}
     for p_ind, polymorph in enumerate(present_polymorphs):
-        row = p_ind // n_columns + 1
-        col = p_ind % n_columns + 1
-        for t_ind, temp in enumerate(np.unique(temperature)):
-            good_inds = np.where((temperature == temp) * (np.array(polymorphs) == polymorph))[0]
-            stab = np.array(stability)[good_inds]
-            size = np.array(crystal_size)[good_inds]
+        col = p_ind + 1
+        for d_ind, defect_rate in enumerate(present_defect_rates):
+            row = d_ind + 1
+            for t_ind, temp in enumerate(np.unique(temperature)):
+                good_inds = np.where(
+                    (temperature == temp) * (np.array(polymorphs) == polymorph) * (np.array(defects) == defect_rate))[0]
+                stab = np.array(stability)[good_inds]
+                size = np.array(crystal_size)[good_inds]
 
-            if len(good_inds) > 0:
-                # fitting function
-                #fitting_func = lambda x, m, b, c: (1 + c) / (1 + np.exp(-m * x + b)) - c
-                fitting_func = lambda x, m, b: np.minimum(1, m * x + b)
-                loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
+                if len(good_inds) > 0:
+                    # fitting function
+                    fitting_func = lambda x, m, b: np.minimum(1, m * x + b)
+                    loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
 
-                regress = linregress(size, stab)
-                res = minimize(loss, x0=np.array([regress.slope, regress.intercept]), options={'disp': False},
-                               bounds=((None, None), (None, None)))
-                m, b = res.x
+                    regress = linregress(size, stab)
+                    res = minimize(loss, x0=np.array([regress.slope, regress.intercept]), options={'disp': False},
+                                   bounds=((None, None), (None, None)))
+                    m, b = res.x
+                    if not seen_t[temp]:
+                        seen_t[temp] = True
 
-                # plot raw scatter
-                fig.add_scattergl(x=size, y=stab, mode='markers',
-                                  legendgroup=temp, name=temp, showlegend=True, marker_color=colors[t_ind],
-                                  marker_size=20,
-                                  opacity=0.5,
-                                  row=row, col=col)
-                # plot fitting function
-                fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
-                                  legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                                  row=row, col=col)
+                    # plot raw scatter
+                    fig.add_scattergl(x=size, y=stab, mode='markers',
+                                      legendgroup=temp, name=temp, showlegend=True if seen_t[temp] else False,
+                                      marker_color=colors[t_ind],
+                                      marker_size=10,
+                                      opacity=0.75,
+                                      row=row, col=col)
+                    # plot fitting function
+                    fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
+                                      legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                      row=row, col=col)
 
-                # extract critical size prediction
-                critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
-                # if any clusters were observed stable below the predicted size, trust this instead
-                stable_inds = np.argwhere(stab > 0.975)
-                if len(stable_inds) > 0:
-                    minimum_stable_size = np.amin(size[stable_inds])
-                    critical_size_prediction = minimum_stable_size
+                    # extract critical size prediction
+                    critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
+                    # if any clusters were observed stable below the predicted size, trust this instead
+                    stable_inds = np.argwhere(stab > 0.975)
+                    if len(stable_inds) > 0:
+                        minimum_stable_size = np.amin(size[stable_inds])
+                        critical_size_prediction = minimum_stable_size
 
-                # record and plot critical size prediction
-                prediction_table[polymorph + '_' + str(temp)] = critical_size_prediction
-                fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
-                                  legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                                  marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
-                                  row=row, col=col)
-                fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
-                                  marker_color='black',
-                                  row=row, col=col)
+                    # record and plot critical size prediction
+                    prediction_df.append({'Defect Type': 'anthracene',
+                                          'Defect Rate': defect_rate,
+                                          'Polymorph': polymorph,
+                                          'Temperature': temp,
+                                          'Critical Nucleus Size': np.round(critical_size_prediction,1)
+                                          })
+                    fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
+                                      legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                      marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
+                                      row=row, col=col)
+                    fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
+                                      marker_color='black',
+                                      row=row, col=col)
 
-    print(prediction_table)
+    print(prediction_df)
 
     fig.update_xaxes(title='Nucleus Size', range=[5, 40])
     fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
     fig.show(renderer='browser')
 
-    sum_table = go.Figure(
-        data=go.Table(header=dict(
-            values=['Sample', 'Cluster Radius']),
-            cells=dict(values=[list(prediction_table.keys()), list(prediction_table.values())])))
+    df = pd.DataFrame(prediction_df)
+
+    scale = pc.make_colorscale(['rgb(250,200,200)', 'rgb(0,255, 150)'])
+    colors = pc.sample_colorscale(scale, df['Critical Nucleus Size'] / np.amax(df['Critical Nucleus Size']))
+    df['Colors'] = colors
+    sum_table = go.Figure(data=[go.Table(
+        header=dict(values=['Polymorph','Temperature','Defect Type','Defect Rate','Critical Nucleus Size'],
+                    fill_color='paleturquoise',
+                    align='left'),
+        cells=dict(values=[df['Polymorph'], df['Temperature'], df['Defect Type'], df['Defect Rate'],
+                           df['Critical Nucleus Size']],
+                   line_color=[df['Colors']], fill_color=[df['Colors']],
+                   align='left'))
+    ])
     sum_table.show(renderer='browser')
 
     return fig, sum_table
