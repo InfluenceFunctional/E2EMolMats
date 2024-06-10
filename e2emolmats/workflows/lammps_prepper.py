@@ -1,5 +1,5 @@
 import os
-from distutils.dir_util import copy_tree
+from shutil import copytree, ignore_patterns
 import numpy as np
 
 from ovito.io import import_file, export_file
@@ -42,7 +42,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         os.mkdir(workdir)
     os.chdir(workdir)
     '''copy in md_data elements'''
-    copy_tree('../md_data', './')
+    copytree('../md_data', './', ignore=ignore_patterns('slurm-*'))
 
     print("============================")
     print("Generating Structure")
