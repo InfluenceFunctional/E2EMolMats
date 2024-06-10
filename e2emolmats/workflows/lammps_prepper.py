@@ -42,7 +42,9 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         os.mkdir(workdir)
     os.chdir(workdir)
     '''copy in md_data elements'''
-    copytree('../md_data', './', ignore=ignore_patterns('slurm-*'))
+    copytree('../md_data', './',
+             dirs_exist_ok=True,
+             ignore=ignore_patterns('slurm-*'))
 
     print("============================")
     print("Generating Structure")
