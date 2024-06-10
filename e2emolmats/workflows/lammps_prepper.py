@@ -25,7 +25,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     '''make new workdir'''
     if head_dir.split('/')[-1] != 'dev':  # if not dev
         workdir = head_dir + '/' + str(run_num)
-        if os.path.exists(workdir):  # if it's been done, skip run
+        if os.path.exists(workdir + '/new_system.data'):  # if it's been done, skip run
             print(f"{workdir} already exists - skipping run")
             return False
     else:  # if dev, find next empty slot

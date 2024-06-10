@@ -52,18 +52,31 @@ acridine_cluster_paths = [
     r'D:\crystal_datasets\acridine_cluster7/',
     r'D:\crystal_datasets\acridine_cluster8/'
 ]
-
-MODE = 'acridine_cluster'
+'paths for acridine latent heats of fusion'
+acridine_latent_paths = [
+    r'D:\crystal_datasets\acridine_latent0/',
+]
+MODE = 'acridine_latent'
 
 if __name__ == '__main__':
     if MODE == 'acridine_cluster':
         battery_paths = acridine_cluster_paths
         compute_melt_temps = False
         CoM_analysis = True
+        latents_analysis = False
+
     elif MODE == 'acridine_melt':
         battery_paths = acridine_melt_paths
         compute_melt_temps = True
         CoM_analysis = False
+        latents_analysis = False
+
+    elif MODE == 'acridine_latent':
+        battery_paths = acridine_latent_paths
+        compute_melt_temps = False
+        CoM_analysis = False
+        latents_analysis = True
+
     else:
         assert False, "Unrecognized mode !!"
 
@@ -75,6 +88,7 @@ if __name__ == '__main__':
         'log_figs': True,
         'compute_melt_temps': compute_melt_temps,
         'CoM_analysis': CoM_analysis,
+        'latents_analysis': latents_analysis,
     }
     config = dict2namespace(config_i)
 
@@ -173,4 +187,6 @@ if __name__ == '__main__':
         wandb.log({'Crystal Nucleus Stability': fig,
                    'Crystal Stability Summary': com_table})
 
+    if config.latents_analysis:
+        aa = 1
     wandb.finish()
