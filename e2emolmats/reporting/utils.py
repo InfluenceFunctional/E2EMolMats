@@ -14,8 +14,6 @@ import plotly.express as px
 import pandas as pd
 import plotly.colors as pc
 
-from e2emolmats.analysis.analysis_main import combined_df
-
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
     if 'crystal_radius_trajectory' in thermo_results_dict.keys():
@@ -646,7 +644,7 @@ def crystal_stability_analysis(combined_df):
                                           'Defect Rate': defect_rate,
                                           'Polymorph': polymorph,
                                           'Temperature': temp,
-                                          'Critical Nucleus Size': np.round(critical_size_prediction,1)
+                                          'Critical Nucleus Size': np.round(critical_size_prediction, 1)
                                           })
                     fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
                                       legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
@@ -668,7 +666,7 @@ def crystal_stability_analysis(combined_df):
     colors = pc.sample_colorscale(scale, df['Critical Nucleus Size'] / np.amax(df['Critical Nucleus Size']))
     df['Colors'] = colors
     sum_table = go.Figure(data=[go.Table(
-        header=dict(values=['Polymorph','Temperature','Defect Type','Defect Rate','Critical Nucleus Size'],
+        header=dict(values=['Polymorph', 'Temperature', 'Defect Type', 'Defect Rate', 'Critical Nucleus Size'],
                     fill_color='paleturquoise',
                     align='left'),
         cells=dict(values=[df['Polymorph'], df['Temperature'], df['Defect Type'], df['Defect Rate'],
@@ -681,10 +679,10 @@ def crystal_stability_analysis(combined_df):
     return fig, sum_table
 
 
-def latent_heat_analysis():
-    global fig
+def latent_heat_analysis(combined_df):
     latents_dict = {}
     unique_idents = np.unique(combined_df['structure_identifier'])
+    n_a = 6.022 * 10 ** 23
     for id, ident in enumerate(unique_idents):
         polymorph = ident.split('/')
         good_inds = np.argwhere(combined_df['structure_identifier'] == ident).flatten()
@@ -694,16 +692,47 @@ def latent_heat_analysis():
 
         mean_enthalpy = np.zeros(len(good_df))
         for run_ind in range(len(good_df)):
-            run_enthalpy = good_df.iloc[run_ind]['PotEng']
-            mean_enthalpy[run_ind] = np.mean(run_enthalpy[:len(run_enthalpy // 2)])
+            energy = good_df.iloc[run_ind]['E_tot'] * 4.184  # kcal/mol -> kJ/mol
+            pressure = good_df.iloc[run_ind]['Press']  # atmospheres
+            volume = good_df.iloc[run_ind]['Volume']
+            # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
+            PV_energy = pressure * volume * n_a / good_df.iloc[run_ind]['num_molecules'] * (1.01325 * 10 ** -25) / 1000
+            run_enthalpy = energy + PV_energy
+            mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
 
         melted_enthalpy = np.mean(mean_enthalpy[melted_inds])
         crystal_enthalpy = np.mean(mean_enthalpy[crystal_inds])
 
-        latents_dict[ident] = crystal_enthalpy - melted_enthalpy
+        latents_dict[ident] = melted_enthalpy - crystal_enthalpy  # in kJ per mol
+
+        traj_thermo_keys = ['Press', 'Volume', 'E_tot', 'PotEng', 'temp', 'E_pair', 'E_mol', 'molwise_mean_kecom']
+        cols = len(traj_thermo_keys)
+        thermo_telemetry_fig = make_subplots(rows=2, cols=cols, subplot_titles=traj_thermo_keys, vertical_spacing=0.075)
+        ind = 0
+        for r_ind, df_row in good_df.iterrows():
+            for i, key in enumerate(traj_thermo_keys):
+                col = ind % cols + 1
+                thermo_telemetry_fig.add_trace(
+                    go.Scattergl(x=df_row['time step'] / 1e6,
+                                 y=df_row[key],
+                                 name=key, showlegend=False),
+                    row=1, col=col
+                )
+                thermo_telemetry_fig.add_trace(
+                    go.Scattergl(x=df_row['time step'] / 1e6,
+                                 y=gaussian_filter1d(df_row[key], sigma=10),
+                                 name=key, showlegend=False),
+                    row=2, col=col
+                )
+                ind += 1
+
+        thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
+        thermo_telemetry_fig.show(renderer='browser')
+
     fig = go.Figure()
     fig.add_trace(
         go.Bar(x=list(latents_dict.keys()), y=list(latents_dict.values()), name='Latent Heat'))
     fig.show(renderer='browser')
+
 
     return fig

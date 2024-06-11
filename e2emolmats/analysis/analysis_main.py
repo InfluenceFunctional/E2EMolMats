@@ -52,7 +52,7 @@ acridine_cluster_paths = [
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
     r'D:\crystal_datasets\acridine_latents0/',
-    r'D:\crystal_datasets\acridine_latents1/',
+    #r'D:\crystal_datasets\acridine_latents1/',
 ]
 MODE = 'acridine_latent'
 
@@ -186,11 +186,8 @@ if __name__ == '__main__':
                    'Crystal Stability Summary': com_table})
 
     if config.latents_analysis:
-        fig = latent_heat_analysis()
+        fig = latent_heat_analysis(combined_df)
 
         wandb.log({'Latent Heat Estimation': fig})
 
-
-
-        aa = 1
     wandb.finish()
