@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 from _plotly_utils.colors import n_colors
+from plotly import graph_objects as go
 from scipy.optimize import minimize_scalar, minimize
 from scipy.stats import linregress
 from scipy.spatial.distance import cdist
@@ -12,6 +13,8 @@ from scipy.ndimage import gaussian_filter1d
 import plotly.express as px
 import pandas as pd
 import plotly.colors as pc
+
+from e2emolmats.analysis.analysis_main import combined_df
 
 
 def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
@@ -676,3 +679,31 @@ def crystal_stability_analysis(combined_df):
     sum_table.show(renderer='browser')
 
     return fig, sum_table
+
+
+def latent_heat_analysis():
+    global fig
+    latents_dict = {}
+    unique_idents = np.unique(combined_df['structure_identifier'])
+    for id, ident in enumerate(unique_idents):
+        polymorph = ident.split('/')
+        good_inds = np.argwhere(combined_df['structure_identifier'] == ident).flatten()
+        good_df = combined_df.iloc[good_inds]
+        melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
+        crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
+
+        mean_enthalpy = np.zeros(len(good_df))
+        for run_ind in range(len(good_df)):
+            run_enthalpy = good_df.iloc[run_ind]['PotEng']
+            mean_enthalpy[run_ind] = np.mean(run_enthalpy[:len(run_enthalpy // 2)])
+
+        melted_enthalpy = np.mean(mean_enthalpy[melted_inds])
+        crystal_enthalpy = np.mean(mean_enthalpy[crystal_inds])
+
+        latents_dict[ident] = crystal_enthalpy - melted_enthalpy
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(x=list(latents_dict.keys()), y=list(latents_dict.values()), name='Latent Heat'))
+    fig.show(renderer='browser')
+
+    return fig

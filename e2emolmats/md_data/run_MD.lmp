@@ -19,8 +19,8 @@
 #_MELT_PREP  variable          T_melt  equal _MELT_TEMP    # temperature at which to melt things
 #_MELT_PREP  variable          melt_start_ind  equal _MELT_START_IND
 #_MELT_PREP  variable          melt_end_ind    equal _MELT_END_IND
-#_MELT_PREP  variable          crystal_start_ind  equal _CRYSTAL_START_IND
-#_MELT_PREP  variable          crystal_end_ind    equal _CRYSTAL_END_IND
+#_CRYSTAL_IN_MELT_PREP  variable          crystal_start_ind  equal _CRYSTAL_START_IND
+#_CRYSTAL_IN_MELT_PREP  variable          crystal_end_ind    equal _CRYSTAL_END_IND
   variable	    t_press equal round(${t_print}*5)
 
 
@@ -74,11 +74,11 @@
 #_DUMP_MODIFY
 
 #--------------------------- Crystal/Melt Preparation------------------------#
-#_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
+#_CRYSTAL_IN_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
 #_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
-#_MELT_PREP compute com crystal com/chunk cc1
-#_MELT_PREP fix g1 crystal ave/time ${t_print} 1 ${t_print} c_com[*] file com.out mode vector
+#_CRYSTAL_IN_MELT_PREP compute com crystal com/chunk cc1
+#_CRYSTAL_IN_MELT_PREP fix g1 crystal ave/time ${t_print} 1 ${t_print} c_com[*] file com.out mode vector
 
 #_MELT_PREP fix f11 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_MELT_PREP velocity          all create ${T_sample} ${rnd} mom yes rot yes dist gaussian
@@ -98,7 +98,7 @@
 #_MELT_PREP unfix f132
 
 #_MELT_PREP fix f133 all npt temp ${T_sample} ${T_sample} $(100.0*dt) #_p_dim ${runningPressure} 1.0 $(1000.0*dt)
-#_MELT_PREP fix s1 crystal spring/self 10 xyz  # add restraining force atomwise on crystals
+#_CRYSTAL_IN_MELT_PREP fix s1 crystal spring/self 10 xyz  # add restraining force atomwise on crystals
 #_MELT_PREP run ${t_equil}  # re equilibrate
 #_MELT_PREP unfix f133
 #_MELT_PREP unfix s1

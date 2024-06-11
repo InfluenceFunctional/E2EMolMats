@@ -5,16 +5,13 @@ import os
 
 import numpy as np
 import pandas as pd
-import plotly.graph_objects as go
 import wandb
-from scipy.stats import linregress
-from plotly.colors import n_colors
 
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
                                         plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table,
-                                        crystal_stability_analysis)
+                                        crystal_stability_analysis, latent_heat_analysis)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -189,5 +186,11 @@ if __name__ == '__main__':
                    'Crystal Stability Summary': com_table})
 
     if config.latents_analysis:
+        fig = latent_heat_analysis()
+
+        wandb.log({'Latent Heat Estimation': fig})
+
+
+
         aa = 1
     wandb.finish()

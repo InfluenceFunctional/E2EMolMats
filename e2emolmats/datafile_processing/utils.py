@@ -32,7 +32,7 @@ def generate_MD_script(config, melt_inds):
             new_text = new_text.replace('#_KSPACE', '')
         if config.prep_crystal_in_melt or config.prep_melt_interface:
             new_text = new_text.replace('#_MELT_PREP', '')
-
+            new_text = new_text.replace('#_CRYSTAL_IN_MELT_PREP', '')
             new_text = new_text.replace('_EQUIL_TIME', str(config.equil_time))
             new_text = new_text.replace('_MELT_TEMP', str(config.melt_temperature))
             new_text = new_text.replace('_MELT_START_IND', str(melt_inds.melt_start_ind))
