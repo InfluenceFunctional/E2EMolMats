@@ -47,14 +47,17 @@ acridine_cluster_paths = [
     r'D:\crystal_datasets\acridine_cluster5/',
     r'D:\crystal_datasets\acridine_cluster6/',
     r'D:\crystal_datasets\acridine_cluster7/',
-    r'D:\crystal_datasets\acridine_cluster8/'
+    r'D:\crystal_datasets\acridine_cluster8/',
+    r'D:\crystal_datasets\acridine_cluster9/'
+
 ]
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
     r'D:\crystal_datasets\acridine_latents0/',
-    #r'D:\crystal_datasets\acridine_latents1/',
+    r'D:\crystal_datasets\acridine_latents1/',
 ]
-MODE = 'acridine_latent'
+
+MODE = 'acridine_cluster'
 
 if __name__ == '__main__':
     if MODE == 'acridine_cluster':

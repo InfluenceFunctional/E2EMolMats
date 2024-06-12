@@ -116,6 +116,10 @@ def process_thermo_data(run_config):
         results_dict[key] = np.asarray(results_dict[key])
 
     if os.path.exists('com.out'):  # molecule-wise temperature analysis
+        num_crystal_mols = run_config['melt_indices'].crystal_end_ind - run_config['melt_indices'].crystal_start_ind + 1
+        if num_crystal_mols <= 1:
+            return results_dict, "Nanocrystal contains only 0-1 molecules!"
+
         frames = read_lammps_thermo_traj('com.out')
         results_dict['com_trajectory'] = np.asarray(list(frames.values()))
         crystal_radius_traj = results_dict['com_trajectory'][:,
@@ -147,6 +151,10 @@ def process_thermo_data(run_config):
         results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
         results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
         return results_dict, 'Thermo analysis succeeded'
+
+    else:
+
+        return results_dict, 'Missing thermo trajectory!'
 
 
 def read_lammps_thermo_traj(filename):
@@ -584,14 +592,16 @@ def crystal_stability_analysis(combined_df):
 
         crystal_size.append(row['max_sphere_radius'])
         temperature.append(row['temperature'])
-        stability.append(np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
-                         np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
+        calculated_stability = (np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
+                                np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
+
+        stability.append(calculated_stability)
 
     present_polymorphs = np.unique(polymorphs)
     present_defect_rates = np.unique(defects)
     n_columns = len(present_polymorphs)
     n_rows = len(present_defect_rates)
-    fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.025,
+    fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.035,
                         vertical_spacing=0.08)
     prediction_df = []
     xspace = np.linspace(0, 100, 1000)
@@ -605,15 +615,22 @@ def crystal_stability_analysis(combined_df):
                 good_inds = np.where(
                     (temperature == temp) * (np.array(polymorphs) == polymorph) * (np.array(defects) == defect_rate))[0]
                 stab = np.array(stability)[good_inds]
+                finite_inds = np.isfinite(stab)
+                stab = stab[finite_inds]
                 size = np.array(crystal_size)[good_inds]
+                size = size[finite_inds]
 
                 if len(good_inds) > 0:
                     # fitting function
-                    fitting_func = lambda x, m, b: np.minimum(1, m * x + b)
+                    fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
                     loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
 
                     regress = linregress(size, stab)
-                    res = minimize(loss, x0=np.array([regress.slope, regress.intercept]), options={'disp': False},
+                    rslope = regress.slope
+                    rint = regress.intercept
+                    assert np.isfinite(rslope)
+                    res = minimize(loss, x0=np.array([rslope,
+                                                      rint]), options={'disp': False},
                                    bounds=((None, None), (None, None)))
                     m, b = res.x
                     if not seen_t[temp]:
@@ -637,7 +654,8 @@ def crystal_stability_analysis(combined_df):
                     stable_inds = np.argwhere(stab > 0.975)
                     if len(stable_inds) > 0:
                         minimum_stable_size = np.amin(size[stable_inds])
-                        critical_size_prediction = minimum_stable_size
+                        if minimum_stable_size < critical_size_prediction:
+                            critical_size_prediction = minimum_stable_size
 
                     # record and plot critical size prediction
                     prediction_df.append({'Defect Type': 'anthracene',
@@ -656,7 +674,7 @@ def crystal_stability_analysis(combined_df):
 
     print(prediction_df)
 
-    fig.update_xaxes(title='Nucleus Size', range=[5, 40])
+    fig.update_xaxes(title='Nucleus Size', range=[0, 50])
     fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
     fig.show(renderer='browser')
 
