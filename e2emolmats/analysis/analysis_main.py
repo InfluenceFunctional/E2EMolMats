@@ -48,13 +48,17 @@ acridine_cluster_paths = [
     r'D:\crystal_datasets\acridine_cluster6/',
     r'D:\crystal_datasets\acridine_cluster7/',
     r'D:\crystal_datasets\acridine_cluster8/',
-    r'D:\crystal_datasets\acridine_cluster9/'
+    r'D:\crystal_datasets\acridine_cluster9/',
+    r'D:\crystal_datasets\acridine_cluster10/'
 
 ]
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
     r'D:\crystal_datasets\acridine_latents0/',
     r'D:\crystal_datasets\acridine_latents1/',
+]
+acridine_cp_paths = [
+    'D:\crystal_datasets\daisuke_cp_runs'
 ]
 
 MODE = 'acridine_cluster'
@@ -172,6 +176,8 @@ if __name__ == '__main__':
             combined_df = pd.concat([combined_df, results_df])
         else:
             combined_df = results_df
+
+        combined_df.reset_index(drop=True, inplace=True)
 
     'multi-battery analysis'
     if config.compute_melt_temps:

@@ -70,6 +70,7 @@ def process_thermo_data(run_config):
                     'PotEng': [],
                     'Press': [],
                     'Volume': [],
+                    'Enthalpy': [],
                     }
     try:
         f = open('screen.log', "r")
@@ -710,8 +711,8 @@ def latent_heat_analysis(combined_df):
 
         mean_enthalpy = np.zeros(len(good_df))
         for run_ind in range(len(good_df)):
-            energy = good_df.iloc[run_ind]['E_tot'] * 4.184  # kcal/mol -> kJ/mol
-            pressure = good_df.iloc[run_ind]['Press']  # atmospheres
+            energy = good_df.iloc[run_ind]['E_tot'] * 4.184 / good_df.iloc[run_ind]['num_molecules'] / good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
+            pressure = 1 #good_df.iloc[run_ind]['Press']  # atmospheres
             volume = good_df.iloc[run_ind]['Volume']
             # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
             PV_energy = pressure * volume * n_a / good_df.iloc[run_ind]['num_molecules'] * (1.01325 * 10 ** -25) / 1000
