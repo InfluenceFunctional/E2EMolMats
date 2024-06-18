@@ -327,11 +327,9 @@ for i in range(0, seed_num):
             aveCvlst[whole_loop] = A / kb / aveTmplst[whole_loop] / aveTmplst[whole_loop] / nmol[j]
             aveCpElst[whole_loop] = A_E / kb / aveTmplst[whole_loop] / aveTmplst[whole_loop] / nmol[j]
 
-
 print("##################################################################")
 print("ave_tmp          aveCpElst")
 for i in range(0, crystal_num * temp_num * seed_num):
-
     print(str(aveTmplst[i]) + " " + str(aveCpElst[i]))
 print("##################################################################")
 
@@ -339,7 +337,6 @@ print("crystal ave_tmp      CpE                          stdCpE")
 print(len(CpE))
 print(crystal_num * temp_num)
 for j in range(0, crystal_num * temp_num):
-
     print(str(crystal[j % crystal_num]) + " " + str(ave_of_ave_tmp[j]) + " " + str(CpE[j]) + " " + str(stdCpE[j]))
 print(ave_of_ave_E)
 print(ave_of_ave_E2)

@@ -11,7 +11,7 @@ damping:
 defect_rate:
 - 0.25
 defect_type:
-- 2,7-dihydroxynaphthalene
+- anthracene
 equil_time: 100000.0
 gap_rate:
 - 0
@@ -19,14 +19,15 @@ init_temperature: 0
 integrator: nosehoover
 machine: local
 max_sphere_radius:
-- 20
+- 10
 melt_temperature: 2000
-min_inter_cluster_distance: 5
-min_lattice_length: 5
+min_inter_cluster_distance: 20
+min_lattice_length:
+- 20
 prep_bulk_melt: false
 prep_crystal_in_melt: true
 prep_melt_interface: false
-pressure_direction: z
+pressure_direction: iso
 print_steps: 100
 ramp_temperature: false
 run_name: dev
@@ -36,7 +37,7 @@ scramble_rate:
 seed:
 - 1
 structure_identifier:
-- acridine/Form2
+- acridine/Form9
 submit_lammps_slurm: false
 temperature:
 - 100

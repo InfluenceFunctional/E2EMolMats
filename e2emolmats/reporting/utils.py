@@ -15,15 +15,17 @@ import pandas as pd
 import plotly.colors as pc
 
 
-def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
-    if 'crystal_radius_trajectory' in thermo_results_dict.keys():
-        keys_to_use = traj_thermo_keys + ['crystal_radius_trajectory']
-        cols = 6
-    else:
-        keys_to_use = traj_thermo_keys.copy()
-        cols = 5
+def make_thermo_fig(thermo_results_dict, run_config):
+    keys_to_use = []
+    for key in thermo_results_dict.keys():
+        if isinstance(thermo_results_dict['Temp'], np.ndarray):
+            if thermo_results_dict[key].ndim == 1:
+                keys_to_use += [key]
 
-    thermo_telemetry_fig = make_subplots(rows=2, cols=cols, subplot_titles=keys_to_use)
+    n_keys = len(keys_to_use)
+    cols = 6
+
+    thermo_telemetry_fig = make_subplots(rows=int(np.ceil(n_keys / cols)), cols=cols, subplot_titles=keys_to_use)
     ind = 0
     for i, key in enumerate(keys_to_use):
         row = ind // cols + 1
@@ -58,20 +60,11 @@ def make_thermo_fig(traj_thermo_keys, thermo_results_dict, run_config):
     #                                          f"Cubic Angstrom or {thermo_results_dict['thermo_trajectory'].shape[1]} Molecules"
     #                                          f"Sampling temperature {run_config['temperature']}K"
     #                                    )
-    return thermo_telemetry_fig, thermo_results_dict['thermo_trajectory'].shape[1]
+    return thermo_telemetry_fig
 
 
-def process_thermo_data(run_config):
-    results_dict = {'time step': [],
-                    'temp': [],
-                    'E_pair': [],
-                    'E_mol': [],
-                    'E_tot': [],
-                    'PotEng': [],
-                    'Press': [],
-                    'Volume': [],
-                    'Enthalpy': [],
-                    }
+def process_thermo_data(run_config, skip_molwise_thermo=False):
+    results_dict = {}
     try:
         f = open('screen.log', "r")
         text = f.read()
@@ -88,6 +81,14 @@ def process_thermo_data(run_config):
         for key in results_dict.keys():
             results_dict[key] = np.zeros(1)
         return results_dict, 'Run unfinished!'
+    else:
+        walltime_str = text.split('Total wall time: ')[-1].split('\n')[0]
+        walltime_str = walltime_str.split(':')
+        total_time = int(walltime_str[-1]) + int(walltime_str[1]) * 60 + int(walltime_str[0]) * 3600
+        if total_time == 0:
+            return results_dict, 'Run unfinished!'
+        else:
+            results_dict['total_time'] = total_time
 
     for ind, line in enumerate(lines):
         if 'ns/day' in line:
@@ -100,18 +101,26 @@ def process_thermo_data(run_config):
                 hit_minimization = True
         elif skip:
             if "Step" in line:
+                split_line = line.split(' ')
+                screen_keys = [entry for entry in split_line if entry != '']
+                for key in screen_keys:
+                    if key not in results_dict.keys():
+                        results_dict[key] = []
                 skip = False
-                # print(ind)
         else:
             if "Loop" in line:
+                splitline = line.split(' ')
+                results_dict['num_atoms'] = int(splitline[-2])
                 skip = True
 
             if not skip:
                 split_line = line.split(' ')
                 entries = [float(entry) for entry in split_line if entry != '']
-                for ind2, key in enumerate(results_dict.keys()):
-                    if ind2 < len(entries):
-                        results_dict[key].append(entries[ind2])
+                for ind2, key in enumerate(
+                        screen_keys):  # order of screen keys updated in every print block so this should be robust
+                    results_dict[key].append(entries[ind2])
+
+    results_dict['time step'] = results_dict['Step']
 
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
@@ -144,18 +153,21 @@ def process_thermo_data(run_config):
         results_dict['crystal_mean_distance'] = crystal_mean_dist
         results_dict['crystal_mean_distance'] = crystal_max_dist
 
-    if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
-        frames = read_lammps_thermo_traj('tmp.out')
-        results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
-        # averages over molecules
-        results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
-        results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
-        results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
-        return results_dict, 'Thermo analysis succeeded'
+    if not skip_molwise_thermo:
+        if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
+            frames = read_lammps_thermo_traj('tmp.out')
+            results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
+            # averages over molecules
+            results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
+            results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
+            results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
+            return results_dict, 'Thermo analysis succeeded'
 
+        else:
+
+            return results_dict, 'Missing thermo trajectory!'
     else:
-
-        return results_dict, 'Missing thermo trajectory!'
+        return results_dict, 'Thermo analysis succeeded'
 
 
 def read_lammps_thermo_traj(filename):
@@ -555,18 +567,29 @@ POLYMORPH_MELT_POINTS = {'acridine':
 
 
 def runs_summary_table(runs_dict):
-    runs = np.asarray(list(runs_dict.keys())).astype(int)
-    runs = np.sort(runs)
+    try:
+        runs = np.asarray(list(runs_dict.keys())).astype(int)
+        runs = np.sort(runs)
+    except ValueError:
+        runs = list(runs_dict.keys())
     codes = [runs_dict[str(key)][0] for key in runs]
-    defects = [runs_dict[str(key)][1]['defect_type'] for key in runs]
-    defect_rates = [runs_dict[str(key)][1]['defect_rate'] for key in runs]
-    sizes = [runs_dict[str(key)][1]['max_sphere_radius'] for key in runs]
-    polymorph = [runs_dict[str(key)][1]['structure_identifier'].split('/')[-1] for key in runs]
+
+    if 'defect_type' in runs_dict[list(runs_dict.keys())[0]][1].keys():
+        defects = [runs_dict[str(key)][1]['defect_type'] for key in runs]
+        defect_rates = [runs_dict[str(key)][1]['defect_rate'] for key in runs]
+        sizes = [runs_dict[str(key)][1]['max_sphere_radius'] for key in runs]
+        polymorph = [runs_dict[str(key)][1]['structure_identifier'].split('/')[-1] for key in runs]
+        vals = [runs, codes, defects, defect_rates, sizes, polymorph]
+        keys = ['run_num', 'run_status', 'defect_type', 'defect_rate', 'cluster_radius', 'polymorph']
+    else:
+        polymorph = [runs_dict[str(key)][1]['polymorph'][-1] for key in runs]
+        vals = [runs, codes, polymorph]
+        keys = ['run_num', 'run_status', 'polymorph']
 
     fig = go.Figure(
         data=go.Table(header=dict(
-            values=['run_num', 'run_status', 'defect_type', 'defect_rate', 'cluster_radius', 'polymorph']),
-            cells=dict(values=[runs, codes, defects, defect_rates, sizes, polymorph])))
+            values=keys),
+            cells=dict(values=vals)))
     return fig
 
 
@@ -578,6 +601,9 @@ def crystal_stability_analysis(combined_df):
     defects = []
     defect_types = []
     for ind, row in combined_df.iterrows():
+        if 'latent' in row['run_num']:
+            continue
+
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
         defects.append(row['run_config']['defect_rate'])
@@ -593,8 +619,9 @@ def crystal_stability_analysis(combined_df):
 
         crystal_size.append(row['max_sphere_radius'])
         temperature.append(row['temperature'])
-        calculated_stability = (np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
-                                np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
+        calculated_stability = (
+                np.mean(row['crystal_radius_trajectory'][sampling_start_index:sampling_start_index + 5]) /
+                np.amax(row['crystal_radius_trajectory'][sampling_start_index:sampling_end_index]))
 
         stability.append(calculated_stability)
 
@@ -695,7 +722,41 @@ def crystal_stability_analysis(combined_df):
     ])
     sum_table.show(renderer='browser')
 
-    return fig, sum_table
+    present_polymorphs = np.unique(df['Polymorph'])
+    present_defect_rates = np.unique(df['Defect Rate'])
+    present_temperatures = [320, 330, 340]
+    n_polymorphs = len(present_polymorphs)
+    n_defects = len(present_defect_rates)
+    n_temperatures = len(present_temperatures)
+    means_group = df.groupby(['Temperature', 'Polymorph', 'Defect Rate'])['Critical Nucleus Size'].mean()
+    stability_array = np.zeros((n_polymorphs, n_defects, n_temperatures))
+
+    for p_ind, polymorph in enumerate(present_polymorphs):
+        for d_ind, defect_rate in enumerate(present_defect_rates):
+            for t_ind, temp in enumerate(present_temperatures):
+                for row_ind, row in means_group.items():
+                    if int(row_ind[0]) == temp:
+                        if row_ind[1] == polymorph:
+                            if row_ind[2] == defect_rate:
+                                stability_array[p_ind, d_ind, t_ind] = row
+
+    stability_array[stability_array == 0] = -np.inf
+    min_val, max_val = np.amin(stability_array[np.isfinite(stability_array)]), np.amax(
+        stability_array[np.isfinite(stability_array)])
+
+    overall_fig = make_subplots(rows=1,
+                                cols=n_temperatures,
+                                subplot_titles=present_temperatures)
+    for t_ind, temp in enumerate(present_temperatures):
+        overall_fig.add_heatmap(z=stability_array[:, :, t_ind],
+                                y=present_polymorphs,
+                                x=present_defect_rates,
+                                colorscale='Viridis', zmax=max_val, zmin=min_val,
+                                row=1, col=t_ind + 1)
+
+    overall_fig.show(renderer='browser')
+
+    return fig, sum_table, overall_fig
 
 
 def latent_heat_analysis(combined_df):
@@ -703,19 +764,28 @@ def latent_heat_analysis(combined_df):
     unique_idents = np.unique(combined_df['structure_identifier'])
     n_a = 6.022 * 10 ** 23
     for id, ident in enumerate(unique_idents):
-        polymorph = ident.split('/')
+        #polymorph = ident.split('/')
         good_inds = np.argwhere(combined_df['structure_identifier'] == ident).flatten()
         good_df = combined_df.iloc[good_inds]
         melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
         crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
+        good_df.reset_index(drop=True, inplace=True)
 
         mean_enthalpy = np.zeros(len(good_df))
-        for run_ind in range(len(good_df)):
-            energy = good_df.iloc[run_ind]['E_tot'] * 4.184 / good_df.iloc[run_ind]['num_molecules'] / good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
-            pressure = 1 #good_df.iloc[run_ind]['Press']  # atmospheres
-            volume = good_df.iloc[run_ind]['Volume']
+        for run_ind, row in good_df.iterrows():
+            if 'E_tot' in row.keys():
+                if np.sum(np.isnan(row['E_tot'])) == 0:
+                    en_key = 'E_tot'
+                else:
+                    en_key = 'TotEng'
+            else:
+                en_key = 'TotEng'
+            energy = row[en_key] * 4.184 / row['num_molecules']# / \
+                     #good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
+            pressure = 1  #good_df.iloc[run_ind]['Press']  # atmospheres
+            volume = row['Volume']
             # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
-            PV_energy = pressure * volume * n_a / good_df.iloc[run_ind]['num_molecules'] * (1.01325 * 10 ** -25) / 1000
+            PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
             run_enthalpy = energy + PV_energy
             mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
 
@@ -723,35 +793,36 @@ def latent_heat_analysis(combined_df):
         crystal_enthalpy = np.mean(mean_enthalpy[crystal_inds])
 
         latents_dict[ident] = melted_enthalpy - crystal_enthalpy  # in kJ per mol
-
-        traj_thermo_keys = ['Press', 'Volume', 'E_tot', 'PotEng', 'temp', 'E_pair', 'E_mol', 'molwise_mean_kecom']
-        cols = len(traj_thermo_keys)
-        thermo_telemetry_fig = make_subplots(rows=2, cols=cols, subplot_titles=traj_thermo_keys, vertical_spacing=0.075)
-        ind = 0
-        for r_ind, df_row in good_df.iterrows():
-            for i, key in enumerate(traj_thermo_keys):
-                col = ind % cols + 1
-                thermo_telemetry_fig.add_trace(
-                    go.Scattergl(x=df_row['time step'] / 1e6,
-                                 y=df_row[key],
-                                 name=key, showlegend=False),
-                    row=1, col=col
-                )
-                thermo_telemetry_fig.add_trace(
-                    go.Scattergl(x=df_row['time step'] / 1e6,
-                                 y=gaussian_filter1d(df_row[key], sigma=10),
-                                 name=key, showlegend=False),
-                    row=2, col=col
-                )
-                ind += 1
-
-        thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
-        thermo_telemetry_fig.show(renderer='browser')
+        #
+        # traj_thermo_keys = ['Press', 'Volume', en_key, 'PotEng', 'Temp']
+        # cols = len(traj_thermo_keys)
+        # thermo_telemetry_fig = make_subplots(rows=2, cols=cols, subplot_titles=traj_thermo_keys, vertical_spacing=0.075)
+        # ind = 0
+        # for r_ind, df_row in good_df.iterrows():
+        #     for i, key in enumerate(traj_thermo_keys):
+        #         col = ind % cols + 1
+        #         thermo_telemetry_fig.add_trace(
+        #             go.Scattergl(x=df_row['time step'] / 1e6,
+        #                          y=df_row[key],
+        #                          name=key, showlegend=False),
+        #             row=1, col=col
+        #         )
+        #         thermo_telemetry_fig.add_trace(
+        #             go.Scattergl(x=df_row['time step'] / 1e6,
+        #                          y=gaussian_filter1d(df_row[key], sigma=10),
+        #                          name=key, showlegend=False),
+        #             row=2, col=col
+        #         )
+        #         ind += 1
+        #
+        # thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
+        # thermo_telemetry_fig.show(renderer='browser')
 
     fig = go.Figure()
     fig.add_trace(
         go.Bar(x=list(latents_dict.keys()), y=list(latents_dict.values()), name='Latent Heat'))
+    fig.add_trace(go.Bar(x=['Reference 383K', 'Reference2 383K'], y=[20.682, 18.58], name='Reference'))
+    fig.update_layout(yaxis_title = 'Latent Heat of Fusion (kJ/mol)')
     fig.show(renderer='browser')
-
 
     return fig
