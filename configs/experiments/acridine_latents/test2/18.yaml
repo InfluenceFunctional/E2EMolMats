@@ -14,7 +14,26 @@ defect_type:
 - anthracene
 equil_time: 500000.0
 gap_rate:
-- 0
+- &id001
+  - 0
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
+- *id001
 init_temperature: 200
 integrator: npt
 machine: cluster

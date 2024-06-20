@@ -23,6 +23,8 @@ for k, v in melts_dict.items():
             new_config['run_name'] = f'acridine_latents_battery2'
             new_config['seed'] = seed
             new_config['prep_bulk_melt'] = melt
+            # dummy value so that the indexing works out - bear with me
+            new_config['gap_rate'] = [new_config['gap_rate'] for _ in range(counter + 1)]
 
             with open(str(counter) + '.yaml', 'w') as outfile:
                 yaml.dump(new_config, outfile, default_flow_style=False)
