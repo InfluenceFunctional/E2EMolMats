@@ -29,7 +29,7 @@ prep_melt_interface: false
 pressure_direction: iso
 print_steps: 200
 ramp_temperature: false
-run_name: acridine_latents3
+run_name: acridine_latents_battery2
 run_time: 5000000.0
 scramble_rate:
 - 0

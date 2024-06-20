@@ -20,7 +20,7 @@ for k, v in melts_dict.items():
             new_config = copy(base_config)
             new_config['structure_identifier'] = k
             new_config['temperature'] = v
-            new_config['run_name'] = f'acridine_latents{counter}'
+            new_config['run_name'] = f'acridine_latents_battery2'
             new_config['seed'] = seed
             new_config['prep_bulk_melt'] = melt
 
