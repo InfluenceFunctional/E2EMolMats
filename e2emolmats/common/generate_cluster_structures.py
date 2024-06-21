@@ -120,7 +120,8 @@ def generate_structure(crystals_path, structure_identifier,
                        defect_rate, defect_type, scramble_rate, gap_rate, seed,
                        min_inter_cluster_distance, min_lattice_length,
                        periodic_structure=False, prep_crystal_in_melt=False,
-                       prep_melt_interface=False, prep_bulk_melt=False, melt_interface_direction=None):
+                       prep_melt_interface=False, prep_bulk_melt=False,
+                       melt_interface_direction=None, invert_defects=False):
     np.random.seed(seed=seed)
 
     '''load base crystal structure'''
@@ -176,6 +177,7 @@ def generate_structure(crystals_path, structure_identifier,
         cell = T_fc * np.asarray(cluster_size)[None, :].T  # cell parameters are the same as the
         # fractional->cartesian transition matrix in this code
 
+    'identify molecules to melt'
     if prep_crystal_in_melt:
         melt_inds, supercell_coordinates = (
             crystal_melt_reindexing(
@@ -192,6 +194,7 @@ def generate_structure(crystals_path, structure_identifier,
     else:
         melt_inds = None
 
+    'apply defects, vacancies, and/or scrambles'
     if scramble_rate > 0:
         supercell_atoms, supercell_coordinates = \
             apply_scramble(
@@ -209,7 +212,8 @@ def generate_structure(crystals_path, structure_identifier,
     if defect_rate > 0:  # substitute certain molecules
         supercell_atoms, supercell_coordinates, defect_mol_indices = (
             apply_defect(
-                atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type=defect_type))
+                atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates,
+                defect_type=defect_type, invert_defects=invert_defects))
 
         for ind in defect_mol_indices:  # record which molecules are which
             molind2name[ind] = defect_type
@@ -405,7 +409,7 @@ def apply_gap(atoms_in_molecule, gap_rate, single_mol_atoms, supercell_atoms, su
     return supercell_atoms, supercell_coordinates
 
 
-def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type):
+def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coordinates, defect_type, invert_defects=False):
     # pick molecules to defect
     num_mols = len(supercell_coordinates) // atoms_in_molecule
     num_defect_molecules = int(defect_rate * num_mols)
@@ -482,7 +486,7 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
                 defect_mol_coordinates[12] = proton_position
 
             elif defect_type == 'anthracene' or defect_type == '2,7-dihydroxynaphthalene':
-                # compute the intertial tensor for the original host molecule
+                # compute the inertial tensor for the original host molecule
                 # and align it with the defected molecule
                 ip_defect, _, _ = compute_principal_axes_np(defect_coordinates)
                 ip_host, _, _ = compute_principal_axes_np(original_mol_coords)
@@ -491,10 +495,11 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
                 defect_test_Ip, _, _ = compute_principal_axes_np(oriented_defect_coords)
                 if np.sum(np.abs(defect_test_Ip - ip_host)) <= 1e-3:
                     if np.sum(np.abs(defect_test_Ip) - np.abs(ip_host)) <= 1e-3:
-                        print(f"Defect {defect_type}:{i} symmetries scrambled in defect placement")
+                        print(f"Defect {defect_type}:{i} symmetries scrambled in defect placement - possible artifact of symmetric molecules")
                     else:
                         assert False, f"Defect {defect_type}:{i} is not in correct orientation"
-
+                if invert_defects:
+                    oriented_defect_coords *= -1
                 oriented_defect_coords += original_mol_coords.mean(0)  # put it in place
                 defect_mol_coordinates = oriented_defect_coords
             else:
@@ -505,6 +510,15 @@ def apply_defect(atoms_in_molecule, defect_rate, single_mol_atoms, supercell_coo
         else:  # no defect
             defected_supercell_coordinates.append(molwise_supercell_coordinates[i])
             defected_supercell_atoms.extend(single_mol_atoms)
+
+    ''' # look at the defect & host
+    from ase import Atoms
+    from ase.visualize import view
+    
+    mols = [Atoms(symbols=defect_atoms, positions=oriented_defect_coords),
+            Atoms(symbols=single_mol_atoms, positions = molwise_supercell_coordinates[i])]
+    view(mols)
+    '''
 
     supercell_coordinates = np.concatenate(defected_supercell_coordinates)
     supercell_atoms = np.asarray(defected_supercell_atoms)

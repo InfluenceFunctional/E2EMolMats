@@ -67,7 +67,8 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         prep_crystal_in_melt=config.prep_crystal_in_melt,
         prep_melt_interface=config.prep_melt_interface,
         prep_bulk_melt=config.prep_bulk_melt,
-        melt_interface_direction=config.pressure_direction)
+        melt_interface_direction=config.pressure_direction,
+        invert_defects=config.invert_defects)
 
     config_dict = config.__dict__
     config_dict.update({'molind2name_dict': molind2name})
