@@ -18,6 +18,8 @@ gap_rate:
 - 0
 init_temperature: 200
 integrator: npt
+invert_defects:
+- false
 machine: cluster
 max_sphere_radius:
 - 0
