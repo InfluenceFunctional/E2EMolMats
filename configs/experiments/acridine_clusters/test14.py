@@ -17,6 +17,7 @@ batch_config = {
     'seed': [1, 2],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
     'max_sphere_radius': [10, 20, 30],  # if carving a finite cluster from a bulk structure, the radius of the sphere
+    'invert_defects': [False],
 
     # static items - DO NOT SET AS LIST
     'run_time': 5e7,  # sampling time in femtoseconds
