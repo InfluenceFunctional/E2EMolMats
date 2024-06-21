@@ -6,15 +6,15 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
-    'temperature': [int(340 + 5*n) for n in range(17)],  # Kelvin
+    'temperature': [int(340 + 10*n) for n in range(8)],  # Kelvin
     'structure_identifier': ['acridine/Form2',
                              'acridine/Form4'],
-    'defect_rate': [0.05, 0.1],
+    'defect_rate': [0.1],
     'defect_type': ['2,7-dihydroxynaphthalene'],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
-    'seed': [1, 2],  # integers greater than zero
+    'seed': [1],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
     'max_sphere_radius': [10],  # if carving a finite cluster from a bulk structure, the radius of the sphere
     'invert_defects': [False, True],
@@ -26,7 +26,7 @@ batch_config = {
     'box_type': 'p',
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
     'integrator': 'npt',  # nosehoover, npt, nvt
-    'pressure_direction': ['x', 'y'],  # iso, x, y, or z for npt pressure directionality
+    'pressure_direction': ['x', 'y', 'z'],  # iso, x, y, or z for npt pressure directionality
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,  # for ramps only
     'print_steps': int(5e2),  # how many timepoints to print in sampling trajectory
