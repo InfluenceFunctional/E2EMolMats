@@ -772,28 +772,42 @@ def latent_heat_analysis(combined_df):
         crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
         good_df.reset_index(drop=True, inplace=True)
         # TODO add melt confirmation
-        mean_enthalpy = np.zeros(len(good_df))
+        failed_melts = []
         for run_ind, row in good_df.iterrows():
-            if 'E_tot' in row.keys():
-                if np.sum(np.isnan(row['E_tot'])) == 0:
-                    en_key = 'E_tot'
+            if run_ind in melted_inds:
+                if not df_row_melted(row):
+                    failed_melts.append(run_ind)
+
+        if len(failed_melts) > 0:
+            good_df.drop(index=failed_melts, inplace=True)
+            good_df.reset_index(drop=True, inplace=True)
+            melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
+            crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
+
+        if len(melted_inds) > 0 and len(crystal_inds) > 0:
+            mean_enthalpy = np.zeros(len(good_df))
+            for run_ind, row in good_df.iterrows():
+                if 'E_tot' in row.keys():
+                    if np.sum(np.isnan(row['E_tot'])) == 0:
+                        en_key = 'E_tot'
+                    else:
+                        en_key = 'TotEng'
                 else:
                     en_key = 'TotEng'
-            else:
-                en_key = 'TotEng'
-            energy = row[en_key] * 4.184 / row['num_molecules']  # / \
-            #good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
-            pressure = 1  #good_df.iloc[run_ind]['Press']  # atmospheres
-            volume = row['Volume']
-            # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
-            PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
-            run_enthalpy = energy + PV_energy
-            mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
 
-        melted_enthalpy = np.mean(mean_enthalpy[melted_inds])
-        crystal_enthalpy = np.mean(mean_enthalpy[crystal_inds])
+                energy = row[en_key] * 4.184 / row['num_molecules']  # / \
+                #good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
+                pressure = 1  #good_df.iloc[run_ind]['Press']  # atmospheres
+                volume = row['Volume']
+                # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
+                PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
+                run_enthalpy = energy + PV_energy
+                mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
 
-        latents_dict[ident] = melted_enthalpy - crystal_enthalpy  # in kJ per mol
+            melted_enthalpy = np.mean(mean_enthalpy[melted_inds])
+            crystal_enthalpy = np.mean(mean_enthalpy[crystal_inds])
+
+            latents_dict[ident] = melted_enthalpy - crystal_enthalpy  # in kJ per mol
         #
         # traj_thermo_keys = ['Press', 'Volume', en_key, 'PotEng', 'Temp']
         # cols = len(traj_thermo_keys)
@@ -859,17 +873,19 @@ def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
     'the overall volume should increase when it melts - we can check for this'
     melt_succeeded = np.zeros(len(combined_df), dtype=np.bool_)
     for row_ind, row in combined_df.iterrows():
-        vol_traj = row['Volume']
-        equil_time = row['run_config']['equil_time']
-        run_time = row['run_config']['run_time']
-        equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
+        success = df_row_melted(row)
+        melt_succeeded[row_ind] = success
 
-        pre_heat_mean_volume = np.mean(vol_traj[1:equil_time_index])
-        max_vol = np.amax(gaussian_filter1d(vol_traj, sigma=2))
-        volume_ratio = np.abs(max_vol - pre_heat_mean_volume) / pre_heat_mean_volume
-        if volume_ratio < 0.05:
-            melt_succeeded[row_ind] = False
-        else:
-            melt_succeeded[row_ind] = True
     combined_df['Melt Succeeded'] = melt_succeeded
     return combined_df
+
+
+def df_row_melted(row):
+    vol_traj = row['Volume']
+    equil_time = row['run_config']['equil_time']
+    equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
+    pre_heat_mean_volume = np.mean(vol_traj[1:equil_time_index])
+    max_vol = np.amax(gaussian_filter1d(vol_traj, sigma=2))
+    volume_ratio = np.abs(max_vol - pre_heat_mean_volume) / pre_heat_mean_volume
+    success = volume_ratio > 0.05
+    return success

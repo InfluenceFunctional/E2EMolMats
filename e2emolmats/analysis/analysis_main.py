@@ -57,13 +57,8 @@ acridine_cluster_paths = [
 ]
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
-    r'D:\crystal_datasets\acridine_latents0/',
-    r'D:\crystal_datasets\acridine_latents1/',
-    r'D:\crystal_datasets\acridine_latents2/',
-    r'D:\crystal_datasets\acridine_latents3/',
-    r'D:\crystal_datasets\acridine_latents4/',
-    r'D:\crystal_datasets\acridine_latents5/',
-    r'D:\crystal_datasets\acridine_latents6/',
+    r'D:\crystal_datasets\acridine_latents_battery1/',
+    r'D:\crystal_datasets\acridine_latents_battery2/',
 ]
 acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
@@ -74,7 +69,7 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_cluster'
+MODE = 'acridine_latent'
 
 if __name__ == '__main__':
     redo_analysis = False
