@@ -48,7 +48,6 @@ structure_identifier:
 submit_lammps_slurm: false
 temperature:
 - 330
-- 330
 - 340
 - 350
 - 360

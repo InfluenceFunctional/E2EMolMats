@@ -6,7 +6,7 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
-    'temperature': [330, 330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430],  # Kelvin
+    'temperature': [330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430],  # Kelvin
     'structure_identifier': ['acridine/Form2',
                              'acridine/Form4'],
     'defect_rate': [0, 0.1],
