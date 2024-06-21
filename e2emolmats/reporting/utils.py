@@ -602,7 +602,8 @@ def crystal_stability_analysis(combined_df):
     defect_types = []
     for ind, row in combined_df.iterrows():
         if 'latent' in row['run_num']:
-            continue
+            print("skipping misplaced 'latent' run")
+            continue  # skip misplaced runs
 
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
@@ -633,7 +634,7 @@ def crystal_stability_analysis(combined_df):
                         vertical_spacing=0.08)
     prediction_df = []
     xspace = np.linspace(0, 100, 1000)
-    colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)), colortype='rgb')
+    colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)) + 1, colortype='rgb')
     seen_t = {temp: False for temp in np.unique(temperature)}
     for p_ind, polymorph in enumerate(present_polymorphs):
         col = p_ind + 1
@@ -648,7 +649,7 @@ def crystal_stability_analysis(combined_df):
                 size = np.array(crystal_size)[good_inds]
                 size = size[finite_inds]
 
-                if len(good_inds) > 0:
+                if len(good_inds) > 1:
                     # fitting function
                     fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
                     loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
@@ -770,7 +771,7 @@ def latent_heat_analysis(combined_df):
         melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
         crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
         good_df.reset_index(drop=True, inplace=True)
-
+        # TODO add melt confirmation
         mean_enthalpy = np.zeros(len(good_df))
         for run_ind, row in good_df.iterrows():
             if 'E_tot' in row.keys():
@@ -780,8 +781,8 @@ def latent_heat_analysis(combined_df):
                     en_key = 'TotEng'
             else:
                 en_key = 'TotEng'
-            energy = row[en_key] * 4.184 / row['num_molecules']# / \
-                     #good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
+            energy = row[en_key] * 4.184 / row['num_molecules']  # / \
+            #good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
             pressure = 1  #good_df.iloc[run_ind]['Press']  # atmospheres
             volume = row['Volume']
             # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
@@ -822,7 +823,53 @@ def latent_heat_analysis(combined_df):
     fig.add_trace(
         go.Bar(x=list(latents_dict.keys()), y=list(latents_dict.values()), name='Latent Heat'))
     fig.add_trace(go.Bar(x=['Reference 383K', 'Reference2 383K'], y=[20.682, 18.58], name='Reference'))
-    fig.update_layout(yaxis_title = 'Latent Heat of Fusion (kJ/mol)')
+    fig.update_layout(yaxis_title='Latent Heat of Fusion (kJ/mol)')
     fig.show(renderer='browser')
 
     return fig
+
+
+def analyze_heat_capacity(combined_df, atoms_per_molecule):
+    kb = 0.008314462618  # boltzman factor. checked(https://en.wikipedia.org/wiki/Boltzmann_constant). kJ/mol/K
+    kJ = 4.184  # kJ/kcal
+    # compute heat capacities
+    cps = np.zeros(len(combined_df))
+    cvs = np.zeros(len(combined_df))
+    for ind, row in combined_df.iterrows():
+        traj_len = len(row['TotEng'])
+        energy_traj = row['TotEng'][traj_len // 2:] * kJ
+        enthalpy_traj = row['Enthalpy'][traj_len // 2:] * kJ
+        temp_traj = row['Temp'][traj_len // 2:]
+
+        num_molecules = row['num_atoms'] / atoms_per_molecule['acridine']
+        cp = (np.mean(energy_traj ** 2) - np.mean(energy_traj) ** 2) / (
+                kb * np.mean(temp_traj) ** 2) / num_molecules
+        cv = (np.mean(enthalpy_traj ** 2) - np.mean(enthalpy_traj) ** 2) / (
+                kb * np.mean(temp_traj) ** 2) / num_molecules
+
+        cps[ind] = cp
+        cvs[ind] = cv
+    combined_df['Cp'] = cps
+    combined_df['Cv'] = cvs
+    return combined_df
+
+
+def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
+    'confirm that the sample actually melted and return a bool'
+    'the overall volume should increase when it melts - we can check for this'
+    melt_succeeded = np.zeros(len(combined_df), dtype=np.bool_)
+    for row_ind, row in combined_df.iterrows():
+        vol_traj = row['Volume']
+        equil_time = row['run_config']['equil_time']
+        run_time = row['run_config']['run_time']
+        equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
+
+        pre_heat_mean_volume = np.mean(vol_traj[1:equil_time_index])
+        max_vol = np.amax(gaussian_filter1d(vol_traj, sigma=2))
+        volume_ratio = np.abs(max_vol - pre_heat_mean_volume) / pre_heat_mean_volume
+        if volume_ratio < 0.05:
+            melt_succeeded[row_ind] = False
+        else:
+            melt_succeeded[row_ind] = True
+    combined_df['Melt Succeeded'] = melt_succeeded
+    return combined_df

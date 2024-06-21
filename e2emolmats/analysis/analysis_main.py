@@ -6,12 +6,14 @@ import os
 import numpy as np
 import pandas as pd
 import wandb
+from scipy.ndimage import gaussian_filter1d
 
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
                                         plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table,
-                                        crystal_stability_analysis, latent_heat_analysis)
+                                        crystal_stability_analysis, latent_heat_analysis, analyze_heat_capacity,
+                                        confirm_melt)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -43,15 +45,15 @@ acridine_melt_paths = [
 # ]
 'paths for analysis of acridine cluster stability'
 acridine_cluster_paths = [
-    #r'D:\crystal_datasets\acridine_cluster4/',
-    #r'D:\crystal_datasets\acridine_cluster5/',
-    #r'D:\crystal_datasets\acridine_cluster6/',
-    #r'D:\crystal_datasets\acridine_cluster7/',
-    #r'D:\crystal_datasets\acridine_cluster8/',
+    r'D:\crystal_datasets\acridine_cluster4/',
+    r'D:\crystal_datasets\acridine_cluster5/',
+    r'D:\crystal_datasets\acridine_cluster6/',
+    r'D:\crystal_datasets\acridine_cluster7/',
+    r'D:\crystal_datasets\acridine_cluster8/',
     r'D:\crystal_datasets\acridine_cluster9/',
-    #r'D:\crystal_datasets\acridine_cluster10/',
-    #r'D:\crystal_datasets\acridine_cluster11/'
-
+    r'D:\crystal_datasets\acridine_cluster10/',
+    r'D:\crystal_datasets\acridine_cluster11/',
+    r'D:\crystal_datasets\acridine_cluster12/'
 ]
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
@@ -75,11 +77,13 @@ atoms_per_molecule = {
 MODE = 'acridine_cluster'
 
 if __name__ == '__main__':
+    redo_analysis = False
+    log_to_wandb = False
+
     compute_melt_temps = False
     nanocluster_analysis = False
     latents_analysis = False
     cp_analysis = False
-    log_to_wandb = True
 
     if MODE == 'acridine_cluster':
         battery_paths = acridine_cluster_paths
@@ -104,7 +108,7 @@ if __name__ == '__main__':
     config_i = {
         'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
         'battery_paths': battery_paths,
-        'redo_analysis': True,
+        'redo_analysis': redo_analysis,
         'run_name': 'test_analysis',
         'compute_melt_temps': compute_melt_temps,
         'nanocluster_analysis': nanocluster_analysis,
@@ -125,7 +129,7 @@ if __name__ == '__main__':
     runs_dict = {}
     for battery_path in battery_paths:
         'process and collect results battery-wise'
-
+        print(battery_path)
         os.chdir(battery_path)
         battery_full_path = os.getcwd()
 
@@ -165,7 +169,8 @@ if __name__ == '__main__':
                         run_config = np.load('run_config.npy', allow_pickle=True).item()
 
                     'always do thermo analysis'
-                    thermo_results_dict, analysis_code = process_thermo_data(run_config,True)  #skip_molwise_thermo='daisuke' in battery_paths[0])
+                    thermo_results_dict, analysis_code = process_thermo_data(run_config,
+                                                                             True)  #skip_molwise_thermo='daisuke' in battery_paths[0])
                     runs_dict[run_dir] = [analysis_code, run_config]
                     if analysis_code != 'Thermo analysis succeeded':
                         print(f'Processing {run_dir} failed ' + analysis_code)
@@ -211,6 +216,10 @@ if __name__ == '__main__':
 
     'multi-battery analysis'
     if config.compute_melt_temps:
+        combined_df = confirm_melt(combined_df)
+        combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
+        combined_df.reset_index(drop=True, inplace=True)
+
         fig, melt_estimate_dict = compute_and_plot_melt_slopes(combined_df)
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
 
@@ -220,6 +229,9 @@ if __name__ == '__main__':
                        })
 
     if config.nanocluster_analysis:
+        combined_df = confirm_melt(combined_df)
+        combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
+        combined_df.reset_index(drop=True, inplace=True)
         fig, com_table, summary_fig = crystal_stability_analysis(combined_df)
 
         if config.log_to_wandb:
@@ -234,27 +246,7 @@ if __name__ == '__main__':
             wandb.log({'Latent Heat Estimation': fig})
 
     if config.cp_analysis:
-        kb = 0.008314462618  # boltzman factor. checked(https://en.wikipedia.org/wiki/Boltzmann_constant). kJ/mol/K
-        kJ = 4.184  # kJ/kcal
-        # compute heat capacities
-        cps = np.zeros(len(combined_df))
-        cvs = np.zeros(len(combined_df))
-        for ind, row in combined_df.iterrows():
-            traj_len = len(row['TotEng'])
-            energy_traj = row['TotEng'][traj_len // 2:] * kJ
-            enthalpy_traj = row['Enthalpy'][traj_len // 2:] * kJ
-            temp_traj = row['Temp'][traj_len // 2:]
-
-            num_molecules = row['num_atoms'] / atoms_per_molecule['acridine']
-            cp = (np.mean(energy_traj ** 2) - np.mean(energy_traj) ** 2) / (
-                        kb * np.mean(temp_traj) ** 2) / num_molecules
-            cv = (np.mean(enthalpy_traj ** 2) - np.mean(enthalpy_traj) ** 2) / (
-                        kb * np.mean(temp_traj) ** 2) / num_molecules
-
-            cps[ind] = cp
-            cvs[ind] = cv
-        combined_df['Cp'] = cps
-        combined_df['Cv'] = cvs
+        combined_df = analyze_heat_capacity(combined_df, atoms_per_molecule)
         aa = 1
 
     if config.log_to_wandb:
