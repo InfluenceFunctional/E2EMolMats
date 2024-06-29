@@ -566,7 +566,7 @@ POLYMORPH_MELT_POINTS = {'acridine':
 }
 
 
-def runs_summary_table(runs_dict):
+def runs_summary_table(runs_dict, run_name):
     try:
         runs = np.asarray(list(runs_dict.keys())).astype(int)
         runs = np.sort(runs)
@@ -590,6 +590,7 @@ def runs_summary_table(runs_dict):
         data=go.Table(header=dict(
             values=keys),
             cells=dict(values=vals)))
+    fig.update_layout(title=run_name)
     return fig
 
 
@@ -630,82 +631,83 @@ def crystal_stability_analysis(combined_df):
     present_defect_rates = np.unique(defects)
     n_columns = len(present_polymorphs)
     n_rows = len(present_defect_rates)
-    fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.035,
-                        vertical_spacing=0.08)
-    prediction_df = []
-    xspace = np.linspace(0, 100, 1000)
-    colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)) + 1, colortype='rgb')
-    seen_t = {temp: False for temp in np.unique(temperature)}
-    for p_ind, polymorph in enumerate(present_polymorphs):
-        col = p_ind + 1
-        for d_ind, defect_rate in enumerate(present_defect_rates):
-            row = d_ind + 1
-            for t_ind, temp in enumerate(np.unique(temperature)):
-                good_inds = np.where(
-                    (temperature == temp) * (np.array(polymorphs) == polymorph) * (np.array(defects) == defect_rate))[0]
-                stab = np.array(stability)[good_inds]
-                finite_inds = np.isfinite(stab)
-                stab = stab[finite_inds]
-                size = np.array(crystal_size)[good_inds]
-                size = size[finite_inds]
+    for defect_type in np.unique(defect_types):
+        fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.035,
+                            vertical_spacing=0.08)
+        prediction_df = []
+        xspace = np.linspace(0, 100, 1000)
+        colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)) + 1, colortype='rgb')
+        seen_t = {temp: False for temp in np.unique(temperature)}
+        for p_ind, polymorph in enumerate(present_polymorphs):
+            col = p_ind + 1
+            for d_ind, defect_rate in enumerate(present_defect_rates):
+                row = d_ind + 1
+                for t_ind, temp in enumerate(np.unique(temperature)):
+                    good_inds = np.where(
+                        (temperature == temp) * (np.array(polymorphs) == polymorph) * (np.array(defects) == defect_rate) * (np.array(defect_types) == defect_type))[0]
+                    stab = np.array(stability)[good_inds]
+                    finite_inds = np.isfinite(stab)
+                    stab = stab[finite_inds]
+                    size = np.array(crystal_size)[good_inds]
+                    size = size[finite_inds]
 
-                if len(good_inds) > 1:
-                    # fitting function
-                    fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
-                    loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
+                    if len(good_inds) > 1:
+                        # fitting function
+                        fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
+                        loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
 
-                    regress = linregress(size, stab)
-                    rslope = regress.slope
-                    rint = regress.intercept
-                    assert np.isfinite(rslope)
-                    res = minimize(loss, x0=np.array([rslope,
-                                                      rint]), options={'disp': False},
-                                   bounds=((None, None), (None, None)))
-                    m, b = res.x
-                    if not seen_t[temp]:
-                        seen_t[temp] = True
+                        regress = linregress(size, stab)
+                        rslope = regress.slope
+                        rint = regress.intercept
+                        assert np.isfinite(rslope)
+                        res = minimize(loss, x0=np.array([rslope,
+                                                          rint]), options={'disp': False},
+                                       bounds=((None, None), (None, None)))
+                        m, b = res.x
+                        if not seen_t[temp]:
+                            seen_t[temp] = True
 
-                    # plot raw scatter
-                    fig.add_scattergl(x=size, y=stab, mode='markers',
-                                      legendgroup=temp, name=temp, showlegend=True if seen_t[temp] else False,
-                                      marker_color=colors[t_ind],
-                                      marker_size=10,
-                                      opacity=0.75,
-                                      row=row, col=col)
-                    # plot fitting function
-                    fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
-                                      legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                                      row=row, col=col)
+                        # plot raw scatter
+                        fig.add_scattergl(x=size, y=stab, mode='markers',
+                                          legendgroup=temp, name=temp, showlegend=True if seen_t[temp] else False,
+                                          marker_color=colors[t_ind],
+                                          marker_size=10,
+                                          opacity=0.75,
+                                          row=row, col=col)
+                        # plot fitting function
+                        fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
+                                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                          row=row, col=col)
 
-                    # extract critical size prediction
-                    critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
-                    # if any clusters were observed stable below the predicted size, trust this instead
-                    stable_inds = np.argwhere(stab > 0.975)
-                    if len(stable_inds) > 0:
-                        minimum_stable_size = np.amin(size[stable_inds])
-                        if minimum_stable_size < critical_size_prediction:
-                            critical_size_prediction = minimum_stable_size
+                        # extract critical size prediction
+                        critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
+                        # if any clusters were observed stable below the predicted size, trust this instead
+                        stable_inds = np.argwhere(stab > 0.975)
+                        if len(stable_inds) > 0:
+                            minimum_stable_size = np.amin(size[stable_inds])
+                            if minimum_stable_size < critical_size_prediction:
+                                critical_size_prediction = minimum_stable_size
 
-                    # record and plot critical size prediction
-                    prediction_df.append({'Defect Type': 'anthracene',
-                                          'Defect Rate': defect_rate,
-                                          'Polymorph': polymorph,
-                                          'Temperature': temp,
-                                          'Critical Nucleus Size': np.round(critical_size_prediction, 1)
-                                          })
-                    fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
-                                      legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                                      marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
-                                      row=row, col=col)
-                    fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
-                                      marker_color='black',
-                                      row=row, col=col)
+                        # record and plot critical size prediction
+                        prediction_df.append({'Defect Type': 'anthracene',
+                                              'Defect Rate': defect_rate,
+                                              'Polymorph': polymorph,
+                                              'Temperature': temp,
+                                              'Critical Nucleus Size': np.round(critical_size_prediction, 1)
+                                              })
+                        fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
+                                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                          marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
+                                          row=row, col=col)
+                        fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
+                                          marker_color='black',
+                                          row=row, col=col)
 
-    print(prediction_df)
+        print(prediction_df)
 
-    fig.update_xaxes(title='Nucleus Size', range=[0, 50])
-    fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
-    fig.show(renderer='browser')
+        fig.update_xaxes(title='Nucleus Size', range=[0, 50])
+        fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
+        fig.show(renderer='browser')
 
     df = pd.DataFrame(prediction_df)
 
@@ -889,3 +891,124 @@ def df_row_melted(row):
     volume_ratio = np.abs(max_vol - pre_heat_mean_volume) / pre_heat_mean_volume
     success = volume_ratio > 0.05
     return success
+
+
+def cp_and_latent_analysis(combined_df):
+    'plot and numerically fit run enthalpy vs T'
+
+    enthalpies_dict = {}
+    unique_idents = np.unique(combined_df['structure_identifier'])
+    n_a = 6.022 * 10 ** 23
+    for id, ident in enumerate(unique_idents):
+        # polymorph = ident.split('/')
+        good_inds = np.argwhere(combined_df['structure_identifier'] == ident).flatten()
+        good_df = combined_df.iloc[good_inds]
+        melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
+        crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
+        good_df.reset_index(drop=True, inplace=True)
+
+        failed_melts = []
+        for run_ind, row in good_df.iterrows():
+            if run_ind in melted_inds:
+                if not df_row_melted(row):
+                    failed_melts.append(run_ind)
+
+        if len(failed_melts) > 0:
+            good_df.drop(index=failed_melts, inplace=True)
+            good_df.reset_index(drop=True, inplace=True)
+            melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
+            crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
+
+        if len(melted_inds) > 0 and len(crystal_inds) > 0:
+            mean_enthalpy = np.zeros(len(good_df))
+            temps = np.zeros_like(mean_enthalpy)
+            for run_ind, row in good_df.iterrows():
+                if 'E_tot' in row.keys():
+                    if np.sum(np.isnan(row['E_tot'])) == 0:
+                        en_key = 'E_tot'
+                    else:
+                        en_key = 'TotEng'
+                else:
+                    en_key = 'TotEng'
+
+                temps[run_ind] = row['temperature']
+                energy = row[en_key] * 4.184 / row['num_molecules']  # / \
+                # good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
+                pressure = 1  # good_df.iloc[run_ind]['Press']  # atmospheres
+                volume = row['Volume']
+                # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
+                PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
+                run_enthalpy = energy + PV_energy
+                mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
+
+            enthalpies_dict[ident] = {'Temperature': temps,
+                                      'Enthalpies': mean_enthalpy,
+                                      'Melted': np.array([ind in melted_inds for ind in range(len(good_df))])}
+
+    melts_dict = {
+        'acridine/Form2': 394.68468468468467,
+        'acridine/Form3': 394.68468468468467,
+        'acridine/Form4': 351.3613613613614,
+        'acridine/Form6': 358.8088088088088,
+        'acridine/Form7': 372.5025025025025,
+        'acridine/Form8': 371.7017017017017,
+        'acridine/Form9': 376.02602602602605
+    }
+
+
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
+    latents_dict = {}
+    cp_dict = {}
+    fig = make_subplots(rows=1, cols=len(enthalpies_dict), subplot_titles=list(enthalpies_dict.keys()))
+    for ident, (key, subdict) in enumerate(enthalpies_dict.items()):
+        row = 1
+        col = ident + 1
+        T = subdict['Temperature']
+        H = subdict['Enthalpies']
+        melt = subdict['Melted']
+        melt_T = melts_dict[key]
+
+        melted_inds = np.argwhere(melt * (T >= melt_T)).flatten()
+        solid_inds = np.argwhere(~melt * (T < melt_T)).flatten()
+
+        melt_series_inds = np.concatenate([
+            solid_inds, melted_inds
+        ])
+
+        fig.add_scattergl(
+            x=T[melt_series_inds], y=H[melt_series_inds],
+            mode='markers', showlegend=False,
+            row=row, col=col,
+        )
+
+        'polynomial fits'
+        fit1 = np.polyfit(T[melted_inds], H[melted_inds], 2)
+        xspace = np.linspace(T[melted_inds].min(), T[melted_inds].max(), 101)
+        melt_fit = np.poly1d(fit1)
+
+        fig.add_scattergl(
+            x=xspace, y=melt_fit(xspace),
+            mode='lines', showlegend=True, name=str(fit1),
+            row=row, col=col,
+        )
+
+        fit2 = np.polyfit(T[solid_inds], H[solid_inds], 2)
+        xspace = np.linspace(T[solid_inds].min(), T[solid_inds].max(), 101)
+        solid_fit = np.poly1d(fit2)
+
+        fig.add_scattergl(
+            x=xspace, y=solid_fit(xspace),
+            mode='lines', showlegend=True, name=str(fit2),
+            row=row, col=col,
+        )
+        cp_function = solid_fit.deriv()
+        latents_dict[key] = melt_fit(melt_T) - solid_fit(melt_T)
+        cp_dict[key] = cp_function(melt_T)
+
+    print(latents_dict)
+    print(cp_dict)
+    fig.update_xaxes(title='Temperature /K')
+    fig.update_yaxes(title='Mean Enthalpy kJ/mol')
+    fig.show(renderer='browser')
+    return fig

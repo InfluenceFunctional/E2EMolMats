@@ -13,7 +13,7 @@ from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
                                         plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table,
                                         crystal_stability_analysis, latent_heat_analysis, analyze_heat_capacity,
-                                        confirm_melt)
+                                        confirm_melt, df_row_melted, cp_and_latent_analysis)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -30,7 +30,9 @@ acridine_melt_paths = [
     r'D:\crystal_datasets\acridine_melt_interface17_1/',
     r'D:\crystal_datasets\acridine_melt_interface17_3/',
     r'D:\crystal_datasets\acridine_melt_interface17_4/',
-    r'D:\crystal_datasets\acridine_melt_interface18/'
+    r'D:\crystal_datasets\acridine_melt_interface18/',
+    r'D:\crystal_datasets\acridine_melt_interface19/',
+    r'D:\crystal_datasets\acridine_melt_interface20/'
 ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
@@ -63,13 +65,16 @@ acridine_latent_paths = [
 acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
+acridine_cp2_paths = [
+    r'D:\crystal_datasets\acridine_cp1'
+]
 
 atoms_per_molecule = {
     'nicotinamide': 15,
     'acridine': 23
 }
 
-MODE = 'acridine_latent'
+MODE = 'acridine_melt'
 
 if __name__ == '__main__':
     redo_analysis = False
@@ -79,6 +84,7 @@ if __name__ == '__main__':
     nanocluster_analysis = False
     latents_analysis = False
     cp_analysis = False
+    cp2_analysis = False
 
     if MODE == 'acridine_cluster':
         battery_paths = acridine_cluster_paths
@@ -97,6 +103,11 @@ if __name__ == '__main__':
         cp_analysis = True
         log_to_wandb = False
 
+    elif MODE == 'acridine_cp2':
+        battery_paths = acridine_cp2_paths
+        cp2_analysis = True
+        log_to_wandb = True
+
     else:
         assert False, "Unrecognized mode !!"
 
@@ -109,6 +120,7 @@ if __name__ == '__main__':
         'nanocluster_analysis': nanocluster_analysis,
         'latents_analysis': latents_analysis,
         'cp_analysis': cp_analysis,
+        'cp2_analysis': cp2_analysis,
         'log_to_wandb': log_to_wandb,
     }
     config = dict2namespace(config_i)
@@ -194,7 +206,7 @@ if __name__ == '__main__':
         # visualize something with runs dict, maybe as a table
         # only for unfinished runs or when reprocessing
         if len(runs_dict) > 0:
-            summary_fig = runs_summary_table(runs_dict)
+            summary_fig = runs_summary_table(runs_dict, battery_path)
             summary_fig.show(renderer='browser')
 
         if config.compute_melt_temps:
@@ -243,6 +255,13 @@ if __name__ == '__main__':
     if config.cp_analysis:
         combined_df = analyze_heat_capacity(combined_df, atoms_per_molecule)
         aa = 1
+
+    if config.cp2_analysis:
+        fig = cp_and_latent_analysis(combined_df)
+
+        if config.log_to_wandb:
+            wandb.log({'Enthalpy Fitting': fig})
+
 
     if config.log_to_wandb:
         wandb.finish()
