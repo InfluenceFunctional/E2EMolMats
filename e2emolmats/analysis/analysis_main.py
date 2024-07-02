@@ -6,14 +6,13 @@ import os
 import numpy as np
 import pandas as pd
 import wandb
-from scipy.ndimage import gaussian_filter1d
 
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
                                         plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table,
                                         crystal_stability_analysis, latent_heat_analysis, analyze_heat_capacity,
-                                        confirm_melt, df_row_melted, cp_and_latent_analysis)
+                                        confirm_melt, cp_and_latent_analysis, relabel_defects)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -66,7 +65,10 @@ acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    r'D:\crystal_datasets\acridine_cp1'
+    r'D:\crystal_datasets\acridine_cp1',
+    r'D:\crystal_datasets\acridine_cp2',
+    r'D:\crystal_datasets\acridine_latents_battery1/',
+    r'D:\crystal_datasets\acridine_latents_battery2/',
 ]
 
 atoms_per_molecule = {
@@ -74,7 +76,7 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_melt'
+MODE = 'acridine_cp2'
 
 if __name__ == '__main__':
     redo_analysis = False
@@ -205,9 +207,9 @@ if __name__ == '__main__':
 
         # visualize something with runs dict, maybe as a table
         # only for unfinished runs or when reprocessing
-        if len(runs_dict) > 0:
-            summary_fig = runs_summary_table(runs_dict, battery_path)
-            summary_fig.show(renderer='browser')
+        # if len(runs_dict) > 0:
+        #     summary_fig = runs_summary_table(runs_dict, battery_path)
+        #     summary_fig.show(renderer='browser')
 
         if config.compute_melt_temps:
             results_df.reset_index(drop=True, inplace=True)
@@ -220,6 +222,8 @@ if __name__ == '__main__':
             combined_df = results_df
 
         combined_df.reset_index(drop=True, inplace=True)
+
+    combined_df = relabel_defects(combined_df)
 
     'multi-battery analysis'
     if config.compute_melt_temps:
@@ -257,11 +261,12 @@ if __name__ == '__main__':
         aa = 1
 
     if config.cp2_analysis:
+        # todo add melt confirmation
+        combined_df = confirm_melt(combined_df)
         fig = cp_and_latent_analysis(combined_df)
 
         if config.log_to_wandb:
             wandb.log({'Enthalpy Fitting': fig})
-
 
     if config.log_to_wandb:
         wandb.finish()

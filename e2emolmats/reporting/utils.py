@@ -2,8 +2,6 @@ import io
 import os
 
 import numpy as np
-from _plotly_utils.colors import n_colors
-from plotly import graph_objects as go
 from scipy.optimize import minimize_scalar, minimize
 from scipy.stats import linregress
 from scipy.spatial.distance import cdist
@@ -13,6 +11,7 @@ from scipy.ndimage import gaussian_filter1d
 import plotly.express as px
 import pandas as pd
 import plotly.colors as pc
+from plotly.colors import n_colors
 
 
 def make_thermo_fig(thermo_results_dict, run_config):
@@ -116,8 +115,8 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
             if not skip:
                 split_line = line.split(' ')
                 entries = [float(entry) for entry in split_line if entry != '']
-                for ind2, key in enumerate(
-                        screen_keys):  # order of screen keys updated in every print block so this should be robust
+                # order of screen keys updated in every print block so this should be robust
+                for ind2, key in enumerate(screen_keys):
                     results_dict[key].append(entries[ind2])
 
     results_dict['time step'] = results_dict['Step']
@@ -428,99 +427,87 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
     seeds = list(np.unique(df['seed']))
     polymorphs = list(
         np.unique([conf['structure_identifier'].split('/')[-1] for conf in df['run_config']]))
+    defect_types = np.unique(df['defect_type'])
     num_polymorphs = len(polymorphs)
+    num_defects = len(defect_types)
     colors = px.colors.qualitative.G10
     seen_polymorph = {polymorph: False for polymorph in polymorphs}
     min_temp = np.amin([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
     max_temp = np.amax([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
     temprange = np.linspace(min_temp, max_temp, 1000)
-    melt_temps = {}
-    fig = make_subplots(rows=1, cols=2,
+    melt_temps = {defect_type: {} for defect_type in defect_types}
+    fig = make_subplots(rows=num_defects, cols=2,
                         subplot_titles=['Normed Intermolecular Energy', 'Intermolecular Energy Slope'])
     for polymorph in polymorphs:
-        good_inds = np.argwhere(df['polymorph_name'] == polymorph).flatten()
+        for d_ind, defect_type in enumerate(defect_types):
+            row = d_ind + 1
+            good_inds = np.argwhere((df['polymorph_name'] == polymorph) * (df['defect_type'] == defect_type)).flatten()
+            if len(good_inds) > 0:
+                temperatures = np.asarray([elem['temperature'] for elem in df.iloc[good_inds]['run_config']])
+                melt_magnitudes = np.asarray(df.iloc[good_inds]['melt_magnitude']).flatten()
+                melt_slopes = np.asarray(df.iloc[good_inds]['melt_slope']).flatten()
 
-        temperatures = np.asarray([elem['temperature'] for elem in df.iloc[good_inds]['run_config']])
-        melt_magnitudes = np.asarray(df.iloc[good_inds]['melt_magnitude']).flatten()
-        melt_slopes = np.asarray(df.iloc[good_inds]['melt_slope']).flatten()
+                temps = np.unique(temperatures)
+                mag_at_t = np.array(
+                    [np.mean([melt_magnitudes[i] for i in range(len(melt_magnitudes)) if temperatures[i] == temp]) for
+                     temp
+                     in
+                     temps])
+                slope_at_t = np.array(
+                    [np.mean([melt_slopes[i] for i in range(len(melt_slopes)) if temperatures[i] == temp]) for temp in
+                     temps])
 
-        temps = np.unique(temperatures)
-        mag_at_t = np.array(
-            [np.mean([melt_magnitudes[i] for i in range(len(melt_magnitudes)) if temperatures[i] == temp]) for temp
-             in
-             temps])
-        slope_at_t = np.array(
-            [np.mean([melt_slopes[i] for i in range(len(melt_slopes)) if temperatures[i] == temp]) for temp in
-             temps])
+                mag_spline = np.interp(temprange, temps, np.maximum.accumulate(mag_at_t))
+                slope_spline = np.interp(temprange, temps, np.maximum.accumulate(slope_at_t))
 
-        mag_spline = np.interp(temprange, temps, np.maximum.accumulate(mag_at_t))
-        slope_spline = np.interp(temprange, temps, np.maximum.accumulate(slope_at_t))
+                melt_T = temprange[np.argmin(np.abs(slope_spline))]
+                melt_temps[defect_type][polymorph] = melt_T
+                fig.add_scattergl(x=temperatures,
+                                  y=melt_magnitudes,
+                                  mode='markers',
+                                  name=polymorph,
+                                  legendgroup=polymorph,
+                                  marker_size=7,
+                                  opacity=0.5,
+                                  showlegend=False,
+                                  marker_color=colors[polymorphs.index(polymorph)],
+                                  row=row, col=1
+                                  )
 
-        melt_T = temprange[np.argmin(np.abs(slope_spline))]
-        melt_temps[polymorph] = melt_T
-        fig.add_scattergl(x=temperatures,
-                          y=melt_magnitudes,
-                          mode='markers',
-                          name=polymorph,
-                          legendgroup=polymorph,
-                          marker_size=7,
-                          opacity=0.5,
-                          showlegend=False,
-                          marker_color=colors[polymorphs.index(polymorph)],
-                          row=1, col=1
-                          )
+                fig.add_scattergl(x=temperatures,
+                                  y=melt_slopes,
+                                  mode='markers',
+                                  name=polymorph,
+                                  legendgroup=polymorph,
+                                  marker_size=7,
+                                  opacity=0.5,
+                                  showlegend=False,
+                                  marker_color=colors[polymorphs.index(polymorph)],
+                                  row=row, col=2
+                                  )
 
-        fig.add_scattergl(x=temperatures,
-                          y=melt_slopes,
-                          mode='markers',
-                          name=polymorph,
-                          legendgroup=polymorph,
-                          marker_size=7,
-                          opacity=0.5,
-                          showlegend=False,
-                          marker_color=colors[polymorphs.index(polymorph)],
-                          row=1, col=2
-                          )
+                fig.add_scattergl(x=temps,
+                                  y=mag_at_t,
+                                  mode='markers',
+                                  name=polymorph,
+                                  legendgroup=polymorph,
+                                  marker_size=15,
+                                  showlegend=True if not seen_polymorph[polymorph] else False,
+                                  marker_color=colors[polymorphs.index(polymorph)],
+                                  row=row, col=1
+                                  )
 
-        fig.add_scattergl(x=temps,
-                          y=mag_at_t,
-                          mode='markers',
-                          name=polymorph,
-                          legendgroup=polymorph,
-                          marker_size=15,
-                          showlegend=True if not seen_polymorph[polymorph] else False,
-                          marker_color=colors[polymorphs.index(polymorph)],
-                          row=1, col=1
-                          )
+                fig.add_scattergl(x=temps,
+                                  y=slope_at_t,
+                                  mode='markers',
+                                  name=polymorph,
+                                  legendgroup=polymorph,
+                                  marker_size=15,
+                                  showlegend=False,
+                                  marker_color=colors[polymorphs.index(polymorph)],
+                                  row=row, col=2
+                                  )
 
-        fig.add_scattergl(x=temps,
-                          y=slope_at_t,
-                          mode='markers',
-                          name=polymorph,
-                          legendgroup=polymorph,
-                          marker_size=15,
-                          showlegend=False,
-                          marker_color=colors[polymorphs.index(polymorph)],
-                          row=1, col=2
-                          )
-        #
-        # fig.add_scattergl(x=temprange,
-        #                   y=mag_spline,
-        #                   name=polymorph,
-        #                   legendgroup=polymorph,
-        #                   showlegend=False,
-        #                   marker_color=colors[polymorphs.index(polymorph)],
-        #                   row=1, col=1
-        #                   )
-        #
-        # fig.add_scattergl(x=temprange,
-        #                   y=slope_spline,
-        #                   name=polymorph,
-        #                   legendgroup=polymorph,
-        #                   showlegend=False,
-        #                   marker_color=colors[polymorphs.index(polymorph)],
-        #                   row=1, col=2
-        #                   )
     fig.update_xaxes(title='Temperature (K)')
     if show_fig:
         fig.show(renderer='browser')
@@ -531,15 +518,22 @@ def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
     """
     use all data to estimate the melt point for each polymorph
     """
-    melt_temps = np.asarray(list(melt_estimate_dict.values()))
-    true_melt_temps = np.asarray(list(true_melts_dict.values()))
+    defect_types = np.unique(list(melt_estimate_dict.keys()))
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(x=list(melt_estimate_dict.keys()), y=list(melt_estimate_dict.values()), name='Estimate'))
-    fig2.add_trace(go.Bar(x=list(true_melts_dict.keys()), y=list(true_melts_dict.values()), name='Reference'))
+    true_melt_temps = np.asarray(list(true_melts_dict.values()))
+    fig2.add_trace(go.Bar(x=list(true_melts_dict.keys()),
+                          y=list(true_melts_dict.values()), name='Reference'))
+
+    for defect_type in defect_types:
+        melt_temps = np.asarray(list(melt_estimate_dict[defect_type].values()))
+        fig2.add_trace(go.Bar(x=list(melt_estimate_dict[defect_type].keys()),
+                              y=list(melt_estimate_dict[defect_type].values()), name=defect_type + ' Estimate'))
+
     fig2.update_layout(yaxis_range=[min(np.amin(melt_temps), np.amin(true_melt_temps)) - 5,
                                     max(np.amax(melt_temps), np.amax(true_melt_temps)) + 5])
     if show_fig:
         fig2.show(renderer='browser')
+
     return fig2
 
 
@@ -644,7 +638,8 @@ def crystal_stability_analysis(combined_df):
                 row = d_ind + 1
                 for t_ind, temp in enumerate(np.unique(temperature)):
                     good_inds = np.where(
-                        (temperature == temp) * (np.array(polymorphs) == polymorph) * (np.array(defects) == defect_rate) * (np.array(defect_types) == defect_type))[0]
+                        (temperature == temp) * (np.array(polymorphs) == polymorph) * (
+                                np.array(defects) == defect_rate) * (np.array(defect_types) == defect_type))[0]
                     stab = np.array(stability)[good_inds]
                     finite_inds = np.isfinite(stab)
                     stab = stab[finite_inds]
@@ -871,7 +866,9 @@ def analyze_heat_capacity(combined_df, atoms_per_molecule):
 
 
 def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
-    'confirm that the sample actually melted and return a bool'
+    """
+    Check whether any given trajectory melted
+    """
     'the overall volume should increase when it melts - we can check for this'
     melt_succeeded = np.zeros(len(combined_df), dtype=np.bool_)
     for row_ind, row in combined_df.iterrows():
@@ -894,56 +891,34 @@ def df_row_melted(row):
 
 
 def cp_and_latent_analysis(combined_df):
-    'plot and numerically fit run enthalpy vs T'
+    """plot and numerically fit run enthalpy vs T"""
 
     enthalpies_dict = {}
     unique_idents = np.unique(combined_df['structure_identifier'])
     n_a = 6.022 * 10 ** 23
     for id, ident in enumerate(unique_idents):
         # polymorph = ident.split('/')
-        good_inds = np.argwhere(combined_df['structure_identifier'] == ident).flatten()
+        good_inds = np.argwhere(
+            (combined_df['structure_identifier'] == ident) * (combined_df['prep_bulk_melt'] != True)).flatten()
         good_df = combined_df.iloc[good_inds]
-        melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
-        crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
         good_df.reset_index(drop=True, inplace=True)
 
-        failed_melts = []
-        for run_ind, row in good_df.iterrows():
-            if run_ind in melted_inds:
-                if not df_row_melted(row):
-                    failed_melts.append(run_ind)
-
-        if len(failed_melts) > 0:
-            good_df.drop(index=failed_melts, inplace=True)
-            good_df.reset_index(drop=True, inplace=True)
-            melted_inds = np.argwhere(good_df['prep_bulk_melt']).flatten()
-            crystal_inds = np.argwhere(good_df['prep_bulk_melt'] != True).flatten()
-
-        if len(melted_inds) > 0 and len(crystal_inds) > 0:
-            mean_enthalpy = np.zeros(len(good_df))
-            temps = np.zeros_like(mean_enthalpy)
-            for run_ind, row in good_df.iterrows():
-                if 'E_tot' in row.keys():
-                    if np.sum(np.isnan(row['E_tot'])) == 0:
-                        en_key = 'E_tot'
-                    else:
-                        en_key = 'TotEng'
-                else:
-                    en_key = 'TotEng'
-
-                temps[run_ind] = row['temperature']
-                energy = row[en_key] * 4.184 / row['num_molecules']  # / \
-                # good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
-                pressure = 1  # good_df.iloc[run_ind]['Press']  # atmospheres
-                volume = row['Volume']
-                # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
-                PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
-                run_enthalpy = energy + PV_energy
-                mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
+        if len(good_df) > 0:
+            temps, mean_enthalpy = extract_df_enthalpies(good_df, n_a)
 
             enthalpies_dict[ident] = {'Temperature': temps,
                                       'Enthalpies': mean_enthalpy,
-                                      'Melted': np.array([ind in melted_inds for ind in range(len(good_df))])}
+                                      }
+    'for the melt fraction'
+    good_inds = np.argwhere(combined_df['Melt Succeeded']).flatten()
+    good_df = combined_df.iloc[good_inds]
+    good_df.reset_index(drop=True, inplace=True)
+
+    temps, mean_enthalpy = extract_df_enthalpies(good_df, n_a)
+
+    melt_enthalpies = {'Temperature': temps,
+                       'Enthalpies': mean_enthalpy,
+                       }
 
     melts_dict = {
         'acridine/Form2': 394.68468468468467,
@@ -955,60 +930,140 @@ def cp_and_latent_analysis(combined_df):
         'acridine/Form9': 376.02602602602605
     }
 
-
     import plotly.graph_objects as go
-    from plotly.subplots import make_subplots
+    from plotly.colors import n_colors
+
+    colors = n_colors('rgb(25, 200, 255)', 'rgb(255, 128, 0)', 10, colortype='rgb')
     latents_dict = {}
-    cp_dict = {}
-    fig = make_subplots(rows=1, cols=len(enthalpies_dict), subplot_titles=list(enthalpies_dict.keys()))
+    cp_coefficients_dict = {}
+    cp_at_T = {}
+
+    fit = np.polyfit(melt_enthalpies['Temperature'], melt_enthalpies['Enthalpies'], 2)
+    melt_fit = np.poly1d(fit)
+
+    fig = go.Figure()
+
+    fig.add_scattergl(
+        x=melt_enthalpies['Temperature'], y=melt_enthalpies['Enthalpies'],
+        mode='markers', showlegend=False,
+        marker_color=colors[-1],
+
+    )
+
+    fig.add_scattergl(
+        x=melt_enthalpies['Temperature'], y=melt_fit(melt_enthalpies['Temperature']),
+        mode='lines', showlegend=True, name='Melt ' + str(fit),
+        marker_color=colors[-1],
+
+    )
+
     for ident, (key, subdict) in enumerate(enthalpies_dict.items()):
-        row = 1
-        col = ident + 1
         T = subdict['Temperature']
         H = subdict['Enthalpies']
-        melt = subdict['Melted']
         melt_T = melts_dict[key]
 
-        melted_inds = np.argwhere(melt * (T >= melt_T)).flatten()
-        solid_inds = np.argwhere(~melt * (T < melt_T)).flatten()
-
-        melt_series_inds = np.concatenate([
-            solid_inds, melted_inds
-        ])
+        solid_inds = np.argwhere((T < melt_T)).flatten()
 
         fig.add_scattergl(
-            x=T[melt_series_inds], y=H[melt_series_inds],
+            x=T[solid_inds], y=H[solid_inds],
             mode='markers', showlegend=False,
-            row=row, col=col,
-        )
-
-        'polynomial fits'
-        fit1 = np.polyfit(T[melted_inds], H[melted_inds], 2)
-        xspace = np.linspace(T[melted_inds].min(), T[melted_inds].max(), 101)
-        melt_fit = np.poly1d(fit1)
-
-        fig.add_scattergl(
-            x=xspace, y=melt_fit(xspace),
-            mode='lines', showlegend=True, name=str(fit1),
-            row=row, col=col,
+            marker_color=colors[ident],
         )
 
         fit2 = np.polyfit(T[solid_inds], H[solid_inds], 2)
-        xspace = np.linspace(T[solid_inds].min(), T[solid_inds].max(), 101)
         solid_fit = np.poly1d(fit2)
+        xspace = np.linspace(T[solid_inds].min(), T[solid_inds].max(), 101)
 
         fig.add_scattergl(
             x=xspace, y=solid_fit(xspace),
-            mode='lines', showlegend=True, name=str(fit2),
-            row=row, col=col,
+            mode='lines', showlegend=True, name=key + ' ' + str(fit2),
+            marker_color=colors[ident],
+
         )
+
         cp_function = solid_fit.deriv()
         latents_dict[key] = melt_fit(melt_T) - solid_fit(melt_T)
-        cp_dict[key] = cp_function(melt_T)
+        cp_coefficients_dict[key] = cp_function.coefficients
+        cp_at_T[key] = cp_function(melt_T)
 
     print(latents_dict)
-    print(cp_dict)
+    print(cp_coefficients_dict)
     fig.update_xaxes(title='Temperature /K')
     fig.update_yaxes(title='Mean Enthalpy kJ/mol')
     fig.show(renderer='browser')
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(x=list(latents_dict.keys()), y=list(latents_dict.values()), name='Latent Heat'))
+    fig.add_trace(go.Bar(x=['Reference 383K', 'Reference2 383K'], y=[20.682, 18.58], name='Reference'))
+    fig.update_layout(yaxis_title='Latent Heat of Fusion (kJ/mol)')
+    fig.show(renderer='browser')
+
     return fig
+
+
+def extract_df_enthalpies(good_df, n_a):
+    mean_enthalpy = np.zeros(len(good_df))
+    temps = np.zeros_like(mean_enthalpy)
+
+    for run_ind, row in good_df.iterrows():
+        if 'E_tot' in row.keys():
+            if np.sum(np.isnan(row['E_tot'])) == 0:
+                en_key = 'E_tot'
+            else:
+                en_key = 'TotEng'
+        else:
+            en_key = 'TotEng'
+
+        temps[run_ind] = row['temperature']
+        energy = row[en_key] * 4.184 / row['num_molecules']  # / \
+        # good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
+        pressure = 1  # good_df.iloc[run_ind]['Press']  # atmospheres
+        volume = row['Volume']
+        # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
+        PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
+        run_enthalpy = energy + PV_energy
+
+        equil_time = row['run_config']['equil_time']
+        run_time = row['run_config']['run_time']
+
+        crystal_reference_time = equil_time
+        crystal_time_index = np.argmin(np.abs(row['time step'] - crystal_reference_time))
+
+        melt_reference_time = 2 * equil_time
+        melt_time_index = np.argmin(np.abs(row['time step'] - melt_reference_time))
+
+        sampling_start_time = 5 * equil_time
+        sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
+
+        sampling_end_time = 5 * equil_time + run_time
+        sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
+
+        if row['Melt Succeeded']:
+            mean_enthalpy[run_ind] = np.mean(run_enthalpy[sampling_start_index:])
+        else:
+            mean_enthalpy[run_ind] = np.mean(run_enthalpy[len(run_enthalpy) // 2:])
+
+    return temps, mean_enthalpy
+
+
+def relabel_defects(combined_df):
+    'split 2,7-dihydroxynaphthalene sym and anti into two different defect types'
+    dhn_inds = np.argwhere(combined_df['defect_type'] == '2,7-dihydroxynaphthalene').flatten()
+    if len(dhn_inds) > 0:
+        defects_list = []
+        for ind in range(len(combined_df)):
+            if combined_df.iloc[ind]['defect_rate'] == 0:
+                defects_list.append('Pure')
+            elif ind in dhn_inds:
+                inverted_defect = combined_df.iloc[ind]['run_config']['invert_defects']
+                if inverted_defect:
+                    defects_list.append('2,7-dihydroxynaphthalene_anti')
+                else:
+                    defects_list.append('2,7-dihydroxynaphthalene_sym')
+            else:
+                defects_list.append(combined_df.iloc[ind]['defect_type'])
+
+        combined_df['defect_type'] = defects_list
+
+    return combined_df
