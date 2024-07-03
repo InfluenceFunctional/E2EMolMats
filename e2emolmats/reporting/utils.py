@@ -2,6 +2,7 @@ import io
 import os
 
 import numpy as np
+from _plotly_utils.colors import get_colorscale
 from scipy.optimize import minimize_scalar, minimize
 from scipy.stats import linregress
 from scipy.spatial.distance import cdist
@@ -518,11 +519,15 @@ def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
     """
     use all data to estimate the melt point for each polymorph
     """
+    from e2emolmats.analysis.free_energy_calc import experimental_polymorphs_dict
+    exp_melts_dict = {key.replace(' ',''):experimental_polymorphs_dict[key]['T_melt'] for key in experimental_polymorphs_dict.keys()}
     defect_types = np.unique(list(melt_estimate_dict.keys()))
     fig2 = go.Figure()
     true_melt_temps = np.asarray(list(true_melts_dict.values()))
     fig2.add_trace(go.Bar(x=list(true_melts_dict.keys()),
                           y=list(true_melts_dict.values()), name='Reference'))
+    fig2.add_trace(go.Bar(x=list(exp_melts_dict.keys()),
+                          y=list(exp_melts_dict.values()), name='Experiments'))
 
     for defect_type in defect_types:
         melt_temps = np.asarray(list(melt_estimate_dict[defect_type].values()))
@@ -603,7 +608,7 @@ def crystal_stability_analysis(combined_df):
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
         defects.append(row['run_config']['defect_rate'])
-        defect_types.append(row['run_config']['defect_type'])
+        defect_types.append(row['defect_type'])
 
         polymorphs.append(row['structure_identifier'].split('/')[-1])
 
@@ -625,86 +630,14 @@ def crystal_stability_analysis(combined_df):
     present_defect_rates = np.unique(defects)
     n_columns = len(present_polymorphs)
     n_rows = len(present_defect_rates)
+    predictions_list = []
     for defect_type in np.unique(defect_types):
-        fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.035,
-                            vertical_spacing=0.08)
-        prediction_df = []
-        xspace = np.linspace(0, 100, 1000)
-        colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)) + 1, colortype='rgb')
-        seen_t = {temp: False for temp in np.unique(temperature)}
-        for p_ind, polymorph in enumerate(present_polymorphs):
-            col = p_ind + 1
-            for d_ind, defect_rate in enumerate(present_defect_rates):
-                row = d_ind + 1
-                for t_ind, temp in enumerate(np.unique(temperature)):
-                    good_inds = np.where(
-                        (temperature == temp) * (np.array(polymorphs) == polymorph) * (
-                                np.array(defects) == defect_rate) * (np.array(defect_types) == defect_type))[0]
-                    stab = np.array(stability)[good_inds]
-                    finite_inds = np.isfinite(stab)
-                    stab = stab[finite_inds]
-                    size = np.array(crystal_size)[good_inds]
-                    size = size[finite_inds]
+        predictions_list.extend(make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defects, n_columns,
+                                                       n_rows, polymorphs, present_defect_rates,
+                                                       present_polymorphs, stability, temperature))
 
-                    if len(good_inds) > 1:
-                        # fitting function
-                        fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
-                        loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
 
-                        regress = linregress(size, stab)
-                        rslope = regress.slope
-                        rint = regress.intercept
-                        assert np.isfinite(rslope)
-                        res = minimize(loss, x0=np.array([rslope,
-                                                          rint]), options={'disp': False},
-                                       bounds=((None, None), (None, None)))
-                        m, b = res.x
-                        if not seen_t[temp]:
-                            seen_t[temp] = True
-
-                        # plot raw scatter
-                        fig.add_scattergl(x=size, y=stab, mode='markers',
-                                          legendgroup=temp, name=temp, showlegend=True if seen_t[temp] else False,
-                                          marker_color=colors[t_ind],
-                                          marker_size=10,
-                                          opacity=0.75,
-                                          row=row, col=col)
-                        # plot fitting function
-                        fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
-                                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                                          row=row, col=col)
-
-                        # extract critical size prediction
-                        critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
-                        # if any clusters were observed stable below the predicted size, trust this instead
-                        stable_inds = np.argwhere(stab > 0.975)
-                        if len(stable_inds) > 0:
-                            minimum_stable_size = np.amin(size[stable_inds])
-                            if minimum_stable_size < critical_size_prediction:
-                                critical_size_prediction = minimum_stable_size
-
-                        # record and plot critical size prediction
-                        prediction_df.append({'Defect Type': 'anthracene',
-                                              'Defect Rate': defect_rate,
-                                              'Polymorph': polymorph,
-                                              'Temperature': temp,
-                                              'Critical Nucleus Size': np.round(critical_size_prediction, 1)
-                                              })
-                        fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
-                                          legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
-                                          marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
-                                          row=row, col=col)
-                        fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
-                                          marker_color='black',
-                                          row=row, col=col)
-
-        print(prediction_df)
-
-        fig.update_xaxes(title='Nucleus Size', range=[0, 50])
-        fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
-        fig.show(renderer='browser')
-
-    df = pd.DataFrame(prediction_df)
+    df = pd.DataFrame(predictions_list)
 
     scale = pc.make_colorscale(['rgb(250,200,200)', 'rgb(0,255, 150)'])
     colors = pc.sample_colorscale(scale, df['Critical Nucleus Size'] / np.amax(df['Critical Nucleus Size']))
@@ -722,39 +655,158 @@ def crystal_stability_analysis(combined_df):
 
     present_polymorphs = np.unique(df['Polymorph'])
     present_defect_rates = np.unique(df['Defect Rate'])
-    present_temperatures = [320, 330, 340]
+    present_defect_types = np.unique(df['Defect Type'])
+    present_temperatures = np.array([320, 330, 340])
     n_polymorphs = len(present_polymorphs)
     n_defects = len(present_defect_rates)
     n_temperatures = len(present_temperatures)
-    means_group = df.groupby(['Temperature', 'Polymorph', 'Defect Rate'])['Critical Nucleus Size'].mean()
-    stability_array = np.zeros((n_polymorphs, n_defects, n_temperatures))
+    n_defect_types = len(present_defect_types)
+    means_group = df.groupby(['Temperature', 'Polymorph', 'Defect Rate', 'Defect Type'])['Critical Nucleus Size'].mean()
+    stability_array = np.zeros((n_polymorphs, n_defects, n_defect_types, n_temperatures))
 
     for p_ind, polymorph in enumerate(present_polymorphs):
         for d_ind, defect_rate in enumerate(present_defect_rates):
-            for t_ind, temp in enumerate(present_temperatures):
-                for row_ind, row in means_group.items():
-                    if int(row_ind[0]) == temp:
-                        if row_ind[1] == polymorph:
-                            if row_ind[2] == defect_rate:
-                                stability_array[p_ind, d_ind, t_ind] = row
+            for dt_ind, defect_type in enumerate(present_defect_types):
+                for t_ind, temp in enumerate(present_temperatures):
+                    for row_ind, row in means_group.items():
+                        if int(row_ind[0]) == temp:
+                            if row_ind[1] == polymorph:
+                                if row_ind[2] == defect_rate:
+                                    if row_ind[3] == defect_type:
+                                        stability_array[p_ind, d_ind, dt_ind, t_ind] = row
 
+    calculated_melt_temps = {
+        'Form2': 395.23,
+        'Form3': 394.68,  # K
+        'Form4': 351.35,  # K
+        'Form6': 358.82,  # K
+        'Form7': 372.52,  # K
+        'Form8': 371.71,  # K
+        'Form9': 376.03,
+    }
+    colors = get_colorscale('mygbm')#n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(present_polymorphs), colortype='rgb')
     stability_array[stability_array == 0] = -np.inf
     min_val, max_val = np.amin(stability_array[np.isfinite(stability_array)]), np.amax(
         stability_array[np.isfinite(stability_array)])
 
-    overall_fig = make_subplots(rows=1,
-                                cols=n_temperatures,
-                                subplot_titles=present_temperatures)
-    for t_ind, temp in enumerate(present_temperatures):
-        overall_fig.add_heatmap(z=stability_array[:, :, t_ind],
-                                y=present_polymorphs,
-                                x=present_defect_rates,
-                                colorscale='Viridis', zmax=max_val, zmin=min_val,
-                                row=1, col=t_ind + 1)
+    for dt_ind, defect_type in enumerate(present_defect_types):
+        overall_fig = make_subplots(rows=len(present_defect_rates), cols=2,
+                                    subplot_titles=['Critical Radius vs. T', 'Critical Radius vs. Undercooling'],
+                                    vertical_spacing=0.07)
+        for d_ind, defect_rate in enumerate(present_defect_rates):
+            row = d_ind + 1
+            if d_ind == 0:
+                defect_type_ind = 0
+            else:
+                defect_type_ind = dt_ind * 1
+            print(dt_ind)
+            for t_ind, polymorph in enumerate(present_polymorphs):
+                overall_fig.add_scattergl(  #marker_color=stability_array[t_ind, , :],
+                    y=stability_array[t_ind, d_ind, defect_type_ind, :],
+                    x=present_temperatures,
+                    name=polymorph,
+                    showlegend=True if row == 1 else False,
+                    legendgroup=polymorph,
+                    marker_color=colors[t_ind][1],
+                    row=row, col=1
+                )
+                overall_fig.add_scattergl(  #marker_color=stability_array[t_ind, , :],
+                    y=stability_array[t_ind, d_ind, defect_type_ind, :],
+                    x=(calculated_melt_temps[polymorph] - present_temperatures) / calculated_melt_temps[polymorph],
+                    name=polymorph,
+                    marker_color=colors[t_ind][1],
+                    showlegend=False,
+                    legendgroup=polymorph,
+                    row=row, col=2
+                )
 
-    overall_fig.show(renderer='browser')
+        overall_fig.update_layout(xaxis1_title='Temperature (K)')
+        overall_fig.update_layout(xaxis2_title='Undercooling Ratio')
+        overall_fig.update_yaxes(title='Critical Nucleus Radius')
+        overall_fig.update_layout(title=f"{defect_type} at fractions {present_defect_rates}")
+        overall_fig.show(renderer='browser')
 
-    return fig, sum_table, overall_fig
+    return sum_table, overall_fig
+
+
+def make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defects, n_columns, n_rows, polymorphs,
+                                   present_defect_rates, present_polymorphs, stability, temperature):
+    fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.035,
+                        vertical_spacing=0.08)
+    prediction_df = []
+    xspace = np.linspace(0, 100, 1000)
+    colors = n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(np.unique(temperature)) + 1, colortype='rgb')
+    seen_t = {temp: False for temp in np.unique(temperature)}
+    for p_ind, polymorph in enumerate(present_polymorphs):
+        col = p_ind + 1
+        for d_ind, defect_rate in enumerate(present_defect_rates):
+            row = d_ind + 1
+            for t_ind, temp in enumerate(np.unique(temperature)):
+                good_inds = np.where(
+                    (temperature == temp) * (np.array(polymorphs) == polymorph) * (
+                            np.array(defects) == defect_rate) * (np.array(defect_types) == defect_type))[0]
+                stab = np.array(stability)[good_inds]
+                finite_inds = np.isfinite(stab)
+                stab = stab[finite_inds]
+                size = np.array(crystal_size)[good_inds]
+                size = size[finite_inds]
+
+                if len(good_inds) > 1:
+                    # fitting function
+                    fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
+                    loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
+
+                    regress = linregress(size, stab)
+                    rslope = regress.slope
+                    rint = regress.intercept
+                    assert np.isfinite(rslope)
+                    res = minimize(loss, x0=np.array([rslope,
+                                                      rint]), options={'disp': False},
+                                   bounds=((None, None), (None, None)))
+                    m, b = res.x
+
+                    # plot raw scatter
+                    fig.add_scattergl(x=size, y=stab, mode='markers',
+                                      legendgroup=temp, name=temp, showlegend=True if not seen_t[temp] else False,
+                                      marker_color=colors[t_ind],
+                                      marker_size=10,
+                                      opacity=0.75,
+                                      row=row, col=col)
+                    # plot fitting function
+                    fig.add_scattergl(x=xspace, y=fitting_func(xspace, m, b), mode='lines',
+                                      legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                      row=row, col=col)
+                    if not seen_t[temp]:
+                        seen_t[temp] = True
+
+                    # extract critical size prediction
+                    critical_size_prediction = xspace[np.argmin(0.975 - fitting_func(xspace, m, b))]
+                    # if any clusters were observed stable below the predicted size, trust this instead
+                    stable_inds = np.argwhere(stab > 0.975)
+                    if len(stable_inds) > 0:
+                        minimum_stable_size = np.amin(size[stable_inds])
+                        if minimum_stable_size < critical_size_prediction:
+                            critical_size_prediction = minimum_stable_size
+
+                    # record and plot critical size prediction
+                    prediction_df.append({'Defect Type': defect_type,
+                                          'Defect Rate': defect_rate,
+                                          'Polymorph': polymorph,
+                                          'Temperature': temp,
+                                          'Critical Nucleus Size': np.round(critical_size_prediction, 1)
+                                          })
+                    fig.add_scattergl(x=[critical_size_prediction], y=[1], mode='markers',
+                                      legendgroup=temp, name=temp, showlegend=False, marker_color=colors[t_ind],
+                                      marker_size=15, marker_line_color='black', marker_line_width=6, opacity=0.7,
+                                      row=row, col=col)
+                    fig.add_scattergl(x=xspace, y=[1 for _ in range(len(xspace))], showlegend=False, mode='lines',
+                                      marker_color='black',
+                                      row=row, col=col)
+    print(prediction_df)
+    fig.update_xaxes(title='Nucleus Size', range=[0, 50])
+    fig.update_yaxes(title='Nucleus Stability', range=[0, 1.1], )
+    fig.show(renderer='browser')
+    return prediction_df
 
 
 def latent_heat_analysis(combined_df):
@@ -938,7 +990,26 @@ def cp_and_latent_analysis(combined_df):
     cp_coefficients_dict = {}
     cp_at_T = {}
 
-    fit = np.polyfit(melt_enthalpies['Temperature'], melt_enthalpies['Enthalpies'], 2)
+    m_temps, m_ens = melt_enthalpies['Temperature'],melt_enthalpies['Enthalpies']
+    # 'fit numerical gradient function'
+    # u_temps = np.unique(m_temps)
+    # u_ens = np.array([
+    #     np.mean(m_ens[np.argwhere(m_temps == temp).flatten()]) for temp in u_temps]
+    # )
+    #
+    # num_grad = np.diff(u_ens) / np.diff(u_temps)
+    #
+    # cp_func = np.poly1d(np.polyfit(u_temps[:-1], num_grad, 1))
+    #
+    # fig = go.Figure()
+    # fig.add_scattergl(x=m_temps, y=m_ens, mode='markers')
+    # fig.add_scattergl(x=u_temps, y=u_ens)
+    # fig.add_scattergl(x=u_temps, y=num_grad, mode='markers')
+    # fig.add_scattergl(x=u_temps, y=cp_func(u_temps))
+    # fig.show(renderer='browser')
+
+    'fit analytic gradient function'
+    fit = np.polyfit(m_temps, m_ens, 2)
     melt_fit = np.poly1d(fit)
 
     fig = go.Figure()
@@ -993,8 +1064,13 @@ def cp_and_latent_analysis(combined_df):
     fig.show(renderer='browser')
 
     fig = go.Figure()
+    from e2emolmats.analysis.free_energy_calc import experimental_polymorphs_dict
+    latents_dict2 = {key.replace('acridine/', ''): latents_dict[key] for key in latents_dict.keys()}
+    exp_melts_dict = {key.replace(' ',''):experimental_polymorphs_dict[key]['H_fus'] for key in experimental_polymorphs_dict.keys()}
     fig.add_trace(
-        go.Bar(x=list(latents_dict.keys()), y=list(latents_dict.values()), name='Latent Heat'))
+        go.Bar(x=list(latents_dict2.keys()), y=list(latents_dict2.values()), name='Latent Heat Estimate'))
+    fig.add_trace(
+        go.Bar(x=list(exp_melts_dict.keys()), y=list(exp_melts_dict.values()), name='Latent Heat (exp)'))
     fig.add_trace(go.Bar(x=['Reference 383K', 'Reference2 383K'], y=[20.682, 18.58], name='Reference'))
     fig.update_layout(yaxis_title='Latent Heat of Fusion (kJ/mol)')
     fig.show(renderer='browser')
@@ -1048,22 +1124,23 @@ def extract_df_enthalpies(good_df, n_a):
 
 
 def relabel_defects(combined_df):
-    'split 2,7-dihydroxynaphthalene sym and anti into two different defect types'
-    dhn_inds = np.argwhere(combined_df['defect_type'] == '2,7-dihydroxynaphthalene').flatten()
-    if len(dhn_inds) > 0:
-        defects_list = []
-        for ind in range(len(combined_df)):
-            if combined_df.iloc[ind]['defect_rate'] == 0:
-                defects_list.append('Pure')
-            elif ind in dhn_inds:
-                inverted_defect = combined_df.iloc[ind]['run_config']['invert_defects']
-                if inverted_defect:
-                    defects_list.append('2,7-dihydroxynaphthalene_anti')
-                else:
-                    defects_list.append('2,7-dihydroxynaphthalene_sym')
-            else:
-                defects_list.append(combined_df.iloc[ind]['defect_type'])
+    """split 2,7-dihydroxynaphthalene sym and anti into two different defect types
+    also, identify pure samples and relabel as such"""
 
-        combined_df['defect_type'] = defects_list
+    dhn_inds = np.argwhere(combined_df['defect_type'] == '2,7-dihydroxynaphthalene').flatten()
+    defects_list = []
+    for ind in range(len(combined_df)):
+        if combined_df.iloc[ind]['defect_rate'] == 0:
+            defects_list.append('Pure')
+        elif ind in dhn_inds:
+            inverted_defect = combined_df.iloc[ind]['run_config']['invert_defects']
+            if inverted_defect:
+                defects_list.append('2,7-dihydroxynaphthalene_anti')
+            else:
+                defects_list.append('2,7-dihydroxynaphthalene_sym')
+        else:
+            defects_list.append(combined_df.iloc[ind]['defect_type'])
+
+    combined_df['defect_type'] = defects_list
 
     return combined_df

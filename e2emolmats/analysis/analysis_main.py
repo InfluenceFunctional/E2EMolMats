@@ -67,6 +67,7 @@ acridine_cp_paths = [
 acridine_cp2_paths = [
     r'D:\crystal_datasets\acridine_cp1',
     r'D:\crystal_datasets\acridine_cp2',
+    r'D:\crystal_datasets\acridine_cp3',
     r'D:\crystal_datasets\acridine_latents_battery1/',
     r'D:\crystal_datasets\acridine_latents_battery2/',
 ]
@@ -261,7 +262,6 @@ if __name__ == '__main__':
         aa = 1
 
     if config.cp2_analysis:
-        # todo add melt confirmation
         combined_df = confirm_melt(combined_df)
         fig = cp_and_latent_analysis(combined_df)
 
