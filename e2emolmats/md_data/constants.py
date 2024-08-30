@@ -32,9 +32,13 @@ MOLECULE_ATOM_TYPES_MASSES = {
                     "7 12.01  # ca\n"
                     "8 16.00  # o\n",
     'acridine': "Masses\n\n"
-                "1 12.01  # ca\n"
-                "2 1.008  # ha\n"
-                "3 14.01  # nb\n",
+                # "1 12.01  # ca\n"
+                # "2 1.008  # ha\n"
+                # "3 14.01  # nb\n",
+                "1 12.0107 \n"
+                "2 12.0107 \n"
+                "3 14.0067 \n"
+                "4 1.00794 \n",
     'acridine+anthracene': "Masses\n\n"
                     "1 12.01  # ca\n"
                     "2 1.008  # ha\n"
