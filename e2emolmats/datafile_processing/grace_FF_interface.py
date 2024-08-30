@@ -231,4 +231,4 @@ def grace_FF_preprocessing(input_filename, output_filename):
     new_data.close()
     os.rename('system.data', 'new_system.data')
     copyfile(os.path.join(grace_dir, 'system.in.init'), 'new_system.in.init')
-    copyfile(os.path.join(grace_dir, 'system.in.settings'), 'new_system.in.settings')
+    copyfile(os.path.join(grace_dir, 'system.in.settings'), 'system.in.settings')
