@@ -16,7 +16,8 @@ equil_time: 500000.0
 gap_rate:
 - 0
 init_temperature: 200
-integrator: npzt
+integrator: npt
+invert_defects: false
 machine: cluster
 max_sphere_radius:
 - 10
@@ -27,6 +28,10 @@ min_lattice_length:
 prep_bulk_melt: false
 prep_crystal_in_melt: false
 prep_melt_interface: true
+pressure_direction:
+- x
+- y
+- z
 print_steps: 100
 ramp_temperature: false
 run_name: acridine_melt_interface1
