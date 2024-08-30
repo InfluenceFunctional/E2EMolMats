@@ -78,6 +78,8 @@ def generate_MD_script(config, melt_inds):
             num_atom_types = MOLECULE_NUM_ATOM_TYPES[molecule + '+' + config.defect_type]
         else:
             num_atom_types = MOLECULE_NUM_ATOM_TYPES[molecule]
+        if molecule == 'acridine':
+            num_atom_types = 4  # todo this is hardcoded for new GRACE FF
 
         type_string = ''
         for ind in range(num_atom_types):
