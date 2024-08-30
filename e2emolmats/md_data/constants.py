@@ -73,6 +73,7 @@ MOLECULE_STR_TO_ATOMIC_NUM = {
 }  # mapping from atom type string to numerical index, as defined in the masses block
 
 MOLECULE_NUM_ATOM_TYPES = {key: len(values) for key, values in MOLECULE_STR_TO_TYPE.items()}
+MOLECULE_NUM_ATOM_TYPES['acridine'] = 4  # hardcoded patch until we fix GRACE throughout # TODO
 
 MOLECULE_NUM_ATOMS = {'acridine': 23,
                       'anthracene': len(MOLECULE_DATA['anthracene']['types']),
