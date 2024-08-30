@@ -11,7 +11,7 @@ import plotly.graph_objects as go
 experimental_polymorphs_dict = {
     'Form3': {
         'T_melt': 108.2 + 273.15,  # K
-        'H_fus': 20.41,  # kJ/mol
+        'H_fus': 19.53,  # kJ/mol
     },
     'Form4': {
         'T_melt': 110.1 + 273.15,  # K
@@ -20,8 +20,6 @@ experimental_polymorphs_dict = {
     'Form6': {
         'T_melt': 108.5 + 273.15,  # K
         'H_fus': 19.69,  # kJ/mol
-        'C_p1': 0.205,  # kJ/mol*K
-        'C_p0': 0  # kJ/mol*K
     },
     'Form7': {
         'T_melt': 107.6 + 273.15,  # K
@@ -102,7 +100,7 @@ for key in theoretical_polymorphs_dict.keys():
 
 if __name__ == '__main__':
     num_polymorphs = len(experimental_polymorphs_dict)
-    t_range = np.linspace(273, 420, 100)
+    t_range = np.linspace(273 + 20, 273+120, 100)
 
     deltaG_exp = np.zeros((len(t_range), num_polymorphs))
     '''experimental values'''
@@ -111,10 +109,8 @@ if __name__ == '__main__':
             Tmelt = values['T_melt']
             latent = values['H_fus']
 
-            deltaG_exp[ind, ind2] = ((temp - Tmelt) * (
-                (latent / Tmelt) - cpl0_min_cps0 +
-                                ((Tmelt + 3 * temp) / 2) * cpl1_min_cps1) +
-                                     temp * cpl0_min_cps0 * np.log(Tmelt / temp))
+            deltaG_exp[ind, ind2] = (Tmelt - temp) * (
+                (latent / Tmelt) - cpl0_min_cps0 + ((Tmelt + 3 * temp) / 2) * cpl1_min_cps1) + temp * cpl0_min_cps0 * np.log(Tmelt / temp)
 
     deltaG_comp = np.zeros((len(t_range), num_polymorphs))
     cpl1 = calculated_melt_cp_coefficients[0]
@@ -130,9 +126,8 @@ if __name__ == '__main__':
             Tmelt = values['T_melt']
             latent = values['H_fus']
 
-            deltaG_comp[ind, ind2] = (temp - Tmelt) * (
-                    (latent / Tmelt) - (cpl0 - cps0) + (
-                    (Tmelt + 3 * temp) / 2) * (cpl1 - cps1)) + temp * (cpl0 - cps0) * np.log(Tmelt / temp)
+            deltaG_comp[ind, ind2] = (Tmelt - temp) * (
+                    (latent / Tmelt) - (cpl0 - cps0) + ((Tmelt + 3 * temp) / 2) * (cpl1 - cps1)) + temp * (cpl0 - cps0) * np.log(Tmelt / temp)
 
             # deltaG_comp[ind, ind2] = (temp - Tmelt) * (
             #         (latent / Tmelt) - cpl0_min_cps0 + (
@@ -145,13 +140,13 @@ if __name__ == '__main__':
     fig = make_subplots(1, 2, subplot_titles=['Experimental', 'Simulations'])
     for ind, polymorph in enumerate(experimental_polymorphs_dict.keys()):
         tmelt_ind = np.argmin(np.abs(experimental_polymorphs_dict[polymorph]['T_melt'] - t_range))
-        fig.add_scattergl(x=t_range[:tmelt_ind] - 273.15, y=-deltaG_exp[:tmelt_ind, ind] + deltaG_exp[:tmelt_ind, 1],
+        fig.add_scattergl(x=t_range[:tmelt_ind] - 273.15, y=deltaG_exp[:tmelt_ind, ind] - deltaG_exp[:tmelt_ind, 1],
                           name=polymorph, mode='lines',
                           marker_color=colors[ind],
                           row=1, col=1)
 
         tmelt_ind = np.argmin(np.abs(theoretical_polymorphs_dict[polymorph]['T_melt'] - t_range))
-        fig.add_scattergl(x=t_range[:tmelt_ind] - 273.15, y=-deltaG_comp[:tmelt_ind, ind] + deltaG_comp[:tmelt_ind, 1],
+        fig.add_scattergl(x=t_range[:tmelt_ind] - 273.15, y=deltaG_comp[:tmelt_ind, ind] - deltaG_comp[:tmelt_ind, 1],
                           name=polymorph, mode='lines',
                           marker_color=colors[ind],
                           showlegend=False,

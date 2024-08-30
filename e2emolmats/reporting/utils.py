@@ -437,6 +437,7 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
     max_temp = np.amax([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
     temprange = np.linspace(min_temp, max_temp, 1000)
     melt_temps = {defect_type: {} for defect_type in defect_types}
+    melt_temps2 = {defect_type: {} for defect_type in defect_types}
     fig = make_subplots(rows=num_defects, cols=2,
                         subplot_titles=['Normed Intermolecular Energy', 'Intermolecular Energy Slope'])
     for polymorph in polymorphs:
@@ -462,7 +463,11 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
                 slope_spline = np.interp(temprange, temps, np.maximum.accumulate(slope_at_t))
 
                 melt_T = temprange[np.argmin(np.abs(slope_spline))]
+                inter_temps = (temps[0:-1] + (temps[1:] - temps[0:-1]))
+                diffs = np.diff(mag_at_t) / inter_temps
+                melt_T2 = inter_temps[np.argmax(diffs)]
                 melt_temps[defect_type][polymorph] = melt_T
+                melt_temps2[defect_type][polymorph] = melt_T2
                 fig.add_scattergl(x=temperatures,
                                   y=melt_magnitudes,
                                   mode='markers',
@@ -512,7 +517,7 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
     fig.update_xaxes(title='Temperature (K)')
     if show_fig:
         fig.show(renderer='browser')
-    return fig, melt_temps
+    return fig, melt_temps, melt_temps2
 
 
 def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
@@ -520,19 +525,30 @@ def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
     use all data to estimate the melt point for each polymorph
     """
     from e2emolmats.analysis.free_energy_calc import experimental_polymorphs_dict
-    exp_melts_dict = {key.replace(' ',''):experimental_polymorphs_dict[key]['T_melt'] for key in experimental_polymorphs_dict.keys()}
+    exp_melts_dict = {key.replace(' ', ''): experimental_polymorphs_dict[key]['T_melt'] for key in
+                      experimental_polymorphs_dict.keys()}
     defect_types = np.unique(list(melt_estimate_dict.keys()))
     fig2 = go.Figure()
     true_melt_temps = np.asarray(list(true_melts_dict.values()))
     fig2.add_trace(go.Bar(x=list(true_melts_dict.keys()),
-                          y=list(true_melts_dict.values()), name='Reference'))
+                          y=list(true_melts_dict.values()),
+                          text=list(true_melts_dict.values()),
+                          texttemplate="%{text:.2f}",
+                          name='Reference'))
     fig2.add_trace(go.Bar(x=list(exp_melts_dict.keys()),
-                          y=list(exp_melts_dict.values()), name='Experiments'))
+                          y=list(exp_melts_dict.values()),
+                          text=list(exp_melts_dict.values()),
+                          texttemplate="%{text:.2f}",
+                          name='Experiments'),)
 
     for defect_type in defect_types:
         melt_temps = np.asarray(list(melt_estimate_dict[defect_type].values()))
         fig2.add_trace(go.Bar(x=list(melt_estimate_dict[defect_type].keys()),
-                              y=list(melt_estimate_dict[defect_type].values()), name=defect_type + ' Estimate'))
+                              y=list(melt_estimate_dict[defect_type].values()),
+                              text=list(melt_estimate_dict[defect_type].values()),
+                              texttemplate="%{text:.2f}",
+                              name=defect_type + ' Estimate'),
+                       )
 
     fig2.update_layout(yaxis_range=[min(np.amin(melt_temps), np.amin(true_melt_temps)) - 5,
                                     max(np.amax(melt_temps), np.amax(true_melt_temps)) + 5])
@@ -632,10 +648,10 @@ def crystal_stability_analysis(combined_df):
     n_rows = len(present_defect_rates)
     predictions_list = []
     for defect_type in np.unique(defect_types):
-        predictions_list.extend(make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defects, n_columns,
-                                                       n_rows, polymorphs, present_defect_rates,
-                                                       present_polymorphs, stability, temperature))
-
+        predictions_list.extend(
+            make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defects, n_columns,
+                                           n_rows, polymorphs, present_defect_rates,
+                                           present_polymorphs, stability, temperature))
 
     df = pd.DataFrame(predictions_list)
 
@@ -665,15 +681,15 @@ def crystal_stability_analysis(combined_df):
     stability_array = np.zeros((n_polymorphs, n_defects, n_defect_types, n_temperatures))
 
     for p_ind, polymorph in enumerate(present_polymorphs):
-        for d_ind, defect_rate in enumerate(present_defect_rates):
-            for dt_ind, defect_type in enumerate(present_defect_types):
+        for defect_rate_index, defect_rate in enumerate(present_defect_rates):
+            for defect_type_index, defect_type in enumerate(present_defect_types):
                 for t_ind, temp in enumerate(present_temperatures):
                     for row_ind, row in means_group.items():
                         if int(row_ind[0]) == temp:
                             if row_ind[1] == polymorph:
                                 if row_ind[2] == defect_rate:
                                     if row_ind[3] == defect_type:
-                                        stability_array[p_ind, d_ind, dt_ind, t_ind] = row
+                                        stability_array[p_ind, defect_rate_index, defect_type_index, t_ind] = row
 
     calculated_melt_temps = {
         'Form2': 395.23,
@@ -684,37 +700,85 @@ def crystal_stability_analysis(combined_df):
         'Form8': 371.71,  # K
         'Form9': 376.03,
     }
-    colors = get_colorscale('mygbm')#n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(present_polymorphs), colortype='rgb')
-    stability_array[stability_array == 0] = -np.inf
-    min_val, max_val = np.amin(stability_array[np.isfinite(stability_array)]), np.amax(
-        stability_array[np.isfinite(stability_array)])
 
-    for dt_ind, defect_type in enumerate(present_defect_types):
+    stability_array[stability_array == 0] = -np.inf
+
+    'fit overall undercooling rate for pure samples'
+    crange, pure_index, undercool_func = get_undercooling_function(calculated_melt_temps,
+                                                                   present_defect_types,
+                                                                   present_polymorphs,
+                                                                   present_temperatures,
+                                                                   stability_array)
+
+    relative_undercooled_sizes = compute_undercool_vs_defects(calculated_melt_temps,
+                                                              n_defect_types,
+                                                              n_defects,
+                                                              n_polymorphs,
+                                                              present_defect_rates,
+                                                              present_defect_types,
+                                                              present_polymorphs,
+                                                              present_temperatures,
+                                                              pure_index,
+                                                              stability_array,
+                                                              undercool_func)
+
+    relative_fig = make_subplots(rows=n_defect_types - 1, cols=1)
+    row = 1
+    for defect_type_index in range(n_defect_types):
+        if defect_type_index != pure_index:
+            for defect_rate_index in range(n_defects):
+                relative_fig.add_bar(x=present_polymorphs,
+                                     y=relative_undercooled_sizes[defect_type_index, defect_rate_index, :],
+                                     name=f'Defect {present_defect_types[defect_type_index]} Frac={present_defect_rates[defect_rate_index]:.3f}',
+                                     row=row, col=1)
+            row += 1
+    relative_fig.update_yaxes(title='Mean Deviation from Trend')
+    relative_fig.update_xaxes(title='Polymorph')
+    relative_fig.show(renderer='browser')
+
+    colors = get_colorscale(
+        'mygbm')  #n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(present_polymorphs), colortype='rgb')
+
+
+    for defect_type_index, defect_type in enumerate(present_defect_types):
         overall_fig = make_subplots(rows=len(present_defect_rates), cols=2,
                                     subplot_titles=['Critical Radius vs. T', 'Critical Radius vs. Undercooling'],
                                     vertical_spacing=0.07)
-        for d_ind, defect_rate in enumerate(present_defect_rates):
-            row = d_ind + 1
-            if d_ind == 0:
-                defect_type_ind = 0
+
+        for defect_rate_index, defect_rate in enumerate(present_defect_rates):
+            row = defect_rate_index + 1
+            if defect_rate == 0:
+                defect_type_ind = pure_index
             else:
-                defect_type_ind = dt_ind * 1
-            print(dt_ind)
-            for t_ind, polymorph in enumerate(present_polymorphs):
-                overall_fig.add_scattergl(  #marker_color=stability_array[t_ind, , :],
-                    y=stability_array[t_ind, d_ind, defect_type_ind, :],
+                defect_type_ind = defect_type_index * 1
+
+            overall_fig.add_scattergl(  # marker_color=stability_array[t_ind, , :],
+                y=undercool_func(crange),
+                x=crange,
+                name='Average Pure Trend',
+                marker_color='black',
+                showlegend=True if row == 1 else False,
+                legendgroup='Average Pure Trend',
+                row=row, col=2
+            )
+
+            for polymorph_ind, polymorph in enumerate(present_polymorphs):
+                overall_fig.add_scattergl(
+                    y=stability_array[polymorph_ind, defect_rate_index, defect_type_ind, :],
                     x=present_temperatures,
                     name=polymorph,
                     showlegend=True if row == 1 else False,
                     legendgroup=polymorph,
-                    marker_color=colors[t_ind][1],
+                    marker_color=colors[polymorph_ind][1],
                     row=row, col=1
                 )
-                overall_fig.add_scattergl(  #marker_color=stability_array[t_ind, , :],
-                    y=stability_array[t_ind, d_ind, defect_type_ind, :],
-                    x=(calculated_melt_temps[polymorph] - present_temperatures) / calculated_melt_temps[polymorph],
+                undercooling_ratio = (calculated_melt_temps[polymorph] - present_temperatures) / calculated_melt_temps[
+                    polymorph]
+                overall_fig.add_scattergl(
+                    y=stability_array[polymorph_ind, defect_rate_index, defect_type_ind, :],
+                    x=undercooling_ratio,
                     name=polymorph,
-                    marker_color=colors[t_ind][1],
+                    marker_color=colors[polymorph_ind][1],
                     showlegend=False,
                     legendgroup=polymorph,
                     row=row, col=2
@@ -726,7 +790,54 @@ def crystal_stability_analysis(combined_df):
         overall_fig.update_layout(title=f"{defect_type} at fractions {present_defect_rates}")
         overall_fig.show(renderer='browser')
 
-    return sum_table, overall_fig
+    return None
+
+
+def compute_undercool_vs_defects(calculated_melt_temps, n_defect_types, n_defects, n_polymorphs,
+                                 present_defect_rates, present_defect_types, present_polymorphs, present_temperatures,
+                                 pure_index, stability_array, undercool_func):
+    relative_undercooled_sizes = np.zeros((n_defect_types, n_defects, n_polymorphs))
+    for defect_type_index, defect_type in enumerate(present_defect_types):
+        for defect_rate_index, defect_rate in enumerate(present_defect_rates):
+            if defect_rate == 0:
+                defect_type_ind = pure_index * 1
+            else:
+                defect_type_ind = defect_type_index * 1
+
+            for polymorph_ind, polymorph in enumerate(present_polymorphs):
+                undercooling_ratio = (calculated_melt_temps[polymorph] - present_temperatures) / \
+                                     calculated_melt_temps[polymorph]
+
+                vals = stability_array[polymorph_ind, defect_rate_index, defect_type_ind, :]
+
+                finite_vals = vals[np.isfinite(vals)]
+
+                if len(finite_vals) > 0:
+                    trend_sizes = undercool_func(undercooling_ratio)[np.isfinite(vals)]
+                    relative_undercooled_sizes[defect_type_index, defect_rate_index, polymorph_ind] = np.mean(finite_vals - trend_sizes)
+
+    relative_undercooled_sizes[relative_undercooled_sizes == 0] = -np.inf
+
+    return relative_undercooled_sizes
+
+
+def get_undercooling_function(calculated_melt_temps, present_defect_types, present_polymorphs, present_temperatures,
+                              stability_array):
+    pure_index = int(np.argwhere(present_defect_types == 'Pure').flatten())
+    pure_undercools = []
+    pure_sizes = []
+    for polymorph_ind, polymorph in enumerate(present_polymorphs):
+        stabilities = stability_array[polymorph_ind, 0, pure_index, :]
+        good_inds = np.isfinite(stabilities)
+        undercools = (calculated_melt_temps[polymorph] - present_temperatures) / calculated_melt_temps[polymorph]
+        pure_undercools.extend(undercools[good_inds.flatten()].flatten())
+        pure_sizes.extend(stabilities[good_inds.flatten()].flatten())
+    sizes = np.array(pure_sizes)
+    undercools = np.array(pure_undercools)
+    fit = np.polyfit(undercools, sizes, 2)
+    undercool_func = np.poly1d(fit)
+    crange = np.linspace(min(undercools), max(undercools), 100)
+    return crange, pure_index, undercool_func
 
 
 def make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defects, n_columns, n_rows, polymorphs,
@@ -751,7 +862,7 @@ def make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defe
                 size = np.array(crystal_size)[good_inds]
                 size = size[finite_inds]
 
-                if len(good_inds) > 1:
+                if len(good_inds) > 1 and len(np.unique(size)) > 1:
                     # fitting function
                     fitting_func = lambda x, slope, intercept: np.minimum(1, slope * x + intercept)
                     loss = lambda x: np.sum((stab - fitting_func(size, x[0], x[1])) ** 2)
@@ -990,7 +1101,7 @@ def cp_and_latent_analysis(combined_df):
     cp_coefficients_dict = {}
     cp_at_T = {}
 
-    m_temps, m_ens = melt_enthalpies['Temperature'],melt_enthalpies['Enthalpies']
+    m_temps, m_ens = melt_enthalpies['Temperature'], melt_enthalpies['Enthalpies']
     # 'fit numerical gradient function'
     # u_temps = np.unique(m_temps)
     # u_ens = np.array([
@@ -1066,7 +1177,8 @@ def cp_and_latent_analysis(combined_df):
     fig = go.Figure()
     from e2emolmats.analysis.free_energy_calc import experimental_polymorphs_dict
     latents_dict2 = {key.replace('acridine/', ''): latents_dict[key] for key in latents_dict.keys()}
-    exp_melts_dict = {key.replace(' ',''):experimental_polymorphs_dict[key]['H_fus'] for key in experimental_polymorphs_dict.keys()}
+    exp_melts_dict = {key.replace(' ', ''): experimental_polymorphs_dict[key]['H_fus'] for key in
+                      experimental_polymorphs_dict.keys()}
     fig.add_trace(
         go.Bar(x=list(latents_dict2.keys()), y=list(latents_dict2.values()), name='Latent Heat Estimate'))
     fig.add_trace(
@@ -1093,11 +1205,14 @@ def extract_df_enthalpies(good_df, n_a):
 
         temps[run_ind] = row['temperature']
         energy = row[en_key] * 4.184 / row['num_molecules']  # / \
-        # good_df.iloc[0]['molecule_num_atoms_dict']['acridine']  # kcal/mol -> kJ/mol
         pressure = 1  # good_df.iloc[run_ind]['Press']  # atmospheres
         volume = row['Volume']
         # atm*cubic angstrom = 1.01325e-28 kJ, normed per-mol
-        PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
+        # atm*cubic meter = 101.325 kJ = 101325 J
+        volume_m3 = volume / 1e30
+        PV_energy2 = pressure * volume_m3 * 101.325  # kilojoules per simulation box
+        PV_energy = PV_energy2 / row['num_molecules'] * n_a  # kilojoules per mol
+        #PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
         run_enthalpy = energy + PV_energy
 
         equil_time = row['run_config']['equil_time']

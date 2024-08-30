@@ -1,0 +1,8 @@
+  atom_style full
+  units           real
+  bond_style      hybrid harmonic
+  angle_style     hybrid harmonic
+  dihedral_style  hybrid charmm
+  pair_style      hybrid lj/charmm/coul/long 10.0 11.0
+  special_bonds   lj/coul 0.0 0.0 1.0 
+  kspace_style    pppm 0.0001

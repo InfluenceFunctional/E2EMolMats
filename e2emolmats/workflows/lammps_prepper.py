@@ -7,6 +7,7 @@ from ovito.modifiers import *
 from argparse import Namespace
 
 from e2emolmats.common.generate_cluster_structures import generate_structure
+from e2emolmats.datafile_processing.grace_FF_interface import grace_FF_preprocessing
 from e2emolmats.datafile_processing.initial_setup import atom_type_renumbering
 from e2emolmats.datafile_processing.moltemp_final import moltemp_final
 from e2emolmats.datafile_processing.templify_to_runnable import templify_to_runnable
@@ -94,47 +95,51 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
                           molecule_name, molind2name, config.defect_rate, config.defect_type)
 
     pipeline.source.load('2.data')
-    create_bonds_modifier = CreateBondsModifier(cutoff=1.7, intra_molecule_only=True, prevent_hh_bonds=True)
 
-    pipeline.modifiers.append(create_bonds_modifier)
-    export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
+    if molecule_name == 'acridine':  # new FF, new preprocessing step
+        grace_FF_preprocessing('2.data', 'system.data')
+    else:  # old GAFF, old preprocessing
+        create_bonds_modifier = CreateBondsModifier(cutoff=1.7, intra_molecule_only=True, prevent_hh_bonds=True)
 
-    print("============================")
-    print("Ltemplifying")
-    print("============================")
+        pipeline.modifiers.append(create_bonds_modifier)
+        export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
 
-    '''ltemplify'''
-    #ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py") # alternate method
-    os.system(f"{ltemplify_path} 3.data > 4.lt")
+        print("============================")
+        print("Ltemplifying")
+        print("============================")
 
-    print("============================")
-    print("Templify to runnable")
-    print("============================")
+        '''ltemplify'''
+        # ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py") # alternate method
+        os.system(f"{ltemplify_path} 3.data > 4.lt")
 
-    '''make runnable'''
-    templify_to_runnable('4.lt', '3.data', '5.lt',
-                         molecule_name)
+        print("============================")
+        print("Templify to runnable")
+        print("============================")
 
-    print("============================")
-    print("Running Moltemplate")
-    print("============================")
+        '''make runnable'''
+        templify_to_runnable('4.lt', '3.data', '5.lt',
+                             molecule_name)
 
-    '''run moltemplate and cleanup'''  # todo change to user-config path
-    os.system(
-        "~/.local/bin/moltemplate.sh system.lt -nocheck")  # nocheck means it will skip over missing @bond type issues
+        print("============================")
+        print("Running Moltemplate")
+        print("============================")
 
-    print("============================")
-    print("Moltemplate cleanup")
-    print("============================")
+        '''run moltemplate and cleanup'''  # todo change to user-config path
+        # nocheck means it will skip over missing @bond type issues
+        os.system("~/.local/bin/moltemplate.sh system.lt -nocheck")
 
-    os.system("~/.local/bin/cleanup_moltemplate.sh")
+        print("============================")
+        print("Moltemplate cleanup")
+        print("============================")
 
-    print("============================")
-    print("Indexing cleanup")
-    print("============================")
+        os.system("~/.local/bin/cleanup_moltemplate.sh")
 
-    moltemp_final(workdir, config.atom_style, molind2name)  # final indexing cleanup
-    update_atom_style_in_settings(atom_style=config.atom_style)
+        print("============================")
+        print("Indexing cleanup")
+        print("============================")
+
+        moltemp_final(workdir, config.atom_style, molind2name)  # final indexing cleanup
+        update_atom_style_in_settings(atom_style=config.atom_style)
 
     if config.submit_lammps_slurm:
         print("============================")

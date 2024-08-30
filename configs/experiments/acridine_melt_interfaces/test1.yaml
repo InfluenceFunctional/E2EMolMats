@@ -11,26 +11,26 @@ damping:
 defect_rate:
 - 0
 defect_type:
-- anthracene
-equil_time: 100000.0
+- null
+equil_time: 500000.0
 gap_rate:
 - 0
 init_temperature: 200
-integrator: npt
+integrator: npzt
 machine: cluster
 max_sphere_radius:
 - 10
 melt_temperature: 2000
 min_inter_cluster_distance: 0
-min_lattice_length: 40
+min_lattice_length:
+- 50
 prep_bulk_melt: false
 prep_crystal_in_melt: false
 prep_melt_interface: true
-print_steps: 1000
+print_steps: 100
 ramp_temperature: false
 run_name: acridine_melt_interface1
-run_time:
-- 1000000.0
+run_time: 10000000.0
 scramble_rate:
 - 0
 seed:
@@ -38,12 +38,13 @@ seed:
 - 2
 structure_identifier:
 - acridine/Form2
+- acridine/Form4
 submit_lammps_slurm: false
 temperature:
-- 250
-- 300
 - 350
+- 360
+- 370
+- 380
+- 390
 - 400
-- 450
-- 500
-- 550
+- 410

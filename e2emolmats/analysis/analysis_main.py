@@ -30,8 +30,8 @@ acridine_melt_paths = [
     r'D:\crystal_datasets\acridine_melt_interface17_3/',
     r'D:\crystal_datasets\acridine_melt_interface17_4/',
     r'D:\crystal_datasets\acridine_melt_interface18/',
-    r'D:\crystal_datasets\acridine_melt_interface19/',
-    r'D:\crystal_datasets\acridine_melt_interface20/'
+    #r'D:\crystal_datasets\acridine_melt_interface19/', # anthracene
+    #r'D:\crystal_datasets\acridine_melt_interface20/'  # 2,7-DHN
 ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
@@ -54,7 +54,12 @@ acridine_cluster_paths = [
     r'D:\crystal_datasets\acridine_cluster9/',
     r'D:\crystal_datasets\acridine_cluster10/',
     r'D:\crystal_datasets\acridine_cluster11/',
-    r'D:\crystal_datasets\acridine_cluster12/'
+    r'D:\crystal_datasets\acridine_cluster12/',
+    r'D:\crystal_datasets\acridine_cluster13/',  # form 9 melt fix
+    r'D:\crystal_datasets\acridine_cluster14/',  # long runs
+    r'D:\crystal_datasets\acridine_cluster15/',  # init 27DHN runs
+    r'D:\crystal_datasets\acridine_cluster15_retest/',  # trying to rerun 15, where many runs failed
+
 ]
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
@@ -77,7 +82,7 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_cp2'
+MODE = 'acridine_melt'
 
 if __name__ == '__main__':
     redo_analysis = False
@@ -232,24 +237,27 @@ if __name__ == '__main__':
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
 
-        fig, melt_estimate_dict = compute_and_plot_melt_slopes(combined_df)
+        fig, melt_estimate_dict, melt_estimate_dict2 = compute_and_plot_melt_slopes(combined_df)
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
+        fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
 
         if config.log_to_wandb:
             wandb.log({'Melt Slopes': fig,
                        'Melt Temps': fig2,
+                       'Melt Temps2': fig3,
+
                        })
 
     if config.nanocluster_analysis:
         combined_df = confirm_melt(combined_df)
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
-        fig, com_table, summary_fig = crystal_stability_analysis(combined_df)
-
-        if config.log_to_wandb:
-            wandb.log({'Crystal Nucleus Stability': fig,
-                       'Crystal Stability Summary': com_table,
-                       'Crystal Stability Averages': summary_fig})
+        crystal_stability_analysis(combined_df)
+        #
+        # if config.log_to_wandb:
+        #     wandb.log({'Crystal Nucleus Stability': fig,
+        #                'Crystal Stability Summary': com_table,
+        #                'Crystal Stability Averages': summary_fig})
 
     if config.latents_analysis:
         fig = latent_heat_analysis(combined_df)
