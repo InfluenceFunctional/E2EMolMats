@@ -20,16 +20,19 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    r'D:\crystal_datasets\acridine_melt_interface14/',
-    r'D:\crystal_datasets\acridine_melt_interface15/',
-    r'D:\crystal_datasets\acridine_melt_interface16_1/',
-    r'D:\crystal_datasets\acridine_melt_interface16_2/',
-    r'D:\crystal_datasets\acridine_melt_interface16_3/',
-    r'D:\crystal_datasets\acridine_melt_interface16_4/',
-    r'D:\crystal_datasets\acridine_melt_interface17_1/',
-    r'D:\crystal_datasets\acridine_melt_interface17_3/',
-    r'D:\crystal_datasets\acridine_melt_interface17_4/',
-    r'D:\crystal_datasets\acridine_melt_interface18/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
+
+    # old acridine ff
+    # r'D:\crystal_datasets\acridine_melt_interface14/',
+    # r'D:\crystal_datasets\acridine_melt_interface15/',
+    # r'D:\crystal_datasets\acridine_melt_interface16_1/',
+    # r'D:\crystal_datasets\acridine_melt_interface16_2/',
+    # r'D:\crystal_datasets\acridine_melt_interface16_3/',
+    # r'D:\crystal_datasets\acridine_melt_interface16_4/',
+    # r'D:\crystal_datasets\acridine_melt_interface17_1/',
+    # r'D:\crystal_datasets\acridine_melt_interface17_3/',
+    # r'D:\crystal_datasets\acridine_melt_interface17_4/',
+    # r'D:\crystal_datasets\acridine_melt_interface18/',
     #r'D:\crystal_datasets\acridine_melt_interface19/', # anthracene
     #r'D:\crystal_datasets\acridine_melt_interface20/'  # 2,7-DHN
 ]
@@ -46,35 +49,38 @@ acridine_melt_paths = [
 # ]
 'paths for analysis of acridine cluster stability'
 acridine_cluster_paths = [
-    r'D:\crystal_datasets\acridine_cluster4/',
-    r'D:\crystal_datasets\acridine_cluster5/',
-    r'D:\crystal_datasets\acridine_cluster6/',
-    r'D:\crystal_datasets\acridine_cluster7/',
-    r'D:\crystal_datasets\acridine_cluster8/',
-    r'D:\crystal_datasets\acridine_cluster9/',
-    r'D:\crystal_datasets\acridine_cluster10/',
-    r'D:\crystal_datasets\acridine_cluster11/',
-    r'D:\crystal_datasets\acridine_cluster12/',
-    r'D:\crystal_datasets\acridine_cluster13/',  # form 9 melt fix
-    r'D:\crystal_datasets\acridine_cluster14/',  # long runs
-    r'D:\crystal_datasets\acridine_cluster15/',  # init 27DHN runs
-    r'D:\crystal_datasets\acridine_cluster15_retest/',  # trying to rerun 15, where many runs failed
+    # old acridine ff
+    # r'D:\crystal_datasets\acridine_cluster4/',
+    # r'D:\crystal_datasets\acridine_cluster5/',
+    # r'D:\crystal_datasets\acridine_cluster6/',
+    # r'D:\crystal_datasets\acridine_cluster7/',
+    # r'D:\crystal_datasets\acridine_cluster8/',
+    # r'D:\crystal_datasets\acridine_cluster9/',
+    # r'D:\crystal_datasets\acridine_cluster10/',
+    # r'D:\crystal_datasets\acridine_cluster11/',
+    # r'D:\crystal_datasets\acridine_cluster12/',
+    # r'D:\crystal_datasets\acridine_cluster13/',  # form 9 melt fix
+    # r'D:\crystal_datasets\acridine_cluster14/',  # long runs
+    # r'D:\crystal_datasets\acridine_cluster15/',  # init 27DHN runs
+    # r'D:\crystal_datasets\acridine_cluster15_retest/',  # trying to rerun 15, where many runs failed
 
 ]
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
-    r'D:\crystal_datasets\acridine_latents_battery1/',
-    r'D:\crystal_datasets\acridine_latents_battery2/',
+    # old acridine ff
+    # r'D:\crystal_datasets\acridine_latents_battery1/',
+    # r'D:\crystal_datasets\acridine_latents_battery2/',
 ]
 acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    r'D:\crystal_datasets\acridine_cp1',
-    r'D:\crystal_datasets\acridine_cp2',
-    r'D:\crystal_datasets\acridine_cp3',
-    r'D:\crystal_datasets\acridine_latents_battery1/',
-    r'D:\crystal_datasets\acridine_latents_battery2/',
+    # old acridine ff
+    # r'D:\crystal_datasets\acridine_cp1',
+    # r'D:\crystal_datasets\acridine_cp2',
+    # r'D:\crystal_datasets\acridine_cp3',
+    # r'D:\crystal_datasets\acridine_latents_battery1/',
+    # r'D:\crystal_datasets\acridine_latents_battery2/',
 ]
 
 atoms_per_molecule = {
