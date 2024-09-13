@@ -1,0 +1,57 @@
+atom_style: full
+box_type: p
+bulk_crystal: true
+cluster_size:
+- - 10
+  - 10
+  - 10
+cluster_type: supercell
+damping:
+- '100.0'
+defect_rate:
+- 0
+defect_type:
+- null
+equil_time: 500000.0
+gap_rate:
+- 0
+init_temperature: 200
+integrator: npt
+invert_defects: false
+machine: cluster
+max_sphere_radius:
+- 10
+melt_temperature: 2000
+min_inter_cluster_distance: 0
+min_lattice_length:
+- 25
+prep_bulk_melt: false
+prep_crystal_in_melt: false
+prep_melt_interface: true
+pressure_direction:
+- x
+- y
+- z
+print_steps: 100
+ramp_temperature: false
+run_name: acridine_melt_interface2
+run_time: 100000000.0
+scramble_rate:
+- 0
+seed:
+- 1
+- 2
+structure_identifier:
+- acridine/Form2
+- acridine/Form4
+submit_lammps_slurm: false
+temperature:
+- 330
+- 340
+- 350
+- 360
+- 370
+- 380
+- 390
+- 400
+- 410

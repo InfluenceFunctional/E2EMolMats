@@ -1170,6 +1170,7 @@ def cp_and_latent_analysis(combined_df):
 
     print(latents_dict)
     print(cp_coefficients_dict)
+    print(cp_at_T)
     fig.update_xaxes(title='Temperature /K')
     fig.update_yaxes(title='Mean Enthalpy kJ/mol')
     fig.show(renderer='browser')

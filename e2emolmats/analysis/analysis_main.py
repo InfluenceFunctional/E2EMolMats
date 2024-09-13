@@ -23,16 +23,16 @@ acridine_melt_paths = [
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
 
     # old acridine ff
-    # r'D:\crystal_datasets\acridine_melt_interface14/',
-    # r'D:\crystal_datasets\acridine_melt_interface15/',
-    # r'D:\crystal_datasets\acridine_melt_interface16_1/',
-    # r'D:\crystal_datasets\acridine_melt_interface16_2/',
-    # r'D:\crystal_datasets\acridine_melt_interface16_3/',
-    # r'D:\crystal_datasets\acridine_melt_interface16_4/',
-    # r'D:\crystal_datasets\acridine_melt_interface17_1/',
-    # r'D:\crystal_datasets\acridine_melt_interface17_3/',
-    # r'D:\crystal_datasets\acridine_melt_interface17_4/',
-    # r'D:\crystal_datasets\acridine_melt_interface18/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface15/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_1/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_2/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_3/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_4/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface17_1/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface17_3/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface17_4/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface18/',
     #r'D:\crystal_datasets\acridine_melt_interface19/', # anthracene
     #r'D:\crystal_datasets\acridine_melt_interface20/'  # 2,7-DHN
 ]
@@ -75,12 +75,14 @@ acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    # old acridine ff
-    # r'D:\crystal_datasets\acridine_cp1',
-    # r'D:\crystal_datasets\acridine_cp2',
-    # r'D:\crystal_datasets\acridine_cp3',
-    # r'D:\crystal_datasets\acridine_latents_battery1/',
-    # r'D:\crystal_datasets\acridine_latents_battery2/',
+    #r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
+
+    ##old acridine ff
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp1',
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp2',
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp3',
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery1/',
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
 ]
 
 atoms_per_molecule = {
@@ -88,7 +90,7 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_melt'
+MODE = 'acridine_cp2'
 
 if __name__ == '__main__':
     redo_analysis = False
@@ -239,6 +241,33 @@ if __name__ == '__main__':
 
     'multi-battery analysis'
     if config.compute_melt_temps:
+        #
+        # import plotly.graph_objects as go
+        # from scipy.ndimage import gaussian_filter1d
+        #
+        # fig = go.Figure()
+        #
+        # good_inds = np.argwhere((combined_df['structure_identifier'] == 'acridine/Form2') *
+        #                         (combined_df['temperature'] == 350)).flatten()
+        #
+        # for indyind, ind in enumerate(good_inds):
+        #     fig.add_trace(
+        #         go.Scattergl(x=combined_df['time step'][ind] / 1e6,
+        #                      y=gaussian_filter1d(combined_df['E_pair'][ind] / combined_df['num_molecules'][ind], 5),
+        #                      marker_color='blue', name='Form2',
+        #                      showlegend=indyind == 0))
+        #
+        # good_inds = np.argwhere((combined_df['structure_identifier'] == 'acridine/Form4') *
+        #                         (combined_df['temperature'] == 350)).flatten()
+        #
+        # for indyind, ind in enumerate(good_inds):
+        #     fig.add_trace(
+        #         go.Scattergl(x=combined_df['time step'][ind] / 1e6,
+        #                      y=gaussian_filter1d(combined_df['E_pair'][ind] / combined_df['num_molecules'][ind], 5),
+        #                      marker_color='red', name='Form4',
+        #                      showlegend=indyind == 0))
+        #
+        # fig.show(renderer='browser')
         combined_df = confirm_melt(combined_df)
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
