@@ -20,6 +20,7 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
 
     # old acridine ff
@@ -90,11 +91,11 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_cp2'
+MODE = 'acridine_melt'
 
 if __name__ == '__main__':
-    redo_analysis = False
-    log_to_wandb = False
+    redo_analysis = True
+    log_to_wandb = True
 
     compute_melt_temps = False
     nanocluster_analysis = False

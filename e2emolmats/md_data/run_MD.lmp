@@ -42,7 +42,21 @@
 
 #-------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------#
-  minimize          1.0e-4 1.0e-6 100 1000
+  #minimize          1.0e-4 1.0e-6 100 1000
+  # new minimization
+  label loop
+  variable a loop 20
+  minimize          0 1.0e-8 10000 100000
+  minimize          0 1.0e-8 10000 100000
+  minimize          0 1.0e-8 10000 100000
+  fix               f1 all box/relax iso 0.0
+  minimize          0 1.0e-8 10000 100000
+  unfix             f1
+  next a
+  jump SELF loop
+  label break
+  print "LOOP DONE"
+
   write_data        cluster_${nx}x${ny}x${nz}_minimize.data
   reset_timestep    0
 
