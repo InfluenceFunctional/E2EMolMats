@@ -20,8 +20,9 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -94,8 +95,8 @@ atoms_per_molecule = {
 MODE = 'acridine_melt'
 
 if __name__ == '__main__':
-    redo_analysis = True
-    log_to_wandb = True
+    redo_analysis = False
+    log_to_wandb = False
 
     compute_melt_temps = False
     nanocluster_analysis = False
@@ -270,18 +271,18 @@ if __name__ == '__main__':
         #
         # fig.show(renderer='browser')
         combined_df = confirm_melt(combined_df)
+        print(f"{np.sum(combined_df['Melt Succeeded'] != True)} failed to melt!")
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
 
         fig, melt_estimate_dict, melt_estimate_dict2 = compute_and_plot_melt_slopes(combined_df)
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
-        fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
+        #fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
 
         if config.log_to_wandb:
             wandb.log({'Melt Slopes': fig,
                        'Melt Temps': fig2,
-                       'Melt Temps2': fig3,
-
+                       # 'Melt Temps2': fig3,
                        })
 
     if config.nanocluster_analysis:
