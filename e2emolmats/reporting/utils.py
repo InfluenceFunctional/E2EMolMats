@@ -89,7 +89,7 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
             return results_dict, 'Run unfinished!'
         else:
             results_dict['total_time'] = total_time
-
+    lines = [line for line in lines if 'warning' not in line.lower()]
     for ind, line in enumerate(lines):
         if 'ns/day' in line:
             text = line.split('ns/day')

@@ -1,4 +1,6 @@
 """run configs to loop over - will take all combinations of the below lists - grows combinatorially!!"""
+from e2emolmats.common.utils import generate_run_configs
+
 """run this script to make the corresponding .yaml file, which is used at runtime"""
 import yaml
 
@@ -6,7 +8,7 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
-    'temperature': [0, 1, 50, 100, 150, 200, 250, 300, 350, 400, 450],  # Kelvin
+    'temperature': [0, 1, 50],  # Kelvin
     'structure_identifier': ['acridine/Form2',
                              'acridine/Form3',
                              'acridine/Form4',
@@ -30,13 +32,13 @@ batch_config = {
     # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
     'box_type': 'p',
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
-    'integrator': ['nosehoover','npt'],  # nosehoover, npt, nvt
+    'integrator': 'npt',  # nosehoover, npt, nvt
     'pressure_direction': 'iso',  # iso, x, y, or z for npt pressure directionality
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,  # for ramps only
     'print_steps': int(2e2),  # how many timepoints to print in sampling trajectory
-    'min_inter_cluster_distance': [20, 30, 40],  # sets periodic box size in cluster simulations, 0 or None if unused
-    'bulk_crystal': True,  # if true, periodic structure
+    'min_inter_cluster_distance': [20, 40, 60],  # sets periodic box size in cluster simulations, 0 or None if unused
+    'bulk_crystal': False,  # if true, periodic structure
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
     'run_name': 'acridine_lattice_energy1',
     'min_lattice_length': 40,
@@ -53,3 +55,6 @@ batch_config = {
 filename = __file__
 with open(filename.split('.py')[0] + '.yaml', 'w') as outfile:
     yaml.dump(batch_config, outfile, default_flow_style=False)
+
+run_args, dynamic_arg_keys = generate_run_configs(batch_config)
+print(f"This batch will have {len(run_args)} runs!")

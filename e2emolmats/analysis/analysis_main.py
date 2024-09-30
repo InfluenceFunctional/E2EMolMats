@@ -88,12 +88,17 @@ acridine_cp2_paths = [
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
 ]
 
+acridine_lattice_energy_paths = [
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy1',  # gas phases
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
+]
+
 atoms_per_molecule = {
     'nicotinamide': 15,
     'acridine': 23
 }
 
-MODE = 'acridine_cp2'
+MODE = 'acridine_lattice_energy'
 
 if __name__ == '__main__':
     redo_analysis = False
@@ -104,6 +109,7 @@ if __name__ == '__main__':
     latents_analysis = False
     cp_analysis = False
     cp2_analysis = False
+    lattice_energy_analysis = False
 
     if MODE == 'acridine_cluster':
         battery_paths = acridine_cluster_paths
@@ -127,6 +133,10 @@ if __name__ == '__main__':
         cp2_analysis = True
         log_to_wandb = True
 
+    elif MODE == 'acridine_lattice_energy':
+        battery_paths = acridine_lattice_energy_paths
+        lattice_energy_analysis = True
+        log_to_wandb = True
     else:
         assert False, "Unrecognized mode !!"
 
@@ -313,6 +323,14 @@ if __name__ == '__main__':
 
         if config.log_to_wandb:
             wandb.log({'Enthalpy Fitting': fig})
+
+    if config.lattice_energy_analysis:
+        # extract gas phase energies
+
+        # extract solid state energies
+
+        # compute lattice energies as function of temperature, size, polymorph
+        aa = 1
 
     if config.log_to_wandb:
         wandb.finish()
