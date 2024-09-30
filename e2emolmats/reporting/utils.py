@@ -78,9 +78,12 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
     skip = True
 
     if "Total wall time" not in text:  # skip analysis if the run crashed or is unfinished
-        for key in results_dict.keys():
-            results_dict[key] = np.zeros(1)
-        return results_dict, 'Run unfinished!'
+        if 'Target temperature for fix nvt cannot be 0.0' in text:  # minimization only
+            results_dict['total time'] = 0
+        else:
+            for key in results_dict.keys():
+                results_dict[key] = np.zeros(1)
+            return results_dict, 'Run unfinished!'
     else:
         walltime_str = text.split('Total wall time: ')[-1].split('\n')[0]
         walltime_str = walltime_str.split(':')
@@ -89,6 +92,39 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
             return results_dict, 'Run unfinished!'
         else:
             results_dict['total_time'] = total_time
+
+    results_dict = extract_trajectory_properties(hit_minimization, lines, results_dict, skip)
+
+    results_dict['time step'] = results_dict['Step']
+
+    for key in results_dict.keys():
+        results_dict[key] = np.asarray(results_dict[key])
+
+    if os.path.exists('com.out'):  # molecule-wise temperature analysis
+        num_crystal_mols = run_config['melt_indices'].crystal_end_ind - run_config['melt_indices'].crystal_start_ind + 1
+        if num_crystal_mols <= 1:
+            return results_dict, "Nanocrystal contains only 0-1 molecules!"
+
+        center_of_mass_analysis(results_dict, run_config)
+
+    if not skip_molwise_thermo:
+        if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
+            frames = read_lammps_thermo_traj('tmp.out')
+            results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
+            # averages over molecules
+            results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
+            results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
+            results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
+            return results_dict, 'Thermo analysis succeeded'
+
+        else:
+
+            return results_dict, 'Missing thermo trajectory!'
+    else:
+        return results_dict, 'Thermo analysis succeeded'
+
+
+def extract_trajectory_properties(hit_minimization, lines, results_dict, skip):
     lines = [line for line in lines if 'warning' not in line.lower()]
     for ind, line in enumerate(lines):
         if 'ns/day' in line:
@@ -120,54 +156,29 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
                 for ind2, key in enumerate(screen_keys):
                     results_dict[key].append(entries[ind2])
 
-    results_dict['time step'] = results_dict['Step']
+    return results_dict
 
-    for key in results_dict.keys():
-        results_dict[key] = np.asarray(results_dict[key])
 
-    if os.path.exists('com.out'):  # molecule-wise temperature analysis
-        num_crystal_mols = run_config['melt_indices'].crystal_end_ind - run_config['melt_indices'].crystal_start_ind + 1
-        if num_crystal_mols <= 1:
-            return results_dict, "Nanocrystal contains only 0-1 molecules!"
-
-        frames = read_lammps_thermo_traj('com.out')
-        results_dict['com_trajectory'] = np.asarray(list(frames.values()))
-        crystal_radius_traj = results_dict['com_trajectory'][:,
-                              run_config['melt_indices'].crystal_start_ind - 1:
-                              run_config['melt_indices'].crystal_end_ind - 1]
-
-        crystal_radius = np.zeros(len(crystal_radius_traj))
-        crystal_min_dist = np.zeros_like(crystal_radius)
-        crystal_mean_dist = np.zeros_like(crystal_radius)
-        crystal_max_dist = np.zeros_like(crystal_radius)
-
-        for ind, step in enumerate(crystal_radius_traj):
-            crystal_radius[ind] = np.mean(np.linalg.norm(step - step.mean(0), axis=1))
-            dmat = cdist(step, step)
-            crystal_min_dist[ind] = np.amin(dmat + np.eye(dmat.shape[-1]) * 100)
-            crystal_mean_dist[ind] = np.mean(dmat)
-            crystal_max_dist[ind] = np.amax(dmat)
-
-        results_dict['crystal_radius_trajectory'] = crystal_radius
-        results_dict['crystal_minimum_distance'] = crystal_min_dist
-        results_dict['crystal_mean_distance'] = crystal_mean_dist
-        results_dict['crystal_mean_distance'] = crystal_max_dist
-
-    if not skip_molwise_thermo:
-        if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
-            frames = read_lammps_thermo_traj('tmp.out')
-            results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
-            # averages over molecules
-            results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
-            results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
-            results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
-            return results_dict, 'Thermo analysis succeeded'
-
-        else:
-
-            return results_dict, 'Missing thermo trajectory!'
-    else:
-        return results_dict, 'Thermo analysis succeeded'
+def center_of_mass_analysis(results_dict, run_config):
+    frames = read_lammps_thermo_traj('com.out')
+    results_dict['com_trajectory'] = np.asarray(list(frames.values()))
+    crystal_radius_traj = results_dict['com_trajectory'][:,
+                          run_config['melt_indices'].crystal_start_ind - 1:
+                          run_config['melt_indices'].crystal_end_ind - 1]
+    crystal_radius = np.zeros(len(crystal_radius_traj))
+    crystal_min_dist = np.zeros_like(crystal_radius)
+    crystal_mean_dist = np.zeros_like(crystal_radius)
+    crystal_max_dist = np.zeros_like(crystal_radius)
+    for ind, step in enumerate(crystal_radius_traj):
+        crystal_radius[ind] = np.mean(np.linalg.norm(step - step.mean(0), axis=1))
+        dmat = cdist(step, step)
+        crystal_min_dist[ind] = np.amin(dmat + np.eye(dmat.shape[-1]) * 100)
+        crystal_mean_dist[ind] = np.mean(dmat)
+        crystal_max_dist[ind] = np.amax(dmat)
+    results_dict['crystal_radius_trajectory'] = crystal_radius
+    results_dict['crystal_minimum_distance'] = crystal_min_dist
+    results_dict['crystal_mean_distance'] = crystal_mean_dist
+    results_dict['crystal_mean_distance'] = crystal_max_dist
 
 
 def read_lammps_thermo_traj(filename):
@@ -539,7 +550,7 @@ def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
                           y=list(exp_melts_dict.values()),
                           text=list(exp_melts_dict.values()),
                           texttemplate="%{text:.2f}",
-                          name='Experiments'),)
+                          name='Experiments'), )
 
     for defect_type in defect_types:
         melt_temps = np.asarray(list(melt_estimate_dict[defect_type].values()))
@@ -739,7 +750,6 @@ def crystal_stability_analysis(combined_df):
     colors = get_colorscale(
         'mygbm')  #n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(present_polymorphs), colortype='rgb')
 
-
     for defect_type_index, defect_type in enumerate(present_defect_types):
         overall_fig = make_subplots(rows=len(present_defect_rates), cols=2,
                                     subplot_titles=['Critical Radius vs. T', 'Critical Radius vs. Undercooling'],
@@ -814,7 +824,8 @@ def compute_undercool_vs_defects(calculated_melt_temps, n_defect_types, n_defect
 
                 if len(finite_vals) > 0:
                     trend_sizes = undercool_func(undercooling_ratio)[np.isfinite(vals)]
-                    relative_undercooled_sizes[defect_type_index, defect_rate_index, polymorph_ind] = np.mean(finite_vals - trend_sizes)
+                    relative_undercooled_sizes[defect_type_index, defect_rate_index, polymorph_ind] = np.mean(
+                        finite_vals - trend_sizes)
 
     relative_undercooled_sizes[relative_undercooled_sizes == 0] = -np.inf
 
@@ -1260,3 +1271,20 @@ def relabel_defects(combined_df):
     combined_df['defect_type'] = defects_list
 
     return combined_df
+
+
+def extract_gas_phase_energies(unique_temps, combined_df):
+    gas_energies_dict = {}
+    for ind, temp in enumerate(unique_temps):
+        good_inds = np.argwhere((combined_df['temperature'] == temp) * (combined_df['cluster_type'] == 'gas')).flatten()
+        good_df = combined_df.iloc[good_inds]
+        good_df.reset_index(drop=True, inplace=True)
+        run_energies = np.zeros(len(good_df))
+
+        for ind2, row in good_df.iterrows():
+            steps = len(row['E_mol'])
+            run_energies[ind2] = np.mean(row['E_mol'][steps // 2])
+
+        if len(good_df) > 0:
+            gas_energies_dict[temp] = np.mean(run_energies)
+    return gas_energies_dict

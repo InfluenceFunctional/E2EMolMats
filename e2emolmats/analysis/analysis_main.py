@@ -10,9 +10,10 @@ import wandb
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         get_melt_progress, compute_and_plot_melt_slopes,
-                                        plot_melt_points, POLYMORPH_MELT_POINTS, runs_summary_table,
-                                        crystal_stability_analysis, latent_heat_analysis, analyze_heat_capacity,
-                                        confirm_melt, cp_and_latent_analysis, relabel_defects)
+                                        plot_melt_points, POLYMORPH_MELT_POINTS, crystal_stability_analysis,
+                                        latent_heat_analysis, analyze_heat_capacity,
+                                        confirm_melt, cp_and_latent_analysis, relabel_defects,
+                                        extract_gas_phase_energies)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -151,6 +152,7 @@ if __name__ == '__main__':
         'cp_analysis': cp_analysis,
         'cp2_analysis': cp2_analysis,
         'log_to_wandb': log_to_wandb,
+        'lattice_energy_analysis': lattice_energy_analysis
     }
     config = dict2namespace(config_i)
 
@@ -205,15 +207,13 @@ if __name__ == '__main__':
                         run_config = np.load('run_config.npy', allow_pickle=True).item()
 
                     'always do thermo analysis'
-                    thermo_results_dict, analysis_code = process_thermo_data(run_config,
-                                                                             True)  #skip_molwise_thermo='daisuke' in battery_paths[0])
+                    thermo_results_dict, analysis_code = process_thermo_data(run_config, True)
                     runs_dict[run_dir] = [analysis_code, run_config]
                     if analysis_code != 'Thermo analysis succeeded':
                         print(f'Processing {run_dir} failed ' + analysis_code)
                         continue  # if processing failed, skip this run
 
-                    thermo_telemetry_fig = make_thermo_fig(
-                        thermo_results_dict, run_config)
+                    thermo_telemetry_fig = make_thermo_fig(thermo_results_dict, run_config)
                     if config.log_to_wandb:
                         wandb.log({'Thermo Data': thermo_telemetry_fig})
 
@@ -325,11 +325,40 @@ if __name__ == '__main__':
             wandb.log({'Enthalpy Fitting': fig})
 
     if config.lattice_energy_analysis:
-        # extract gas phase energies
+        # extract gas phase energies as a function of temperature
+        unique_temps = np.unique(combined_df['temperature'])
+        gas_energies_dict = extract_gas_phase_energies(unique_temps, combined_df)
 
         # extract solid state energies
+        solid_energies_dict = {}
+        unique_idents = np.unique(combined_df['structure_identifier'])
+        n_a = 6.022 * 10 ** 23
+        for ind, ident in enumerate(unique_idents):
+            temps_dict = {}
+            for t_ind, temp in enumerate(unique_temps):
+                # polymorph = ident.split('/')
+                good_inds = np.argwhere((combined_df['structure_identifier'] == ident)
+                                        * (combined_df['prep_bulk_melt'] == False)
+                                        * (combined_df['temperature'] == temp)
+                                        * (combined_df['cluster_type'] == 'supercell')
+                                        ).flatten()
+
+                good_df = combined_df.iloc[good_inds]
+                good_df.reset_index(drop=True, inplace=True)
+
+                run_energies = np.zeros(len(good_df))
+                if len(good_df) > 0:
+                    for ind2, row in good_df.iterrows():
+                        steps = len(row['E_mol'])
+                        run_energies[ind2] = np.mean(row['E_mol'][steps // 2] + row['E_pair'][steps // 2]) / (
+                                    row['num_atoms'] / 23)
+
+                    temps_dict[temp] = np.mean(run_energies)
+            if len(temps_dict) > 0:
+                solid_energies_dict[ident] = temps_dict
 
         # compute lattice energies as function of temperature, size, polymorph
+
         aa = 1
 
     if config.log_to_wandb:
