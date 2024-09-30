@@ -16,7 +16,7 @@ equil_time: 100000.0
 gap_rate:
 - 0
 init_temperature: 200
-integrator: npt
+integrator: nosehoover
 invert_defects:
 - false
 machine: cluster
@@ -40,7 +40,6 @@ scramble_rate:
 - 0
 seed:
 - 1
-- 2
 structure_identifier:
 - acridine/Form2
 - acridine/Form3
@@ -53,4 +52,3 @@ submit_lammps_slurm: false
 temperature:
 - 0
 - 1
-- 50

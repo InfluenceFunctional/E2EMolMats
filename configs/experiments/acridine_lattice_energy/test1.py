@@ -8,7 +8,7 @@ batch_config = {
     # loop-overable (must be a list)
     'cluster_size': [[10, 10, 10]],
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
-    'temperature': [0, 1, 50],  # Kelvin
+    'temperature': [0, 1],  # Kelvin
     'structure_identifier': ['acridine/Form2',
                              'acridine/Form3',
                              'acridine/Form4',
@@ -21,7 +21,7 @@ batch_config = {
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
-    'seed': [1, 2],  # integers greater than zero
+    'seed': [1],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
     'max_sphere_radius': [0],  # if carving a finite cluster from a bulk structure, the radius of the sphere
     'invert_defects': [False],
@@ -32,7 +32,7 @@ batch_config = {
     # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
     'box_type': 'p',
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
-    'integrator': 'npt',  # nosehoover, npt, nvt
+    'integrator': 'nosehoover',  # nosehoover, npt, nvt
     'pressure_direction': 'iso',  # iso, x, y, or z for npt pressure directionality
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,  # for ramps only
