@@ -13,7 +13,7 @@ from ase import io
 from scipy.spatial.distance import cdist
 from scipy.spatial.transform import Rotation
 from e2emolmats.common.utils import dict2namespace, compute_principal_axes_np
-from e2emolmats.md_data.constants import MOLECULE_DATA, MOLECULE_STR_TO_ATOMIC_NUM
+from e2emolmats.md_data.constants import MOLECULE_DATA, MOLECULE_STR_TO_ATOMIC_NUM, MOLECULE_NUM_ATOMS
 
 
 def get_crystal_properties(structure_identifier):
@@ -170,6 +170,14 @@ def generate_structure(crystals_path, structure_identifier,
             atoms_in_molecule, cell_lengths, cluster_size, max_sphere_radius, single_mol_atoms,
             supercell_atoms, supercell_coordinates, z_value))
 
+    elif cluster_type == 'gas':
+        # pick out a single molecule
+        num_mols = z_value
+        molwise_supercell_coordinates = crystal_coordinates.reshape(num_mols, atoms_in_molecule, 3)
+        molwise_supercell_atoms = crystal_atoms.reshape(num_mols, atoms_in_molecule)
+
+        supercell_coordinates = molwise_supercell_coordinates[0]
+        supercell_atoms = molwise_supercell_atoms[0]
     else:  # todo consider other shapes, rods, sheets, whatever
         assert False, f"Unrecognized cluster type {cluster_type}"
 
@@ -225,7 +233,7 @@ def generate_structure(crystals_path, structure_identifier,
 
     # write the structure
     cluster = Atoms(positions=supercell_coordinates, numbers=supercell_atoms, cell=cell)
-    filename = f'{"_".join(structure_identifier.split("/"))}_{cluster_type}_{cluster_size}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
+    filename = f'{"_".join(structure_identifier.split("/"))}_{cluster_type}_defect={defect_rate}_vacancy={gap_rate}_disorder={scramble_rate}.xyz'
     io.write(filename, cluster)
 
     return filename, melt_inds, molind2name

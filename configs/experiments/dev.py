@@ -20,7 +20,7 @@ batch_config = {
     'invert_defects': [False],
 
     # static items - DO NOT SET AS LIST
-    'cluster_type': 'supercell',
+    'cluster_type': 'gas',
     # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
     'run_time': int(1e5),  # sampling time in femtoseconds
     'box_type': 'p',
@@ -37,7 +37,7 @@ batch_config = {
     'min_lattice_length': [20],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # prepare a frozen nanocrystal in a melted environment
-    'prep_melt_interface': True,  # split supercell in half and melt half then reequilibrate
+    'prep_melt_interface': False,  # split supercell in half and melt half then reequilibrate
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
     'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs

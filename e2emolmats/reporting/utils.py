@@ -1214,7 +1214,7 @@ def extract_df_enthalpies(good_df, n_a):
         PV_energy2 = pressure * volume_m3 * 101.325  # kilojoules per simulation box
         PV_energy = PV_energy2 / row['num_molecules'] * n_a  # kilojoules per mol
         #PV_energy = pressure * volume * n_a / row['num_molecules'] * (1.01325 * 10 ** -25) / 1000
-        run_enthalpy = energy + PV_energy
+        run_enthalpy = energy[-len(PV_energy):] + PV_energy
 
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']

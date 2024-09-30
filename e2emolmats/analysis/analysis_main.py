@@ -77,14 +77,15 @@ acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    #r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
+    # r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
 
     ##old acridine ff
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp1',
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp2',
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp3',
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery1/',
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp1',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp2',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp3',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery1/',
+    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
 ]
 
 atoms_per_molecule = {
@@ -92,7 +93,7 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_melt'
+MODE = 'acridine_cp2'
 
 if __name__ == '__main__':
     redo_analysis = False

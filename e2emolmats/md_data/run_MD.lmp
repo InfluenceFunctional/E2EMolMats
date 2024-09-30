@@ -16,6 +16,8 @@
   variable          t_print equal ${t_run}/_PRINTSTEPS  #how often to print histogram
 
   variable          t_equil equal _EQUIL_TIME   # how long to equilibrate different melts
+  variable          t_melt equal 100000   # how long to ramp the melt temperature
+
 #_MELT_PREP  variable          T_melt  equal _MELT_TEMP    # temperature at which to melt things
 #_MELT_PREP  variable          melt_start_ind  equal _MELT_START_IND
 #_MELT_PREP  variable          melt_end_ind    equal _MELT_END_IND
@@ -42,7 +44,8 @@
 
 #-------------------------------------------------------------------------------#
 #-------------------------------------------------------------------------------#
-  #minimize          1.0e-4 1.0e-6 100 1000
+  # minimize          1.0e-4 1.0e-6 100 1000
+
   # new minimization
   label loop
   variable a loop 20
@@ -100,7 +103,7 @@
 #_MELT_PREP unfix f11
 
 #_MELT_PREP fix f12 melt nvt temp ${T_sample} ${T_melt} $(100.0*dt)
-#_MELT_PREP run ${t_equil}  # melt
+#_MELT_PREP run ${t_melt}  # melt
 #_MELT_PREP unfix f12
 
 #_MELT_PREP fix f131 melt nvt temp ${T_melt} 800 $(100.0*dt)
