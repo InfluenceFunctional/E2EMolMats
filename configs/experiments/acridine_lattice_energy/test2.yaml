@@ -23,11 +23,10 @@ machine: cluster
 max_sphere_radius:
 - 0
 melt_temperature: 2000
-min_inter_cluster_distance:
+min_inter_cluster_distance: null
+min_lattice_length:
 - 20
 - 40
-- 60
-min_lattice_length: 40
 prep_bulk_melt: false
 prep_crystal_in_melt: false
 prep_melt_interface: false
@@ -53,4 +52,3 @@ submit_lammps_slurm: false
 temperature:
 - 0
 - 1
-- 50
