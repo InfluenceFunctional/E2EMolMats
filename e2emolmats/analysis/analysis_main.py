@@ -13,7 +13,7 @@ from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         plot_melt_points, POLYMORPH_MELT_POINTS, crystal_stability_analysis,
                                         latent_heat_analysis, analyze_heat_capacity,
                                         confirm_melt, cp_and_latent_analysis, relabel_defects,
-                                        extract_gas_phase_energies)
+                                        get_run_potential)
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -91,7 +91,9 @@ acridine_cp2_paths = [
 
 acridine_lattice_energy_paths = [
     r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy1',  # gas phases
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy2',  # solids
+    #r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy3',  # gas phases
+
 ]
 
 atoms_per_molecule = {
@@ -325,39 +327,88 @@ if __name__ == '__main__':
             wandb.log({'Enthalpy Fitting': fig})
 
     if config.lattice_energy_analysis:
-        # extract gas phase energies as a function of temperature
-        unique_temps = np.unique(combined_df['temperature'])
-        gas_energies_dict = extract_gas_phase_energies(unique_temps, combined_df)
+        # compute energies and volumes
+        mean_potentials = np.zeros(len(combined_df))
+        mean_volumes = np.zeros(len(combined_df))
+        for ind, row in combined_df.iterrows():
+            steps = len(row['E_mol'])
+            num_mols = row['num_atoms'] // 23
+            mean_potentials[ind] = np.mean(row['E_mol'][-steps // 2:] + row['E_pair'][-steps // 2:]) / num_mols
+            mean_volumes[ind] = np.mean(row['Volume'][-steps // 2:]) / num_mols
 
-        # extract solid state energies
-        solid_energies_dict = {}
-        unique_idents = np.unique(combined_df['structure_identifier'])
-        n_a = 6.022 * 10 ** 23
-        for ind, ident in enumerate(unique_idents):
-            temps_dict = {}
-            for t_ind, temp in enumerate(unique_temps):
-                # polymorph = ident.split('/')
-                good_inds = np.argwhere((combined_df['structure_identifier'] == ident)
-                                        * (combined_df['prep_bulk_melt'] == False)
-                                        * (combined_df['temperature'] == temp)
-                                        * (combined_df['cluster_type'] == 'supercell')
-                                        ).flatten()
+        combined_df['mean_potential'] = mean_potentials
+        combined_df['molar_volume'] = mean_volumes
 
-                good_df = combined_df.iloc[good_inds]
-                good_df.reset_index(drop=True, inplace=True)
+        fixed_ids = []
+        for ind, row in combined_df.iterrows():
+            if row['cluster_type'] == 'gas':
+                fixed_ids.append('acridine')
+            else:
+                fixed_ids.append(row['structure_identifier'])
+        combined_df['structure_identifier'] = fixed_ids
 
-                run_energies = np.zeros(len(good_df))
-                if len(good_df) > 0:
-                    for ind2, row in good_df.iterrows():
-                        steps = len(row['E_mol'])
-                        run_energies[ind2] = np.mean(row['E_mol'][steps // 2] + row['E_pair'][steps // 2]) / (
-                                    row['num_atoms'] / 23)
+        # for each polymorph and temperature, average solid and gas phase runs,
+        # and compute the lattice energy as the difference
+        energy_groups = (
+            combined_df.groupby(
+                ['temperature', 'cluster_type', 'structure_identifier']
+            )['mean_potential'].mean())
+        volume_groups = (
+            combined_df.groupby(
+                ['temperature', 'cluster_type', 'structure_identifier']
+            )['molar_volume'].mean())
 
-                    temps_dict[temp] = np.mean(run_energies)
-            if len(temps_dict) > 0:
-                solid_energies_dict[ident] = temps_dict
+        temps = np.unique(combined_df['temperature'])
+        num_temps = len(temps)
+        polymorphs = np.unique(combined_df['structure_identifier'])
+        polymorphs = polymorphs[polymorphs != 'acridine']
+        polymorphs = polymorphs[polymorphs != 'acridine/Form8']
+        num_polymorphs = len(polymorphs)
+        N_A = 6.023*10**23
+        a3tocm3 = 10**24
+        MW = 179.21726
+        lattices_information = np.zeros((num_temps, num_polymorphs, 2))
+        for t_ind, temp in enumerate(temps):
+            # get mean gas phase energy
+            gas_phase_en = energy_groups[temp]['gas']['acridine']
+            for p_ind, polymorph in enumerate(polymorphs):
+                # record mean molar volume
+                molar_volume = volume_groups[temp]['supercell'][polymorph]
+                # cubic angstroms per mol to grams per cubic cm
+                density = (a3tocm3 * MW) / (molar_volume * N_A)
+                lattices_information[t_ind, p_ind, 1] = density
 
-        # compute lattice energies as function of temperature, size, polymorph
+                # get mean solid energy
+                solid_phase_en = energy_groups[temp]['supercell'][polymorph]
+
+                lattice_energy = 4.18 * (solid_phase_en - gas_phase_en)  # convert from kcals to kJ
+                lattices_information[t_ind, p_ind, 0] = lattice_energy
+
+        reference_energy = np.array([-97.425,
+                            -95.3,
+                            -94.45,
+                            -93.175,
+                            -95.25,
+                            -97.65])
+        reference_density = np.array([1.2837,
+                             1.2611,
+                             1.2313,
+                             1.2369,
+                             1.2644,
+                             1.2684])
+
+        import plotly.graph_objects as go
+
+        fig = go.Figure()
+        for p_ind, polymorph in enumerate(polymorphs):
+            fig.add_scatter(
+                x=[reference_density[p_ind], lattices_information[0, p_ind, 1], lattices_information[1, p_ind, 1]],
+                y=[reference_energy[p_ind], lattices_information[0, p_ind, 0], lattices_information[1, p_ind, 0]],
+                marker_color=['black', 'orange', 'red'],
+                marker_size=[60, 30, 30],
+                name=polymorph,
+                )
+        fig.show(renderer='browser')
 
         aa = 1
 

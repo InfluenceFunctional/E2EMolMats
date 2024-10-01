@@ -78,7 +78,8 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
     skip = True
 
     if "Total wall time" not in text:  # skip analysis if the run crashed or is unfinished
-        if 'Target temperature for fix nvt cannot be 0.0' in text:  # minimization only
+        if 'Target temperature for fix nvt cannot be 0.0' in text\
+                or 'Target temperature for fix npt cannot be 0.0' in text:  # minimization only
             results_dict['total time'] = 0
         else:
             for key in results_dict.keys():
@@ -1273,7 +1274,7 @@ def relabel_defects(combined_df):
     return combined_df
 
 
-def extract_gas_phase_energies(unique_temps, combined_df):
+def get_run_potential(unique_temps, combined_df):
     gas_energies_dict = {}
     for ind, temp in enumerate(unique_temps):
         good_inds = np.argwhere((combined_df['temperature'] == temp) * (combined_df['cluster_type'] == 'gas')).flatten()
@@ -1283,7 +1284,7 @@ def extract_gas_phase_energies(unique_temps, combined_df):
 
         for ind2, row in good_df.iterrows():
             steps = len(row['E_mol'])
-            run_energies[ind2] = np.mean(row['E_mol'][steps // 2])
+            run_energies[ind2] = np.mean(row['E_mol'][steps // 2] + row['E_pair'][steps // 2])# np.mean(row['E_mol'][steps // 2])
 
         if len(good_df) > 0:
             gas_energies_dict[temp] = np.mean(run_energies)
