@@ -79,8 +79,10 @@
 
   compute cc1 all chunk/atom molecule
   compute myChunk all temp/chunk cc1 temp kecom internal
+  compute myChunk_pos all com/chunk cc1
 
   fix 1 all ave/time ${t_print} 1 ${t_print} c_myChunk[*] file tmp.out mode vector
+  fix 1_pos all ave/time  ${t_print} 1 ${t_print} c_myChunk_pos[*] file com.out mode vector
   fix 2 all momentum 100 linear 1 1 1 angular rescale
   fix 3 all ave/time ${t_print} 5 ${t_press} c_thermo_press
 

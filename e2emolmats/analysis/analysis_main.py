@@ -22,8 +22,8 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/',
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -92,7 +92,8 @@ acridine_cp2_paths = [
 acridine_lattice_energy_paths = [
     r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy1',  # gas phases
     r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy2',  # solids
-    #r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy3',  # gas phases
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy3',  # gas phases
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy4',  # gas phases
 
 ]
 
@@ -101,10 +102,10 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_lattice_energy'
+MODE = 'acridine_melt'
 
 if __name__ == '__main__':
-    redo_analysis = False
+    redo_analysis = True
     log_to_wandb = False
 
     compute_melt_temps = False
@@ -398,16 +399,50 @@ if __name__ == '__main__':
                              1.2684])
 
         import plotly.graph_objects as go
+        m_colors = ['black'] + ['red' for _ in range(num_temps)]
+        m_sizes = [40] + [20 for _ in range(num_temps)]
+        fig = go.Figure()
+        for p_ind, polymorph in enumerate(polymorphs):
+            volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
+            energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
+            fig.add_scatter(
+                x=volumes[:2],
+                y=energies[:2],
+                marker_color=m_colors[:2],
+                marker_size=m_sizes[:2],
+                name=polymorph,
+                )
+        fig.update_layout(xaxis_title='Density g/mL', yaxis_title='Potential kJ/mol')
+        fig.show(renderer='browser')
+
+        temperatures = [-10] + temps.tolist()
 
         fig = go.Figure()
         for p_ind, polymorph in enumerate(polymorphs):
+            volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
+            energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
             fig.add_scatter(
-                x=[reference_density[p_ind], lattices_information[0, p_ind, 1], lattices_information[1, p_ind, 1]],
-                y=[reference_energy[p_ind], lattices_information[0, p_ind, 0], lattices_information[1, p_ind, 0]],
-                marker_color=['black', 'orange', 'red'],
-                marker_size=[60, 30, 30],
+                x=temperatures,
+                y=energies,
+                marker_color=m_colors,
+                marker_size=m_sizes,
                 name=polymorph,
                 )
+        fig.update_layout(xaxis_title='Temperature K', yaxis_title='Potential kJ/mol')
+        fig.show(renderer='browser')
+
+        fig = go.Figure()
+        for p_ind, polymorph in enumerate(polymorphs):
+            volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
+            energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
+            fig.add_scatter(
+                x=temperatures,
+                y=volumes,
+                marker_color=m_colors,
+                marker_size=m_sizes,
+                name=polymorph,
+                )
+        fig.update_layout(xaxis_title='Temperature K', yaxis_title='Density g/mL')
         fig.show(renderer='browser')
 
         aa = 1
