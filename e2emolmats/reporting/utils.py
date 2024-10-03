@@ -78,7 +78,7 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
     skip = True
 
     if "Total wall time" not in text:  # skip analysis if the run crashed or is unfinished
-        if 'Target temperature for fix nvt cannot be 0.0' in text\
+        if 'Target temperature for fix nvt cannot be 0.0' in text \
                 or 'Target temperature for fix npt cannot be 0.0' in text:  # minimization only
             results_dict['total time'] = 0
         else:
@@ -101,12 +101,12 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
 
-    if os.path.exists('com.out'):  # molecule-wise temperature analysis
-        num_crystal_mols = run_config['melt_indices'].crystal_end_ind - run_config['melt_indices'].crystal_start_ind + 1
-        if num_crystal_mols <= 1:
-            return results_dict, "Nanocrystal contains only 0-1 molecules!"
-
-        center_of_mass_analysis(results_dict, run_config)
+    # if os.path.exists('com.out'):  # molecule-wise temperature analysis
+    #     num_crystal_mols = run_config['melt_indices'].crystal_end_ind - run_config['melt_indices'].crystal_start_ind + 1
+    #     if num_crystal_mols <= 1:
+    #         return results_dict, "Nanocrystal contains only 0-1 molecules!"
+    #
+    #     center_of_mass_analysis(results_dict, run_config)
 
     if not skip_molwise_thermo:
         if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
@@ -116,8 +116,12 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
             results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
             results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
             results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
-            return results_dict, 'Thermo analysis succeeded'
 
+            if os.path.exists('com.out'):  # molecule-wise temperature analysis
+                frames = read_lammps_com_traj('com.out')
+                results_dict['com_trajectory'] = np.asarray(list(frames.values()))
+
+            return results_dict, 'Thermo analysis succeeded'
         else:
 
             return results_dict, 'Missing thermo trajectory!'
@@ -207,6 +211,42 @@ def read_lammps_thermo_traj(filename):
         else:
             mol_num, temp, kecom, internal = np.asarray(line.split()).astype(float)
             frame_data[int(mol_num) - 1] = temp, kecom, internal
+
+    return frames
+
+
+def read_lammps_com_traj(filename):
+    f = open(filename, "r")
+    text = f.read()
+    lines = text.split('\n')
+    f.close()
+
+    frames = {}
+    frame_data = []  # temp kecom internal
+    for ind, line in enumerate(lines):
+        if line == '\n':
+            pass
+        elif len(line.split()) == 0:
+            pass
+        elif line[0] == '#':
+            pass
+        elif len(line.split()) == 2:
+            if len(frame_data) > 0:
+                frames[frame_num] = frame_data
+            a, b = line.split()
+            frame_num = int(a)
+            n_mols = int(b)
+            frame_data = np.zeros((n_mols, 3))
+        else:
+            try:
+                mol_num, x, y, z = np.asarray(line.split()).astype(float)
+            except ValueError:
+                if int(mol_num) == n_mols:
+                    pass
+                else:
+                    raise ValueError
+
+            frame_data[int(mol_num) - 1] = x, y, z
 
     return frames
 
@@ -1055,13 +1095,17 @@ def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def df_row_melted(row):
-    vol_traj = row['Volume']
-    equil_time = row['run_config']['equil_time']
+    pair_traj = row['E_pair']
+    equil_time = 100000 #row['run_config']['equil_time']
     equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
-    pre_heat_mean_volume = np.mean(vol_traj[1:equil_time_index])
-    max_vol = np.amax(gaussian_filter1d(vol_traj, sigma=2))
+    pre_heat_mean_volume = np.mean(pair_traj[1:equil_time_index])
+    max_vol = np.amax(gaussian_filter1d(pair_traj, sigma=2))
     volume_ratio = np.abs(max_vol - pre_heat_mean_volume) / pre_heat_mean_volume
-    success = volume_ratio > 0.05
+    success = volume_ratio > 0.25
+    """
+    import plotly.graph_objects as go
+    fig = go.Figure(go.Scatter(y=vol_traj)).show(renderer='browser')
+    """
     return success
 
 
@@ -1284,7 +1328,8 @@ def get_run_potential(unique_temps, combined_df):
 
         for ind2, row in good_df.iterrows():
             steps = len(row['E_mol'])
-            run_energies[ind2] = np.mean(row['E_mol'][steps // 2] + row['E_pair'][steps // 2])# np.mean(row['E_mol'][steps // 2])
+            run_energies[ind2] = np.mean(
+                row['E_mol'][steps // 2] + row['E_pair'][steps // 2])  # np.mean(row['E_mol'][steps // 2])
 
         if len(good_df) > 0:
             gas_energies_dict[temp] = np.mean(run_energies)

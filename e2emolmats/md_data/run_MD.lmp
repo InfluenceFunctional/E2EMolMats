@@ -96,8 +96,8 @@
 #_CRYSTAL_IN_MELT_PREP group crystal molecule ${crystal_start_ind}:${crystal_end_ind}
 #_MELT_PREP group melt molecule ${melt_start_ind}:${melt_end_ind}
 
-#_CRYSTAL_IN_MELT_PREP compute com all com/chunk cc1
-#_CRYSTAL_IN_MELT_PREP fix g1 all ave/time ${t_print} 1 ${t_print} c_com[*] file com.out mode vector
+##_CRYSTAL_IN_MELT_PREP compute com all com/chunk cc1
+##_CRYSTAL_IN_MELT_PREP fix g1 all ave/time ${t_print} 1 ${t_print} c_com[*] file com.out mode vector
 
 #_MELT_PREP fix f11 all npt temp ${T_init} ${T_sample} $(100.0*dt) iso 0.0 0.0 $(1000.0*dt)
 #_MELT_PREP velocity          all create ${T_sample} ${rnd} mom yes rot yes dist gaussian
@@ -105,7 +105,7 @@
 #_MELT_PREP unfix f11
 
 #_MELT_PREP fix f12 melt nvt temp ${T_sample} ${T_melt} $(100.0*dt)
-#_MELT_PREP run ${t_melt}  # melt
+#_MELT_PREP run ${t_equil}  # melt
 #_MELT_PREP unfix f12
 
 #_MELT_PREP fix f131 melt nvt temp ${T_melt} 800 $(100.0*dt)

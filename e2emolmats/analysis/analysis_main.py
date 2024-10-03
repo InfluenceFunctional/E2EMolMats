@@ -21,9 +21,10 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/',
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
+    # r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
+    # r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/',
+    # r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -105,8 +106,10 @@ atoms_per_molecule = {
 MODE = 'acridine_melt'
 
 if __name__ == '__main__':
-    redo_analysis = True
+    redo_analysis = False
     log_to_wandb = False
+
+    skip_molwise_thermo = True
 
     compute_melt_temps = False
     nanocluster_analysis = False
@@ -122,6 +125,7 @@ if __name__ == '__main__':
     elif MODE == 'acridine_melt':
         battery_paths = acridine_melt_paths
         compute_melt_temps = True
+        skip_molwise_thermo=False
 
     elif MODE == 'acridine_latent':
         battery_paths = acridine_latent_paths
@@ -210,7 +214,7 @@ if __name__ == '__main__':
                         run_config = np.load('run_config.npy', allow_pickle=True).item()
 
                     'always do thermo analysis'
-                    thermo_results_dict, analysis_code = process_thermo_data(run_config, True)
+                    thermo_results_dict, analysis_code = process_thermo_data(run_config, skip_molwise_thermo)
                     runs_dict[run_dir] = [analysis_code, run_config]
                     if analysis_code != 'Thermo analysis succeeded':
                         print(f'Processing {run_dir} failed ' + analysis_code)
@@ -284,10 +288,50 @@ if __name__ == '__main__':
         #                      showlegend=indyind == 0))
         #
         # fig.show(renderer='browser')
-        combined_df = confirm_melt(combined_df)
+        combined_df = confirm_melt(combined_df)  # TODO note for run 5 the equil time was hardcoded!
         print(f"{np.sum(combined_df['Melt Succeeded'] != True)} failed to melt!")
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
+
+        # temperature directional profile
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+        from scipy.ndimage import gaussian_filter1d
+        from tqdm import tqdm
+
+        r_ind = 0
+        local_temp_keys = ['Mol Temp', 'KE', 'Internal T']
+        fig = make_subplots(rows=1, cols=3, subplot_titles=local_temp_keys)
+        row = combined_df.iloc[r_ind]
+        for p_ind in range(3):
+
+            #    pressure_direction = ['x', 'y', 'z'].index(row['pressure_direction'])
+            bins = np.linspace(np.amin(row['com_trajectory'][:, :, p_ind]),
+                               np.amax(row['com_trajectory'][:, :, p_ind]),
+                               100)
+            num_steps = len(row['com_trajectory'])
+            temp_profile = np.zeros((num_steps, len(bins), 3, 3))
+            for t_ind in tqdm(range(len(row['com_trajectory']))):
+                com = row['com_trajectory'][t_ind, :, p_ind]
+                com_inds = np.digitize(com, bins)
+
+                for ind in range(3):
+                    local_temp = row['thermo_trajectory'][t_ind, :, ind]
+                    binned_temp = np.zeros((len(bins)))
+                    for b_ind in range(len(binned_temp)):
+                        binned_temp[b_ind] = np.mean(local_temp[com_inds[b_ind]])
+                    temp_profile[t_ind, :, ind, p_ind] = binned_temp
+
+        fig = make_subplots(rows=3, cols=3, subplot_titles=local_temp_keys)
+        for ind in range(3):
+            for p_ind in range(3):
+                fig.add_trace(
+                    go.Heatmap(x=bins[1:], z=gaussian_filter1d(temp_profile[:, :, ind, p_ind], sigma=5, axis=1)),
+                    row=p_ind + 1, col=ind + 1)
+        fig.update_xaxes(title='Position (A)')
+        fig.update_yaxes(title='Local Temperature')
+        fig.update_layout(coloraxis_showscale=False)
+        fig.show(renderer='browser')
 
         fig, melt_estimate_dict, melt_estimate_dict2 = compute_and_plot_melt_slopes(combined_df)
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
