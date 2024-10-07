@@ -110,19 +110,9 @@ atoms_per_molecule = {
 
 MODE = 'acridine_melt'
 
-if __name__ == '__main__':
-    redo_analysis = True
-    log_to_wandb = False
 
-    skip_molwise_thermo = True
-
-    compute_melt_temps = False
-    nanocluster_analysis = False
-    latents_analysis = False
-    cp_analysis = False
-    cp2_analysis = False
-    lattice_energy_analysis = False
-
+def mode_settings():
+    global battery_paths, nanocluster_analysis, compute_melt_temps, skip_molwise_thermo, latents_analysis, cp_analysis, log_to_wandb, cp2_analysis, lattice_energy_analysis
     if MODE == 'acridine_cluster':
         battery_paths = acridine_cluster_paths
         nanocluster_analysis = True
@@ -152,6 +142,22 @@ if __name__ == '__main__':
         log_to_wandb = True
     else:
         assert False, "Unrecognized mode !!"
+
+
+if __name__ == '__main__':
+    redo_analysis = False
+    log_to_wandb = False
+
+    skip_molwise_thermo = True
+
+    compute_melt_temps = False
+    nanocluster_analysis = False
+    latents_analysis = False
+    cp_analysis = False
+    cp2_analysis = False
+    lattice_energy_analysis = False
+
+    mode_settings()
 
     config_i = {
         'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
@@ -299,12 +305,12 @@ if __name__ == '__main__':
         combined_df.reset_index(drop=True, inplace=True)
 
         # temperature directional profile
-        # dev_slopes = []
-        # if True:  # False:
-        #     for r_ind in range(len(combined_df)):
-        #         fig = temperature_profile_fig(combined_df, r_ind, sigma_x=0.5, sigma_y=2, show_fig=True)
-        #         fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
-        #         dev_slopes.append(com_dev_slope)
+        dev_slopes = []
+        if True:  # False:
+            for r_ind in range(len(combined_df)):
+                temperature_profile_fig(combined_df, r_ind, sigma_x=1, sigma_y=2, show_fig=True)
+                fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
+                dev_slopes.append(com_dev_slope)
 
         #combined_df['com_deviation_slope'] = dev_slopes
 

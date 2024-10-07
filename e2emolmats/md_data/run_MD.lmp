@@ -23,6 +23,10 @@
 #_MELT_PREP  variable          melt_end_ind    equal _MELT_END_IND
 #_CRYSTAL_IN_MELT_PREP  variable          crystal_start_ind  equal _CRYSTAL_START_IND
 #_CRYSTAL_IN_MELT_PREP  variable          crystal_end_ind    equal _CRYSTAL_END_IND
+#_INTERFACE_SCAN variable T_step equal _TEMP_STEP
+#_INTERFACE_SCAN variable t_step equal _TIME_PER_TEMP
+#_INTERFACE_SCAN variable scan_steps equal _NUM_SCAN_STEPS
+
   variable	    t_press equal round(${t_print}*5)
 
 
@@ -138,9 +142,26 @@
 #_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
 #_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
+
 #-------------------------------------------------------------------------------#
 
   velocity          all create ${T_init} ${rnd} mom yes rot yes dist gaussian
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
 
+#--------------------------Optional temperature scan--------------------------#
+#_INTERFACE_SCAN  unfix f2
+#_INTERFACE_SCAN  label loop
+#_INTERFACE_SCAN  variable a loop scan_steps
+#_INTERFACE_SCAN  variable T1 equal ${T_sample} + $({a} - 1) * ${T_step}
+#_INTERFACE_SCAN  variable T2 equal ${T_sample} + ${a} * ${T_step}
+#_INTERFACE_SCAN  fix               f3 all npt temp ${T1} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_SCAN  run               ${t_equil}
+#_INTERFACE_SCAN  unfix             f3
+#_INTERFACE_SCAN  fix               f4 all npt temp ${T2} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_SCAN  run               ${t_step}
+#_INTERFACE_SCAN  unfix             f4
+#_INTERFACE_SCAN  next a
+#_INTERFACE_SCAN  jump SELF loop
+#_INTERFACE_SCAN  label break
+#_INTERFACE_SCAN  print "LOOP DONE"

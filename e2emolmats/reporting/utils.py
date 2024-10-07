@@ -1461,19 +1461,40 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
         #num_steps = len(row['com_trajectory'])
 
         temp_profile = row['local_temperature_profile']
-        fig = go.Figure()
+        fig = make_subplots(rows=1, cols=2)
         # sampling_time = row['run_config']['run_time']
         sampling_start_index = -row['run_config']['print_steps']
         prof = temp_profile[sampling_start_index:, :]
         prof[prof == 0] = np.nan
         fig.add_trace(
-            go.Heatmap(x=bins[1:],
+            go.Heatmap(x=bins[1:] - (bins[1] - bins[0]),
                        y=row['time step'][sampling_start_index:],
                        z=gaussian_filter(prof, sigma=[sigma_y, sigma_x])),
+            row=1, col=1
         )
+        timepoints = np.linspace(0, len(prof) - 1, 5).astype(int)
+        for t_ind in timepoints:
+            fig.add_trace(
+                go.Scatter(x=bins[1:] - (bins[1] - bins[0]),
+                           y=gaussian_filter(prof, sigma=[sigma_y, sigma_x])[t_ind],
+                           name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                           ),
+                row=1, col=2,
+            )
+        temp = row['temperature']
+        fig.add_shape(type='line',
+                      x0=0, x1=bins[-1],
+                      y0=temp, y1=temp,
+                      line=dict(color='black'),
+                      xref='x',
+                      yref='y',
+                      row=1, col=2,
+                      )
         fig.update_layout(coloraxis_showscale=False,
-                          xaxis_title='Position (A)',
-                          yaxis_title='Time Step',
+                          xaxis1_title='Position (A)',
+                          yaxis1_title='Time Step',
+                          xaxis2_title='Position (A)',
+                          yaxis2_title='Local T(K)',
                           title=f'{row["structure_identifier"]} at {row["temperature"]}K')
         if show_fig:
             fig.show(renderer='browser')
@@ -1495,7 +1516,6 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
                         )
         fig.show(renderer='browser')
         '''
-        return fig
 
 
 def com_deviation_fig(combined_df, r_ind, show_fig=False):
