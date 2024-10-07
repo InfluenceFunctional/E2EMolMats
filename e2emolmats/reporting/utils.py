@@ -98,7 +98,9 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
 
     results_dict = extract_trajectory_properties(hit_minimization, lines, results_dict, skip)
 
-    results_dict['time step'] = results_dict['Step']
+    delta_t = results_dict['Step'][-1] - results_dict['Step'][-2]
+    first_delta_t_index = np.argmin(np.abs(delta_t - np.array(results_dict['Step'])))
+    results_dict['time step'] = results_dict['Step'][first_delta_t_index - 1:]  # correct for minimizations
 
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
@@ -135,7 +137,7 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
                     ind = 0
                     for t_ind in range(len(results_dict['com_trajectory'])):
                         com = results_dict['com_trajectory'][t_ind, :, p_ind]
-                        com -= box_len * np.floor(com/box_len)
+                        com -= box_len * np.floor(com / box_len)
                         com_inds = np.digitize(com, bins)
                         local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
                         # scatter op is faster
@@ -1189,21 +1191,32 @@ def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def df_row_melted(row):
-    pair_traj = row['E_pair']
     if row['run_name'] == 'acridine_melt_interface5':
-        equil_time = 100000
+        melt_time = 100000
     else:
-        equil_time = row['run_config']['equil_time']
+        melt_time = row['run_config']['equil_time']
+
+    equil_time = row['run_config']['equil_time']
     equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
-    pre_heat_mean_volume = np.mean(pair_traj[1:equil_time_index])
-    max_vol = np.amax(gaussian_filter1d(pair_traj, sigma=2))
-    volume_ratio = np.abs(max_vol - pre_heat_mean_volume) / pre_heat_mean_volume
-    success = volume_ratio > 0.25
+    melt_start_index = equil_time_index
+    melt_end_index = np.argmin(np.abs(row['time step'] - (equil_time + melt_time)))
+
+    # num_time_steps = len(row['com_trajectory'])
+    # sampling_steps = row['run_config']['print_steps']
+    # sampling_start_index = num_time_steps - sampling_steps
+
+    melt_inds = np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
+
+    deviation = com_dist_profile(row, melt_inds, melt_start_index, melt_end_index)
+    if deviation[-1] > 5:
+        melted = True
+    else:
+        melted = False
     """
     import plotly.graph_objects as go
-    fig = go.Figure(go.Scatter(y=vol_traj)).show(renderer='browser')
+    fig = go.Figure(go.Scatter(y=row['E_pair'])).show(renderer='browser')
     """
-    return success
+    return melted
 
 
 def cp_and_latent_analysis(combined_df):
@@ -1452,7 +1465,7 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
         # sampling_time = row['run_config']['run_time']
         sampling_start_index = -row['run_config']['print_steps']
         prof = temp_profile[sampling_start_index:, :]
-        prof[prof==0] = np.nan
+        prof[prof == 0] = np.nan
         fig.add_trace(
             go.Heatmap(x=bins[1:],
                        y=row['time step'][sampling_start_index:],
@@ -1487,34 +1500,38 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
 
 def com_deviation_fig(combined_df, r_ind, show_fig=False):
     row = combined_df.iloc[r_ind]
+    num_time_steps = len(row['com_trajectory'])
+    sampling_steps = row['run_config']['print_steps']
+    sampling_start_index = num_time_steps - sampling_steps
+    crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
 
-    if isinstance(row['thermo_trajectory'], np.ndarray):
-        crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
-        num_mols = len(crystal_inds)
-        num_time_steps = len(row['com_trajectory'])
-        sampling_steps = row['run_config']['print_steps']
-        sampling_start_index = num_time_steps - sampling_steps
-        com_distmats = np.zeros((sampling_steps, num_mols, num_mols))
-        deviation = np.zeros(sampling_steps)
-        tt = 0
-        for t_ind in range(sampling_start_index, num_time_steps):
-            com_distmats[tt] = cdist(row['com_trajectory'][t_ind, crystal_inds],
-                                     row['com_trajectory'][t_ind, crystal_inds])
-            tt += 1
-        for t_ind in range(len(com_distmats)):
-            deviation[t_ind] = np.mean(np.abs(com_distmats[t_ind] - com_distmats[5]))
+    deviation = com_dist_profile(row, crystal_inds, sampling_start_index, num_time_steps, sampling_steps)
 
-        fig = go.Figure()
-        fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
-        fig.update_layout(
-            xaxis_title='Time',
-            yaxis_title='Com Deviation',
-            title=f'{row["structure_identifier"]} at {row["temperature"]}K')
-        if show_fig:
-            fig.show(renderer='browser')
+    fig = go.Figure()
+    fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
+    fig.update_layout(
+        xaxis_title='Time',
+        yaxis_title='Com Deviation',
+        title=f'{row["structure_identifier"]} at {row["temperature"]}K')
+    if show_fig:
+        fig.show(renderer='browser')
 
-        lr = linregress(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
-        return fig, deviation, lr.slope
+    lr = linregress(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
+    return fig, deviation, lr.slope
+
+
+def com_dist_profile(row, mol_inds, sampling_start_index, sampling_stop_index):
+    deviation = np.zeros(sampling_stop_index - sampling_start_index)
+    init_distmat = cdist(row['com_trajectory'][sampling_start_index, mol_inds],
+                         row['com_trajectory'][sampling_start_index, mol_inds])
+    tt = 0
+    for t_ind in range(sampling_start_index, sampling_stop_index):
+        com_distmats = cdist(row['com_trajectory'][t_ind, mol_inds],
+                             row['com_trajectory'][t_ind, mol_inds])
+        deviation[tt] = np.mean(np.abs(com_distmats - init_distmat))
+
+        tt += 1
+    return deviation
 
 
 def lattice_energy_figs(combined_df):

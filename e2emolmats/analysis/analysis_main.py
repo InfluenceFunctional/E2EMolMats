@@ -25,9 +25,9 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # too small
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # failed
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/', # failed
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
 
@@ -111,7 +111,7 @@ atoms_per_molecule = {
 MODE = 'acridine_melt'
 
 if __name__ == '__main__':
-    redo_analysis = False
+    redo_analysis = True
     log_to_wandb = False
 
     skip_molwise_thermo = True
@@ -299,14 +299,14 @@ if __name__ == '__main__':
         combined_df.reset_index(drop=True, inplace=True)
 
         # temperature directional profile
-        dev_slopes = []
-        if True:  # False:
-            for r_ind in range(len(combined_df)):
-                fig = temperature_profile_fig(combined_df, r_ind, sigma_x=0.5, sigma_y=2, show_fig=True)
-                fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
-                dev_slopes.append(com_dev_slope)
+        # dev_slopes = []
+        # if True:  # False:
+        #     for r_ind in range(len(combined_df)):
+        #         fig = temperature_profile_fig(combined_df, r_ind, sigma_x=0.5, sigma_y=2, show_fig=True)
+        #         fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
+        #         dev_slopes.append(com_dev_slope)
 
-        combined_df['com_deviation_slope'] = dev_slopes
+        #combined_df['com_deviation_slope'] = dev_slopes
 
         fig, melt_estimate_dict, _ = compute_and_plot_melt_slopes(combined_df)
         fig, melt_estimate_dict2 = compute_and_plot_melt_slopes_com(combined_df)
