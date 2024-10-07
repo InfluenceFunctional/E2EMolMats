@@ -44,8 +44,8 @@ batch_config = {
     'moving_interface_protocol': True,   # sample for run_time, then increase temperature by temp_step and hold for step_time
     'moving_interface_num_steps': 10,
     'moving_interface_step': 5,
-    'moving_interface_time': 5e5,
-    'equil_time': 5e5,  # equilibration time, for melt preparation steps
+    'moving_interface_time': 1e5,
+    'equil_time': 1e5,  # equilibration time, for melt preparation steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs
     'atom_style': 'full',  # 'full' or 'full2' depending on if we want symmetry information
     'submit_lammps_slurm': False,

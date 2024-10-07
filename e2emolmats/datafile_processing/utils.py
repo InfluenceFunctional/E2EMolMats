@@ -46,6 +46,12 @@ def generate_MD_script(config, melt_inds):
             new_text = new_text.replace('_MELT_START_IND', str(melt_inds.melt_start_ind))  # melt inds are simply the full cluster
             new_text = new_text.replace('_MELT_END_IND', str(melt_inds.melt_end_ind))
 
+        if config.moving_interface_protocol:
+            new_text = new_text.replace('#_INTERFACE_SCAN', '')
+            new_text = new_text.replace('_TEMP_STEP', str(config.moving_interface_step))
+            new_text = new_text.replace('_TIME_PER_TEMP', str(config.moving_interface_time))
+            new_text = new_text.replace('_NUM_SCAN_STEPS', str(config.moving_interface_num_steps))
+
         new_text = new_text.replace('_TEMP_SAMPLE', str(config.temperature))
         new_text = new_text.replace('_RUNTIME', str(config.run_time))
         new_text = new_text.replace('_PRINTSTEPS', str(config.print_steps))

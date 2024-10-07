@@ -152,7 +152,7 @@
 #--------------------------Optional temperature scan--------------------------#
 #_INTERFACE_SCAN  unfix f2
 #_INTERFACE_SCAN  label loop
-#_INTERFACE_SCAN  variable a loop scan_steps
+#_INTERFACE_SCAN  variable a loop {scan_steps}
 #_INTERFACE_SCAN  variable T1 equal ${T_sample} + $({a} - 1) * ${T_step}
 #_INTERFACE_SCAN  variable T2 equal ${T_sample} + ${a} * ${T_step}
 #_INTERFACE_SCAN  fix               f3 all npt temp ${T1} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
