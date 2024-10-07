@@ -6,6 +6,7 @@ import os
 import numpy as np
 import pandas as pd
 import wandb
+from scipy.spatial.distance import cdist
 
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
@@ -13,7 +14,10 @@ from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         plot_melt_points, POLYMORPH_MELT_POINTS, crystal_stability_analysis,
                                         latent_heat_analysis, analyze_heat_capacity,
                                         confirm_melt, cp_and_latent_analysis, relabel_defects,
-                                        get_run_potential)
+                                        get_run_potential, temperature_profile_fig, com_deviation_fig,
+                                        compute_and_plot_melt_slopes_com, lattice_energy_figs, runs_summary_table)
+import plotly.graph_objects as go
+from scipy.ndimage import gaussian_filter1d
 
 traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
                     'Press', 'Volume', 'molwise_mean_temp',
@@ -21,10 +25,11 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    # r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
-    # r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/',
-    # r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # too small
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/',
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -125,7 +130,7 @@ if __name__ == '__main__':
     elif MODE == 'acridine_melt':
         battery_paths = acridine_melt_paths
         compute_melt_temps = True
-        skip_molwise_thermo=False
+        skip_molwise_thermo = False
 
     elif MODE == 'acridine_latent':
         battery_paths = acridine_latent_paths
@@ -294,200 +299,39 @@ if __name__ == '__main__':
         combined_df.reset_index(drop=True, inplace=True)
 
         # temperature directional profile
-        import plotly.graph_objects as go
-        from plotly.subplots import make_subplots
-        from scipy.ndimage import gaussian_filter1d
-        from tqdm import tqdm
+        dev_slopes = []
+        if True:  # False:
+            for r_ind in range(len(combined_df)):
+                fig = temperature_profile_fig(combined_df, r_ind, sigma_x=0.5, sigma_y=2, show_fig=True)
+                fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
+                dev_slopes.append(com_dev_slope)
 
-        r_ind = 0
-        local_temp_keys = ['Mol Temp', 'KE', 'Internal T']
-        fig = make_subplots(rows=1, cols=3, subplot_titles=local_temp_keys)
-        row = combined_df.iloc[r_ind]
-        for p_ind in range(3):
+        combined_df['com_deviation_slope'] = dev_slopes
 
-            #    pressure_direction = ['x', 'y', 'z'].index(row['pressure_direction'])
-            bins = np.linspace(np.amin(row['com_trajectory'][:, :, p_ind]),
-                               np.amax(row['com_trajectory'][:, :, p_ind]),
-                               100)
-            num_steps = len(row['com_trajectory'])
-            temp_profile = np.zeros((num_steps, len(bins), 3, 3))
-            for t_ind in tqdm(range(len(row['com_trajectory']))):
-                com = row['com_trajectory'][t_ind, :, p_ind]
-                com_inds = np.digitize(com, bins)
+        fig, melt_estimate_dict, _ = compute_and_plot_melt_slopes(combined_df)
+        fig, melt_estimate_dict2 = compute_and_plot_melt_slopes_com(combined_df)
 
-                for ind in range(3):
-                    local_temp = row['thermo_trajectory'][t_ind, :, ind]
-                    binned_temp = np.zeros((len(bins)))
-                    for b_ind in range(len(binned_temp)):
-                        binned_temp[b_ind] = np.mean(local_temp[com_inds[b_ind]])
-                    temp_profile[t_ind, :, ind, p_ind] = binned_temp
-
-        fig = make_subplots(rows=3, cols=3, subplot_titles=local_temp_keys)
-        for ind in range(3):
-            for p_ind in range(3):
-                fig.add_trace(
-                    go.Heatmap(x=bins[1:], z=gaussian_filter1d(temp_profile[:, :, ind, p_ind], sigma=5, axis=1)),
-                    row=p_ind + 1, col=ind + 1)
-        fig.update_xaxes(title='Position (A)')
-        fig.update_yaxes(title='Local Temperature')
-        fig.update_layout(coloraxis_showscale=False)
-        fig.show(renderer='browser')
-
-        fig, melt_estimate_dict, melt_estimate_dict2 = compute_and_plot_melt_slopes(combined_df)
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
-        #fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
-
-        if config.log_to_wandb:
-            wandb.log({'Melt Slopes': fig,
-                       'Melt Temps': fig2,
-                       # 'Melt Temps2': fig3,
-                       })
+        fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
 
     if config.nanocluster_analysis:
         combined_df = confirm_melt(combined_df)
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
         combined_df.reset_index(drop=True, inplace=True)
         crystal_stability_analysis(combined_df)
-        #
-        # if config.log_to_wandb:
-        #     wandb.log({'Crystal Nucleus Stability': fig,
-        #                'Crystal Stability Summary': com_table,
-        #                'Crystal Stability Averages': summary_fig})
 
     if config.latents_analysis:
         fig = latent_heat_analysis(combined_df)
 
-        if config.log_to_wandb:
-            wandb.log({'Latent Heat Estimation': fig})
-
     if config.cp_analysis:
         combined_df = analyze_heat_capacity(combined_df, atoms_per_molecule)
-        aa = 1
 
     if config.cp2_analysis:
         combined_df = confirm_melt(combined_df)
         fig = cp_and_latent_analysis(combined_df)
 
-        if config.log_to_wandb:
-            wandb.log({'Enthalpy Fitting': fig})
-
     if config.lattice_energy_analysis:
-        # compute energies and volumes
-        mean_potentials = np.zeros(len(combined_df))
-        mean_volumes = np.zeros(len(combined_df))
-        for ind, row in combined_df.iterrows():
-            steps = len(row['E_mol'])
-            num_mols = row['num_atoms'] // 23
-            mean_potentials[ind] = np.mean(row['E_mol'][-steps // 2:] + row['E_pair'][-steps // 2:]) / num_mols
-            mean_volumes[ind] = np.mean(row['Volume'][-steps // 2:]) / num_mols
-
-        combined_df['mean_potential'] = mean_potentials
-        combined_df['molar_volume'] = mean_volumes
-
-        fixed_ids = []
-        for ind, row in combined_df.iterrows():
-            if row['cluster_type'] == 'gas':
-                fixed_ids.append('acridine')
-            else:
-                fixed_ids.append(row['structure_identifier'])
-        combined_df['structure_identifier'] = fixed_ids
-
-        # for each polymorph and temperature, average solid and gas phase runs,
-        # and compute the lattice energy as the difference
-        energy_groups = (
-            combined_df.groupby(
-                ['temperature', 'cluster_type', 'structure_identifier']
-            )['mean_potential'].mean())
-        volume_groups = (
-            combined_df.groupby(
-                ['temperature', 'cluster_type', 'structure_identifier']
-            )['molar_volume'].mean())
-
-        temps = np.unique(combined_df['temperature'])
-        num_temps = len(temps)
-        polymorphs = np.unique(combined_df['structure_identifier'])
-        polymorphs = polymorphs[polymorphs != 'acridine']
-        polymorphs = polymorphs[polymorphs != 'acridine/Form8']
-        num_polymorphs = len(polymorphs)
-        N_A = 6.023*10**23
-        a3tocm3 = 10**24
-        MW = 179.21726
-        lattices_information = np.zeros((num_temps, num_polymorphs, 2))
-        for t_ind, temp in enumerate(temps):
-            # get mean gas phase energy
-            gas_phase_en = energy_groups[temp]['gas']['acridine']
-            for p_ind, polymorph in enumerate(polymorphs):
-                # record mean molar volume
-                molar_volume = volume_groups[temp]['supercell'][polymorph]
-                # cubic angstroms per mol to grams per cubic cm
-                density = (a3tocm3 * MW) / (molar_volume * N_A)
-                lattices_information[t_ind, p_ind, 1] = density
-
-                # get mean solid energy
-                solid_phase_en = energy_groups[temp]['supercell'][polymorph]
-
-                lattice_energy = 4.18 * (solid_phase_en - gas_phase_en)  # convert from kcals to kJ
-                lattices_information[t_ind, p_ind, 0] = lattice_energy
-
-        reference_energy = np.array([-97.425,
-                            -95.3,
-                            -94.45,
-                            -93.175,
-                            -95.25,
-                            -97.65])
-        reference_density = np.array([1.2837,
-                             1.2611,
-                             1.2313,
-                             1.2369,
-                             1.2644,
-                             1.2684])
-
-        import plotly.graph_objects as go
-        m_colors = ['black'] + ['red' for _ in range(num_temps)]
-        m_sizes = [40] + [20 for _ in range(num_temps)]
-        fig = go.Figure()
-        for p_ind, polymorph in enumerate(polymorphs):
-            volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
-            energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
-            fig.add_scatter(
-                x=volumes[:2],
-                y=energies[:2],
-                marker_color=m_colors[:2],
-                marker_size=m_sizes[:2],
-                name=polymorph,
-                )
-        fig.update_layout(xaxis_title='Density g/mL', yaxis_title='Potential kJ/mol')
-        fig.show(renderer='browser')
-
-        temperatures = [-10] + temps.tolist()
-
-        fig = go.Figure()
-        for p_ind, polymorph in enumerate(polymorphs):
-            volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
-            energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
-            fig.add_scatter(
-                x=temperatures,
-                y=energies,
-                marker_color=m_colors,
-                marker_size=m_sizes,
-                name=polymorph,
-                )
-        fig.update_layout(xaxis_title='Temperature K', yaxis_title='Potential kJ/mol')
-        fig.show(renderer='browser')
-
-        fig = go.Figure()
-        for p_ind, polymorph in enumerate(polymorphs):
-            volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
-            energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
-            fig.add_scatter(
-                x=temperatures,
-                y=volumes,
-                marker_color=m_colors,
-                marker_size=m_sizes,
-                name=polymorph,
-                )
-        fig.update_layout(xaxis_title='Temperature K', yaxis_title='Density g/mL')
-        fig.show(renderer='browser')
+        lattice_energy_figs(combined_df)
 
         aa = 1
 

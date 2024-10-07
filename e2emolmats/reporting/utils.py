@@ -2,17 +2,19 @@ import io
 import os
 
 import numpy as np
+import torch
 from _plotly_utils.colors import get_colorscale
 from scipy.optimize import minimize_scalar, minimize
 from scipy.stats import linregress
 from scipy.spatial.distance import cdist
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from scipy.ndimage import gaussian_filter1d
+from scipy.ndimage import gaussian_filter1d, gaussian_filter
 import plotly.express as px
 import pandas as pd
 import plotly.colors as pc
 from plotly.colors import n_colors
+from torch_scatter import scatter
 
 
 def make_thermo_fig(thermo_results_dict, run_config):
@@ -120,6 +122,27 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
             if os.path.exists('com.out'):  # molecule-wise temperature analysis
                 frames = read_lammps_com_traj('com.out')
                 results_dict['com_trajectory'] = np.asarray(list(frames.values()))
+
+                if isinstance(results_dict['thermo_trajectory'], np.ndarray):
+                    num_x_bins = 25
+                    temp_profile = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
+                    p_ind = ['x', 'y', 'z'].index(run_config['pressure_direction'])
+                    box_len = run_config['min_lattice_length'] * 2
+                    # bins = np.linspace(-box_len, box_len * 2,  # -box_len * 0.1, box_len*1.1,
+                    #                    num_x_bins - 1)
+                    bins = np.linspace(0, box_len,  # -box_len * 0.1, box_len*1.1,
+                                       num_x_bins - 1)
+                    ind = 0
+                    for t_ind in range(len(results_dict['com_trajectory'])):
+                        com = results_dict['com_trajectory'][t_ind, :, p_ind]
+                        com -= box_len * np.floor(com/box_len)
+                        com_inds = np.digitize(com, bins)
+                        local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
+                        # scatter op is faster
+                        temp_profile[t_ind, :] = scatter(torch.FloatTensor(local_temp), torch.LongTensor(com_inds),
+                                                         dim_size=num_x_bins, reduce='mean').detach().numpy()
+
+                    results_dict['local_temperature_profile'] = temp_profile
 
             return results_dict, 'Thermo analysis succeeded'
         else:
@@ -570,6 +593,77 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
     if show_fig:
         fig.show(renderer='browser')
     return fig, melt_temps, melt_temps2
+
+
+def compute_and_plot_melt_slopes_com(df, show_fig=True):
+    polymorph_names = []
+    seeds = []
+    for _, row in df.iterrows():
+        polymorph_names.append(row['run_config']['structure_identifier'].split('/')[1])
+        seeds.append(row['run_config']['seed'])
+    df['polymorph_name'] = polymorph_names
+    df['seed'] = seeds
+    df.reset_index(drop=True, inplace=True)
+    seeds = list(np.unique(df['seed']))
+    polymorphs = list(
+        np.unique([conf['structure_identifier'].split('/')[-1] for conf in df['run_config']]))
+    defect_types = np.unique(df['defect_type'])
+    num_polymorphs = len(polymorphs)
+    num_defects = len(defect_types)
+    colors = px.colors.qualitative.G10
+    seen_polymorph = {polymorph: False for polymorph in polymorphs}
+    min_temp = np.amin([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
+    max_temp = np.amax([df.iloc[ind]['run_config']['temperature'] for ind in range(len(df))])
+    temprange = np.linspace(min_temp, max_temp, 1000)
+    melt_temps = {defect_type: {} for defect_type in defect_types}
+    fig = make_subplots(rows=num_defects, cols=1,
+                        subplot_titles=['Center-of-Mass Deviation'])
+    for polymorph in polymorphs:
+        for d_ind, defect_type in enumerate(defect_types):
+            row = d_ind + 1
+            good_inds = np.argwhere((df['polymorph_name'] == polymorph) * (df['defect_type'] == defect_type)).flatten()
+            if len(good_inds) > 0:
+                temperatures = np.asarray([elem['temperature'] for elem in df.iloc[good_inds]['run_config']])
+                deviations = np.asarray(df.iloc[good_inds]['com_deviation_slope']).flatten()
+
+                temps = np.unique(temperatures)
+                dev_at_t = np.array(
+                    [np.mean([deviations[i] for i in range(len(deviations)) if temperatures[i] == temp]) for temp in
+                     temps])
+
+                dev_spline = np.interp(temprange, temps, np.maximum.accumulate(dev_at_t))
+
+                melt_T = temprange[np.argmin(np.abs(dev_spline))]
+                inter_temps = (temps[0:-1] + (temps[1:] - temps[0:-1]))
+                melt_temps[defect_type][polymorph] = melt_T
+
+                fig.add_scattergl(x=temperatures,
+                                  y=deviations,
+                                  mode='markers',
+                                  name=polymorph,
+                                  legendgroup=polymorph,
+                                  marker_size=7,
+                                  opacity=0.5,
+                                  showlegend=False,
+                                  marker_color=colors[polymorphs.index(polymorph)],
+                                  row=row, col=1
+                                  )
+
+                fig.add_scattergl(x=temps,
+                                  y=dev_at_t,
+                                  mode='markers',
+                                  name=polymorph,
+                                  legendgroup=polymorph,
+                                  marker_size=15,
+                                  showlegend=False,
+                                  marker_color=colors[polymorphs.index(polymorph)],
+                                  row=row, col=1
+                                  )
+
+    fig.update_xaxes(title='Temperature (K)')
+    if show_fig:
+        fig.show(renderer='browser')
+    return fig, melt_temps
 
 
 def plot_melt_points(melt_estimate_dict, true_melts_dict, show_fig=True):
@@ -1096,7 +1190,10 @@ def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
 
 def df_row_melted(row):
     pair_traj = row['E_pair']
-    equil_time = 100000 #row['run_config']['equil_time']
+    if row['run_name'] == 'acridine_melt_interface5':
+        equil_time = 100000
+    else:
+        equil_time = row['run_config']['equil_time']
     equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
     pre_heat_mean_volume = np.mean(pair_traj[1:equil_time_index])
     max_vol = np.amax(gaussian_filter1d(pair_traj, sigma=2))
@@ -1334,3 +1431,208 @@ def get_run_potential(unique_temps, combined_df):
         if len(good_df) > 0:
             gas_energies_dict[temp] = np.mean(run_energies)
     return gas_energies_dict
+
+
+def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False):
+    row = combined_df.iloc[r_ind]
+
+    if isinstance(row['thermo_trajectory'], np.ndarray):
+        local_temp_keys = ['Mol Temp', 'KE', 'Internal T']
+        num_x_bins = 25
+        #p_ind = ['x', 'y', 'z'].index(row['pressure_direction'])
+        box_len = row['min_lattice_length'] * 2
+        # bins = np.linspace(-box_len, box_len * 2,  # -box_len * 0.1, box_len*1.1,
+        #                    num_x_bins)
+        bins = np.linspace(0, box_len,  # -box_len * 0.1, box_len*1.1,
+                           num_x_bins)
+        #num_steps = len(row['com_trajectory'])
+
+        temp_profile = row['local_temperature_profile']
+        fig = go.Figure()
+        # sampling_time = row['run_config']['run_time']
+        sampling_start_index = -row['run_config']['print_steps']
+        prof = temp_profile[sampling_start_index:, :]
+        prof[prof==0] = np.nan
+        fig.add_trace(
+            go.Heatmap(x=bins[1:],
+                       y=row['time step'][sampling_start_index:],
+                       z=gaussian_filter(prof, sigma=[sigma_y, sigma_x])),
+        )
+        fig.update_layout(coloraxis_showscale=False,
+                          xaxis_title='Position (A)',
+                          yaxis_title='Time Step',
+                          title=f'{row["structure_identifier"]} at {row["temperature"]}K')
+        if show_fig:
+            fig.show(renderer='browser')
+
+        '''
+        #alternate version of this fig
+        
+        row = combined_df.iloc[r_ind]
+        p_ind = ['x', 'y', 'z'].index(row['pressure_direction'])
+        num_mols = len(row['com_trajectory'][0, :, 0])
+        sampling_start_index = -row['run_config']['print_steps']
+        fig = go.Figure()
+        fig.add_scatter(x=row['com_trajectory'][sampling_start_index:, :, p_ind].flatten(),
+                        y=row['time step'][sampling_start_index:].repeat(num_mols),
+                        marker_color=row['thermo_trajectory'][sampling_start_index:, :, 0].flatten(),
+                        mode='markers',
+                        opacity=0.25,
+                        marker_size=10,
+                        )
+        fig.show(renderer='browser')
+        '''
+        return fig
+
+
+def com_deviation_fig(combined_df, r_ind, show_fig=False):
+    row = combined_df.iloc[r_ind]
+
+    if isinstance(row['thermo_trajectory'], np.ndarray):
+        crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
+        num_mols = len(crystal_inds)
+        num_time_steps = len(row['com_trajectory'])
+        sampling_steps = row['run_config']['print_steps']
+        sampling_start_index = num_time_steps - sampling_steps
+        com_distmats = np.zeros((sampling_steps, num_mols, num_mols))
+        deviation = np.zeros(sampling_steps)
+        tt = 0
+        for t_ind in range(sampling_start_index, num_time_steps):
+            com_distmats[tt] = cdist(row['com_trajectory'][t_ind, crystal_inds],
+                                     row['com_trajectory'][t_ind, crystal_inds])
+            tt += 1
+        for t_ind in range(len(com_distmats)):
+            deviation[t_ind] = np.mean(np.abs(com_distmats[t_ind] - com_distmats[5]))
+
+        fig = go.Figure()
+        fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
+        fig.update_layout(
+            xaxis_title='Time',
+            yaxis_title='Com Deviation',
+            title=f'{row["structure_identifier"]} at {row["temperature"]}K')
+        if show_fig:
+            fig.show(renderer='browser')
+
+        lr = linregress(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
+        return fig, deviation, lr.slope
+
+
+def lattice_energy_figs(combined_df):
+    # compute energies and volumes
+    mean_potentials = np.zeros(len(combined_df))
+    mean_volumes = np.zeros(len(combined_df))
+    for ind, row in combined_df.iterrows():
+        steps = len(row['E_mol'])
+        num_mols = row['num_atoms'] // 23
+        mean_potentials[ind] = np.mean(row['E_mol'][-steps // 2:] + row['E_pair'][-steps // 2:]) / num_mols
+        mean_volumes[ind] = np.mean(row['Volume'][-steps // 2:]) / num_mols
+
+    combined_df['mean_potential'] = mean_potentials
+    combined_df['molar_volume'] = mean_volumes
+
+    fixed_ids = []
+    for ind, row in combined_df.iterrows():
+        if row['cluster_type'] == 'gas':
+            fixed_ids.append('acridine')
+        else:
+            fixed_ids.append(row['structure_identifier'])
+    combined_df['structure_identifier'] = fixed_ids
+
+    # for each polymorph and temperature, average solid and gas phase runs,
+    # and compute the lattice energy as the difference
+    energy_groups = (
+        combined_df.groupby(
+            ['temperature', 'cluster_type', 'structure_identifier']
+        )['mean_potential'].mean())
+    volume_groups = (
+        combined_df.groupby(
+            ['temperature', 'cluster_type', 'structure_identifier']
+        )['molar_volume'].mean())
+
+    temps = np.unique(combined_df['temperature'])
+    num_temps = len(temps)
+    polymorphs = np.unique(combined_df['structure_identifier'])
+    polymorphs = polymorphs[polymorphs != 'acridine']
+    polymorphs = polymorphs[polymorphs != 'acridine/Form8']
+    num_polymorphs = len(polymorphs)
+    N_A = 6.023 * 10 ** 23
+    a3tocm3 = 10 ** 24
+    MW = 179.21726
+    lattices_information = np.zeros((num_temps, num_polymorphs, 2))
+    for t_ind, temp in enumerate(temps):
+        # get mean gas phase energy
+        gas_phase_en = energy_groups[temp]['gas']['acridine']
+        for p_ind, polymorph in enumerate(polymorphs):
+            # record mean molar volume
+            molar_volume = volume_groups[temp]['supercell'][polymorph]
+            # cubic angstroms per mol to grams per cubic cm
+            density = (a3tocm3 * MW) / (molar_volume * N_A)
+            lattices_information[t_ind, p_ind, 1] = density
+
+            # get mean solid energy
+            solid_phase_en = energy_groups[temp]['supercell'][polymorph]
+
+            lattice_energy = 4.18 * (solid_phase_en - gas_phase_en)  # convert from kcals to kJ
+            lattices_information[t_ind, p_ind, 0] = lattice_energy
+
+    reference_energy = np.array([-97.425,
+                                 -95.3,
+                                 -94.45,
+                                 -93.175,
+                                 -95.25,
+                                 -97.65])
+    reference_density = np.array([1.2837,
+                                  1.2611,
+                                  1.2313,
+                                  1.2369,
+                                  1.2644,
+                                  1.2684])
+
+    import plotly.graph_objects as go
+
+    m_colors = ['black'] + ['red' for _ in range(num_temps)]
+    m_sizes = [40] + [20 for _ in range(num_temps)]
+    fig = go.Figure()
+    for p_ind, polymorph in enumerate(polymorphs):
+        volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
+        energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
+        fig.add_scatter(
+            x=volumes[:2],
+            y=energies[:2],
+            marker_color=m_colors[:2],
+            marker_size=m_sizes[:2],
+            name=polymorph,
+        )
+    fig.update_layout(xaxis_title='Density g/mL', yaxis_title='Potential kJ/mol')
+    fig.show(renderer='browser')
+
+    temperatures = [-10] + temps.tolist()
+
+    fig = go.Figure()
+    for p_ind, polymorph in enumerate(polymorphs):
+        volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
+        energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
+        fig.add_scatter(
+            x=temperatures,
+            y=energies,
+            marker_color=m_colors,
+            marker_size=m_sizes,
+            name=polymorph,
+        )
+    fig.update_layout(xaxis_title='Temperature K', yaxis_title='Potential kJ/mol')
+    fig.show(renderer='browser')
+
+    fig = go.Figure()
+    for p_ind, polymorph in enumerate(polymorphs):
+        volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
+        energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
+        fig.add_scatter(
+            x=temperatures,
+            y=volumes,
+            marker_color=m_colors,
+            marker_size=m_sizes,
+            name=polymorph,
+        )
+    fig.update_layout(xaxis_title='Temperature K', yaxis_title='Density g/mL')
+    fig.show(renderer='browser')
+    aa = 1
