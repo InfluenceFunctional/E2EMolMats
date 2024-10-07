@@ -25,11 +25,12 @@ traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # failed
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/', # failed
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan1/',
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -312,7 +313,7 @@ if __name__ == '__main__':
                 fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
                 dev_slopes.append(com_dev_slope)
 
-        #combined_df['com_deviation_slope'] = dev_slopes
+        combined_df['com_deviation_slope'] = dev_slopes
 
         fig, melt_estimate_dict, _ = compute_and_plot_melt_slopes(combined_df)
         fig, melt_estimate_dict2 = compute_and_plot_melt_slopes_com(combined_df)

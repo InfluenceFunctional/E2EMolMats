@@ -1467,7 +1467,7 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
         prof = temp_profile[sampling_start_index:, :]
         prof[prof == 0] = np.nan
         fig.add_trace(
-            go.Heatmap(x=bins[1:] - (bins[1] - bins[0]),
+            go.Heatmap(x=bins[:-2] - (bins[1] - bins[0]),
                        y=row['time step'][sampling_start_index:],
                        z=gaussian_filter(prof, sigma=[sigma_y, sigma_x])),
             row=1, col=1
@@ -1475,7 +1475,7 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
         timepoints = np.linspace(0, len(prof) - 1, 5).astype(int)
         for t_ind in timepoints:
             fig.add_trace(
-                go.Scatter(x=bins[1:] - (bins[1] - bins[0]),
+                go.Scatter(x=bins[:-2] - (bins[1] - bins[0]),
                            y=gaussian_filter(prof, sigma=[sigma_y, sigma_x])[t_ind],
                            name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
                            ),
@@ -1523,9 +1523,10 @@ def com_deviation_fig(combined_df, r_ind, show_fig=False):
     num_time_steps = len(row['com_trajectory'])
     sampling_steps = row['run_config']['print_steps']
     sampling_start_index = num_time_steps - sampling_steps
+    sampling_end_index = num_time_steps
     crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
 
-    deviation = com_dist_profile(row, crystal_inds, sampling_start_index, num_time_steps, sampling_steps)
+    deviation = com_dist_profile(row, crystal_inds, sampling_start_index, sampling_end_index)
 
     fig = go.Figure()
     fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
@@ -1536,7 +1537,7 @@ def com_deviation_fig(combined_df, r_ind, show_fig=False):
     if show_fig:
         fig.show(renderer='browser')
 
-    lr = linregress(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
+    lr = linregress(x=row['time step'][-sampling_steps:], y=deviation)
     return fig, deviation, lr.slope
 
 

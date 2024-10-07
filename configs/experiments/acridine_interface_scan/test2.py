@@ -30,7 +30,7 @@ batch_config = {
     'pressure_direction': ['x'],#, 'y', 'z'],  # iso, x, y, or z for npt pressure directionality
     'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
     'init_temperature': 200,  # for ramps only
-    'print_steps': int(1e2),  # how many timepoints to print in sampling trajectory
+    'print_steps': int(5e1),  # how many timepoints to print in sampling trajectory
     'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations, 0 or None if unused
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
@@ -41,9 +41,9 @@ batch_config = {
     'prep_melt_interface': True,  # Work in progress - split supercell in half along the fractional z direction
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
     'moving_interface_protocol': True,   # sample for run_time, then increase temperature by temp_step and hold for step_time
-    'moving_interface_num_steps': 10,
+    'moving_interface_num_steps': 12,
     'moving_interface_step': 5,
-    'moving_interface_time': 5e6,
+    'moving_interface_time': 3e6,
     'equil_time': 5e5,  # equilibration time, for melt preparation steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs
     'atom_style': 'full',  # 'full' or 'full2' depending on if we want symmetry information
