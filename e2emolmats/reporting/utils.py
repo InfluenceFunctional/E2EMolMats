@@ -98,9 +98,10 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
 
     results_dict = extract_trajectory_properties(hit_minimization, lines, results_dict, skip)
 
-    delta_t = results_dict['Step'][-1] - results_dict['Step'][-2]
+    delta_t = np.mean(np.diff(results_dict['Step'][-20:]))
     first_delta_t_index = np.argmin(np.abs(delta_t - np.array(results_dict['Step'])))
-    results_dict['time step'] = results_dict['Step'][first_delta_t_index - 1:]  # correct for minimizations
+    results_dict['time step'] = results_dict['Step'][max(first_delta_t_index - 1, 0):]  # correct for minimizations
+    results_dict['start_index'] = max(first_delta_t_index - 1, 0)
 
     for key in results_dict.keys():
         results_dict[key] = np.asarray(results_dict[key])
@@ -126,7 +127,7 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
                 results_dict['com_trajectory'] = np.asarray(list(frames.values()))
 
                 if isinstance(results_dict['thermo_trajectory'], np.ndarray):
-                    num_x_bins = 25
+                    num_x_bins = 30
                     temp_profile = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
                     p_ind = ['x', 'y', 'z'].index(run_config['pressure_direction'])
                     box_len = run_config['min_lattice_length'] * 2
@@ -145,6 +146,30 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
                                                          dim_size=num_x_bins, reduce='mean').detach().numpy()
 
                     results_dict['local_temperature_profile'] = temp_profile
+                    ind = 1
+                    temp_profile2 = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
+                    for t_ind in range(len(results_dict['com_trajectory'])):
+                        com = results_dict['com_trajectory'][t_ind, :, p_ind]
+                        com -= box_len * np.floor(com / box_len)
+                        com_inds = np.digitize(com, bins)
+                        local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
+                        # scatter op is faster
+                        temp_profile2[t_ind, :] = scatter(torch.FloatTensor(local_temp), torch.LongTensor(com_inds),
+                                                         dim_size=num_x_bins, reduce='mean').detach().numpy()
+
+                    results_dict['local_temperature_profile2'] = temp_profile2
+                    ind = 2
+                    temp_profile3 = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
+                    for t_ind in range(len(results_dict['com_trajectory'])):
+                        com = results_dict['com_trajectory'][t_ind, :, p_ind]
+                        com -= box_len * np.floor(com / box_len)
+                        com_inds = np.digitize(com, bins)
+                        local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
+                        # scatter op is faster
+                        temp_profile3[t_ind, :] = scatter(torch.FloatTensor(local_temp), torch.LongTensor(com_inds),
+                                                         dim_size=num_x_bins, reduce='mean').detach().numpy()
+
+                    results_dict['local_temperature_profile3'] = temp_profile3
 
             return results_dict, 'Thermo analysis succeeded'
         else:
@@ -594,6 +619,7 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
     fig.update_xaxes(title='Temperature (K)')
     if show_fig:
         fig.show(renderer='browser')
+
     return fig, melt_temps, melt_temps2
 
 
@@ -1199,7 +1225,7 @@ def df_row_melted(row):
     equil_time = row['run_config']['equil_time']
     equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
     melt_start_index = equil_time_index
-    melt_end_index = np.argmin(np.abs(row['time step'] - (equil_time + melt_time)))
+    melt_end_index = np.argmin(np.abs(row['time step'] - (2*equil_time + melt_time)))
 
     # num_time_steps = len(row['com_trajectory'])
     # sampling_steps = row['run_config']['print_steps']
@@ -1207,14 +1233,16 @@ def df_row_melted(row):
 
     melt_inds = np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
 
-    deviation = com_dist_profile(row, melt_inds, melt_start_index, melt_end_index)
+    deviation = com_dist_profile(row['com_trajectory'], melt_inds, melt_start_index, melt_end_index)
     if deviation[-1] > 5:
         melted = True
     else:
         melted = False
     """
     import plotly.graph_objects as go
-    fig = go.Figure(go.Scatter(y=row['E_pair'])).show(renderer='browser')
+    
+    fig = go.Figure(go.Scatter(x=row['time step'][init_index:], y=row['E_pair'][init_index:])).show(renderer='browser')
+
     """
     return melted
 
@@ -1451,7 +1479,7 @@ def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False
 
     if isinstance(row['thermo_trajectory'], np.ndarray):
         local_temp_keys = ['Mol Temp', 'KE', 'Internal T']
-        num_x_bins = 25
+        num_x_bins = 30
         #p_ind = ['x', 'y', 'z'].index(row['pressure_direction'])
         box_len = row['min_lattice_length'] * 2
         # bins = np.linspace(-box_len, box_len * 2,  # -box_len * 0.1, box_len*1.1,
@@ -1526,7 +1554,7 @@ def com_deviation_fig(combined_df, r_ind, show_fig=False):
     sampling_end_index = num_time_steps
     crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
 
-    deviation = com_dist_profile(row, crystal_inds, sampling_start_index, sampling_end_index)
+    deviation = com_dist_profile(row['com_trajectory'], crystal_inds, sampling_start_index, sampling_end_index)
 
     fig = go.Figure()
     fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
@@ -1541,14 +1569,14 @@ def com_deviation_fig(combined_df, r_ind, show_fig=False):
     return fig, deviation, lr.slope
 
 
-def com_dist_profile(row, mol_inds, sampling_start_index, sampling_stop_index):
+def com_dist_profile(com_trajectory, mol_inds, sampling_start_index, sampling_stop_index):
     deviation = np.zeros(sampling_stop_index - sampling_start_index)
-    init_distmat = cdist(row['com_trajectory'][sampling_start_index, mol_inds],
-                         row['com_trajectory'][sampling_start_index, mol_inds])
+    init_distmat = cdist(com_trajectory[sampling_start_index, mol_inds],
+                         com_trajectory[sampling_start_index, mol_inds])
     tt = 0
     for t_ind in range(sampling_start_index, sampling_stop_index):
-        com_distmats = cdist(row['com_trajectory'][t_ind, mol_inds],
-                             row['com_trajectory'][t_ind, mol_inds])
+        com_distmats = cdist(com_trajectory[t_ind, mol_inds],
+                             com_trajectory[t_ind, mol_inds])
         deviation[tt] = np.mean(np.abs(com_distmats - init_distmat))
 
         tt += 1
@@ -1673,4 +1701,110 @@ def lattice_energy_figs(combined_df):
         )
     fig.update_layout(xaxis_title='Temperature K', yaxis_title='Density g/mL')
     fig.show(renderer='browser')
-    aa = 1
+
+
+def mean_temp_anomaly_fig(combined_df):
+    sigma_x = 1
+    sigma_y = 2
+    sampling_start_index = -99  # -combined_df.iloc[0]['run_config']['print_steps']
+    profile0 = combined_df.iloc[0]['local_temperature_profile']
+
+    T_clip = 50
+
+    temp_anomaly = np.zeros((len(combined_df), -sampling_start_index, profile0.shape[-1]))
+    for r_ind in range(len(combined_df)):
+        row = combined_df.iloc[r_ind]
+        temp_profile = np.copy(row['local_temperature_profile'])
+        # sampling_time = row['run_config']['run_time']
+        prof = temp_profile[sampling_start_index:, :]
+        prof[prof == 0] = np.nan
+        temp = row['temperature']
+        temp_anomaly[r_ind] = (prof[sampling_start_index:] - temp)
+    fig = make_subplots(rows=3, cols=2)
+    fig.add_trace(
+        go.Heatmap(
+            y=row['time step'][sampling_start_index:],
+            z=temp_anomaly.mean(0).clip(max=T_clip), showscale=False,
+        ),
+        row=1, col=1,
+    )
+    timepoints = np.linspace(0, (-sampling_start_index) - 1, 5).astype(int)
+    for t_ind in timepoints:
+        fig.add_trace(
+            go.Scatter(
+                y=gaussian_filter(np.nan_to_num(temp_anomaly.mean(0).clip(max=T_clip)), sigma=[sigma_x, sigma_y])[
+                    t_ind],
+                name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                legendgroup=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                showlegend=True,
+            ),
+            row=1, col=2,
+        )
+
+    temp_anomaly = np.zeros((len(combined_df), -sampling_start_index, profile0.shape[-1]))
+    for r_ind in range(len(combined_df)):
+        row = combined_df.iloc[r_ind]
+        temp_profile = np.copy(row['local_temperature_profile2'])
+        # sampling_time = row['run_config']['run_time']
+        prof = temp_profile[sampling_start_index:, :]
+        prof[prof == 0] = np.nan
+        temp = row['temperature']
+        temp_anomaly[r_ind] = (prof[sampling_start_index:] - np.nan_to_num(prof[sampling_start_index:]).mean())
+    fig.add_trace(
+        go.Heatmap(
+            y=row['time step'][sampling_start_index:],
+            z=temp_anomaly.mean(0).clip(max=T_clip), showscale=False,
+        ),
+        row=2, col=1,
+    )
+
+    timepoints = np.linspace(0, (-sampling_start_index) - 1, 5).astype(int)
+    for t_ind in timepoints:
+        fig.add_trace(
+            go.Scatter(
+                y=gaussian_filter(np.nan_to_num(temp_anomaly.mean(0).clip(max=T_clip)), sigma=[sigma_x, sigma_y])[
+                    t_ind],
+                name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                legendgroup=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                showlegend=False,
+            ),
+            row=2, col=2,
+        )
+
+    temp_anomaly = np.zeros((len(combined_df), -sampling_start_index, profile0.shape[-1]))
+    for r_ind in range(len(combined_df)):
+        row = combined_df.iloc[r_ind]
+        temp_profile = np.copy(row['local_temperature_profile3'])
+        # sampling_time = row['run_config']['run_time']
+        prof = temp_profile[sampling_start_index:, :]
+        prof[prof == 0] = np.nan
+        temp = row['temperature']
+        temp_anomaly[r_ind] = (prof[sampling_start_index:] - np.nan_to_num(prof[sampling_start_index:]).mean())
+    fig.add_trace(
+        go.Heatmap(
+            y=row['time step'][sampling_start_index:],
+            z=temp_anomaly.mean(0).clip(max=T_clip), showscale=False
+        ),
+        row=3, col=1,
+    )
+
+    timepoints = np.linspace(0, (-sampling_start_index) - 1, 5).astype(int)
+    for t_ind in timepoints:
+        fig.add_trace(
+            go.Scatter(
+                y=gaussian_filter(np.nan_to_num(temp_anomaly.mean(0).clip(max=T_clip)), sigma=[sigma_x, sigma_y])[
+                    t_ind],
+                name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                legendgroup=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
+                showlegend=False,
+            ),
+            row=3, col=2,
+        )
+    fig.update_layout(coloraxis_showscale=False,
+                      xaxis1_title='Position (A)',
+                      yaxis1_title='Time Step',
+                      title=f'Mean Temperature Profiles')
+    fig.show(renderer='browser')
+
+
+

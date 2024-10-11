@@ -15,7 +15,8 @@ from e2emolmats.reporting.utils import (process_thermo_data, make_thermo_fig,
                                         latent_heat_analysis, analyze_heat_capacity,
                                         confirm_melt, cp_and_latent_analysis, relabel_defects,
                                         get_run_potential, temperature_profile_fig, com_deviation_fig,
-                                        compute_and_plot_melt_slopes_com, lattice_energy_figs, runs_summary_table)
+                                        compute_and_plot_melt_slopes_com, lattice_energy_figs, runs_summary_table,
+                                        mean_temp_anomaly_fig)
 import plotly.graph_objects as go
 from scipy.ndimage import gaussian_filter1d
 
@@ -28,9 +29,9 @@ acridine_melt_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # failed
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/', # failed
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan1/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan1/',
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -45,6 +46,9 @@ acridine_melt_paths = [
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface18/',
     #r'D:\crystal_datasets\acridine_melt_interface19/', # anthracene
     #r'D:\crystal_datasets\acridine_melt_interface20/'  # 2,7-DHN
+]
+acridine_scan_paths = [
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan2/',
 ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
@@ -109,11 +113,13 @@ atoms_per_molecule = {
     'acridine': 23
 }
 
-MODE = 'acridine_melt'
+MODE = 'acridine_scan'
 
 
 def mode_settings():
-    global battery_paths, nanocluster_analysis, compute_melt_temps, skip_molwise_thermo, latents_analysis, cp_analysis, log_to_wandb, cp2_analysis, lattice_energy_analysis
+    global battery_paths, melt_scan_analysis, nanocluster_analysis, \
+        compute_melt_temps, skip_molwise_thermo, latents_analysis, \
+        cp_analysis, log_to_wandb, cp2_analysis, lattice_energy_analysis
     if MODE == 'acridine_cluster':
         battery_paths = acridine_cluster_paths
         nanocluster_analysis = True
@@ -121,6 +127,11 @@ def mode_settings():
     elif MODE == 'acridine_melt':
         battery_paths = acridine_melt_paths
         compute_melt_temps = True
+        skip_molwise_thermo = False
+
+    elif MODE == 'acridine_scan':
+        battery_paths = acridine_scan_paths
+        melt_scan_analysis = True
         skip_molwise_thermo = False
 
     elif MODE == 'acridine_latent':
@@ -146,7 +157,7 @@ def mode_settings():
 
 
 if __name__ == '__main__':
-    redo_analysis = False
+    redo_analysis = True
     log_to_wandb = False
 
     skip_molwise_thermo = True
@@ -157,6 +168,7 @@ if __name__ == '__main__':
     cp_analysis = False
     cp2_analysis = False
     lattice_energy_analysis = False
+    melt_scan_analysis = True
 
     mode_settings()
 
@@ -171,7 +183,8 @@ if __name__ == '__main__':
         'cp_analysis': cp_analysis,
         'cp2_analysis': cp2_analysis,
         'log_to_wandb': log_to_wandb,
-        'lattice_energy_analysis': lattice_energy_analysis
+        'lattice_energy_analysis': lattice_energy_analysis,
+        'melt_scan_analysis': melt_scan_analysis,
     }
     config = dict2namespace(config_i)
 
@@ -308,6 +321,8 @@ if __name__ == '__main__':
         # temperature directional profile
         dev_slopes = []
         if True:  # False:
+            mean_temp_anomaly_fig(combined_df)
+
             for r_ind in range(len(combined_df)):
                 temperature_profile_fig(combined_df, r_ind, sigma_x=1, sigma_y=2, show_fig=True)
                 fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
@@ -320,6 +335,29 @@ if __name__ == '__main__':
 
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
         fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
+
+    if config.melt_scan_analysis:
+        """
+        here we need something like "melting direction/progress vs T"
+        """
+        r_ind = 0
+        row = combined_df.iloc[r_ind]
+        import plotly.graph_objects as go
+        from scipy.ndimage import gaussian_filter1d
+
+        sigma = 3
+        fig = go.Figure()
+        fig.add_scatter(x=row['time step'],
+                        y=gaussian_filter1d(row['Temp'] / row['Temp'][-1], sigma=sigma)
+                        )
+
+        fig.add_scatter(x=row['time step'],
+                        y=gaussian_filter1d(row['E_pair'] / row['E_pair'][-1], sigma=sigma)
+                        )
+
+        fig.update_layout(yaxis_range=[-np.inf, 1])
+        fig.show(renderer='browser')
+        aa = 1
 
     if config.nanocluster_analysis:
         combined_df = confirm_melt(combined_df)
