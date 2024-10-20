@@ -16,7 +16,7 @@
   variable          t_print equal ${t_run}/_PRINTSTEPS  #how often to print histogram
 
   variable          t_equil equal _EQUIL_TIME   # how long to equilibrate different melts
-  variable          t_melt equal 100000   # how long to ramp the melt temperature
+  variable          t_melt equal _EQUIL_TIME   # how long to ramp the melt temperature
 
 #_MELT_PREP  variable          T_melt  equal _MELT_TEMP    # temperature at which to melt things
 #_MELT_PREP  variable          melt_start_ind  equal _MELT_START_IND
@@ -141,7 +141,8 @@
 #---------------------- Thermostat & Barostat ----------------------------------#
 #_NPT  fix               f2 all npt temp ${T_init} ${T_sample} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
 #_NOSE  fix               f2 all nvt temp ${T_init} ${T_sample} $(100.0*dt)
-#_LANGEVIN  fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
+#_LANGEVIN fix               f2 all nph #_p_dim 1.0 1.0 $(1000.0*dt)
+#_LANGEVIN fix				f2 all langevin ${T_init} ${T_sample} _DAMP ${rnd}
 
 #-------------------------------------------------------------------------------#
 
@@ -155,10 +156,18 @@
 #_INTERFACE_SCAN  variable a loop ${scan_steps}
 #_INTERFACE_SCAN  variable T1 equal "v_T_sample + (v_a - 1) * v_T_step"
 #_INTERFACE_SCAN  variable T2 equal "v_T_sample + v_a * v_T_step"
-#_INTERFACE_SCAN  fix               f3 all npt temp ${T1} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
+
+#_INTERFACE_SCAN #_NPT  fix               f3 all npt temp ${T1} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_SCAN #_LANGEVIN  fix               f3 all nph #_p_dim 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_SCAN #_LANGEVIN  fix				f3 all langevin ${T1} ${T2} _DAMP ${rnd}
+
 #_INTERFACE_SCAN  run               ${t_equil}
 #_INTERFACE_SCAN  unfix             f3
-#_INTERFACE_SCAN  fix               f4 all npt temp ${T2} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
+
+#_INTERFACE_SCAN #_NPT  fix               f4 all npt temp ${T2} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_SCAN #_LANGEVIN  fix               f4 all nph #_p_dim 1.0 1.0 $(1000.0*dt)
+#_INTERFACE_SCAN #_LANGEVIN  fix				f4 all langevin ${T2} ${T2} _DAMP ${rnd}
+
 #_INTERFACE_SCAN  run               ${t_step}
 #_INTERFACE_SCAN  unfix             f4
 #_INTERFACE_SCAN  next a

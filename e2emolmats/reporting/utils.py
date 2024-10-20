@@ -1,182 +1,16 @@
-import io
-import os
-
 import numpy as np
-import torch
 from _plotly_utils.colors import get_colorscale
 from scipy.optimize import minimize_scalar, minimize
 from scipy.stats import linregress
-from scipy.spatial.distance import cdist
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from scipy.ndimage import gaussian_filter1d, gaussian_filter
+from scipy.ndimage import gaussian_filter1d
 import plotly.express as px
 import pandas as pd
 import plotly.colors as pc
 from plotly.colors import n_colors
-from torch_scatter import scatter
 
-
-def make_thermo_fig(thermo_results_dict, run_config):
-    keys_to_use = []
-    for key in thermo_results_dict.keys():
-        if isinstance(thermo_results_dict['Temp'], np.ndarray):
-            if thermo_results_dict[key].ndim == 1:
-                keys_to_use += [key]
-
-    n_keys = len(keys_to_use)
-    cols = 6
-
-    thermo_telemetry_fig = make_subplots(rows=int(np.ceil(n_keys / cols)), cols=cols, subplot_titles=keys_to_use)
-    ind = 0
-    for i, key in enumerate(keys_to_use):
-        row = ind // cols + 1
-        col = ind % cols + 1
-        thermo_telemetry_fig.add_trace(
-            go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
-                         y=thermo_results_dict[key],
-                         name=key, showlegend=False),
-            row=row, col=col
-        )
-        thermo_telemetry_fig.add_trace(
-            go.Scattergl(x=thermo_results_dict['time step'] / 1e6,
-                         y=gaussian_filter1d(thermo_results_dict[key], sigma=2),
-                         name=key, showlegend=False),
-            row=row, col=col
-        )
-        ind += 1
-
-    thermo_telemetry_fig.update_xaxes(title_text="Time (ns)")
-    good_keys = ['box_type', 'min_inter_cluster_distance', 'run_name', 'damping',
-                 'defect_rate', 'defect_type', 'gap_rate', 'max_sphere_radius', 'min_lattice_length',
-                 'scramble_rate', 'seed', 'structure_identifier', 'temperature']
-    thermo_telemetry_fig.update_layout(title=str({key: run_config[key] for key in good_keys[0:5]})
-                                             + '<br>' + str({key: run_config[key] for key in good_keys[5:10]})
-                                             + '<br>' + str({key: run_config[key] for key in good_keys[10:]}),
-                                       title_automargin=True,
-                                       title_pad_t=20,
-                                       margin_t=180)
-    # thermo_telemetry_fig.update_layout(title=f"{run_config['structure_identifier']}, "
-    #                                          f"Gap Rate {run_config['gap_rate']:.2f}, "
-    #                                          f"System Size {run_config['min_lattice_length']} "
-    #                                          f"Cubic Angstrom or {thermo_results_dict['thermo_trajectory'].shape[1]} Molecules"
-    #                                          f"Sampling temperature {run_config['temperature']}K"
-    #                                    )
-    return thermo_telemetry_fig
-
-
-def process_thermo_data(run_config, skip_molwise_thermo=False):
-    results_dict = {}
-    try:
-        f = open('screen.log', "r")
-        text = f.read()
-    except FileNotFoundError or io.UnsupportedOperation:
-        for key in results_dict.keys():
-            results_dict[key] = np.zeros(1)
-        return results_dict, 'screen.log missing!'
-    lines = text.split('\n')
-    f.close()
-    hit_minimization = False
-    skip = True
-
-    if "Total wall time" not in text:  # skip analysis if the run crashed or is unfinished
-        if 'Target temperature for fix nvt cannot be 0.0' in text \
-                or 'Target temperature for fix npt cannot be 0.0' in text:  # minimization only
-            results_dict['total time'] = 0
-        else:
-            for key in results_dict.keys():
-                results_dict[key] = np.zeros(1)
-            return results_dict, 'Run unfinished!'
-    else:
-        walltime_str = text.split('Total wall time: ')[-1].split('\n')[0]
-        walltime_str = walltime_str.split(':')
-        total_time = int(walltime_str[-1]) + int(walltime_str[1]) * 60 + int(walltime_str[0]) * 3600
-        if total_time == 0:
-            return results_dict, 'Run unfinished!'
-        else:
-            results_dict['total_time'] = total_time
-
-    results_dict = extract_trajectory_properties(hit_minimization, lines, results_dict, skip)
-
-    delta_t = np.mean(np.diff(results_dict['Step'][-20:]))
-    first_delta_t_index = np.argmin(np.abs(delta_t - np.array(results_dict['Step'])))
-    results_dict['time step'] = results_dict['Step'][max(first_delta_t_index - 1, 0):]  # correct for minimizations
-    results_dict['start_index'] = max(first_delta_t_index - 1, 0)
-
-    for key in results_dict.keys():
-        results_dict[key] = np.asarray(results_dict[key])
-
-    # if os.path.exists('com.out'):  # molecule-wise temperature analysis
-    #     num_crystal_mols = run_config['melt_indices'].crystal_end_ind - run_config['melt_indices'].crystal_start_ind + 1
-    #     if num_crystal_mols <= 1:
-    #         return results_dict, "Nanocrystal contains only 0-1 molecules!"
-    #
-    #     center_of_mass_analysis(results_dict, run_config)
-
-    if not skip_molwise_thermo:
-        if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
-            frames = read_lammps_thermo_traj('tmp.out')
-            results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
-            # averages over molecules
-            results_dict['molwise_mean_temp'] = np.mean(results_dict['thermo_trajectory'][..., 0], axis=1)
-            results_dict['molwise_mean_kecom'] = np.mean(results_dict['thermo_trajectory'][..., 1], axis=1)
-            results_dict['molwise_mean_internal'] = np.mean(results_dict['thermo_trajectory'][..., 2], axis=1)
-
-            if os.path.exists('com.out'):  # molecule-wise temperature analysis
-                frames = read_lammps_com_traj('com.out')
-                results_dict['com_trajectory'] = np.asarray(list(frames.values()))
-
-                if isinstance(results_dict['thermo_trajectory'], np.ndarray):
-                    num_x_bins = 30
-                    temp_profile = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
-                    p_ind = ['x', 'y', 'z'].index(run_config['pressure_direction'])
-                    box_len = run_config['min_lattice_length'] * 2
-                    # bins = np.linspace(-box_len, box_len * 2,  # -box_len * 0.1, box_len*1.1,
-                    #                    num_x_bins - 1)
-                    bins = np.linspace(0, box_len,  # -box_len * 0.1, box_len*1.1,
-                                       num_x_bins - 1)
-                    ind = 0
-                    for t_ind in range(len(results_dict['com_trajectory'])):
-                        com = results_dict['com_trajectory'][t_ind, :, p_ind]
-                        com -= box_len * np.floor(com / box_len)
-                        com_inds = np.digitize(com, bins)
-                        local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
-                        # scatter op is faster
-                        temp_profile[t_ind, :] = scatter(torch.FloatTensor(local_temp), torch.LongTensor(com_inds),
-                                                         dim_size=num_x_bins, reduce='mean').detach().numpy()
-
-                    results_dict['local_temperature_profile'] = temp_profile
-                    ind = 1
-                    temp_profile2 = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
-                    for t_ind in range(len(results_dict['com_trajectory'])):
-                        com = results_dict['com_trajectory'][t_ind, :, p_ind]
-                        com -= box_len * np.floor(com / box_len)
-                        com_inds = np.digitize(com, bins)
-                        local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
-                        # scatter op is faster
-                        temp_profile2[t_ind, :] = scatter(torch.FloatTensor(local_temp), torch.LongTensor(com_inds),
-                                                         dim_size=num_x_bins, reduce='mean').detach().numpy()
-
-                    results_dict['local_temperature_profile2'] = temp_profile2
-                    ind = 2
-                    temp_profile3 = np.zeros((len(results_dict['com_trajectory']), num_x_bins))
-                    for t_ind in range(len(results_dict['com_trajectory'])):
-                        com = results_dict['com_trajectory'][t_ind, :, p_ind]
-                        com -= box_len * np.floor(com / box_len)
-                        com_inds = np.digitize(com, bins)
-                        local_temp = results_dict['thermo_trajectory'][t_ind, :, ind]
-                        # scatter op is faster
-                        temp_profile3[t_ind, :] = scatter(torch.FloatTensor(local_temp), torch.LongTensor(com_inds),
-                                                         dim_size=num_x_bins, reduce='mean').detach().numpy()
-
-                    results_dict['local_temperature_profile3'] = temp_profile3
-
-            return results_dict, 'Thermo analysis succeeded'
-        else:
-
-            return results_dict, 'Missing thermo trajectory!'
-    else:
-        return results_dict, 'Thermo analysis succeeded'
+from e2emolmats.reporting.temp_analysis import com_dist_profile
 
 
 def extract_trajectory_properties(hit_minimization, lines, results_dict, skip):
@@ -212,28 +46,6 @@ def extract_trajectory_properties(hit_minimization, lines, results_dict, skip):
                     results_dict[key].append(entries[ind2])
 
     return results_dict
-
-
-def center_of_mass_analysis(results_dict, run_config):
-    frames = read_lammps_thermo_traj('com.out')
-    results_dict['com_trajectory'] = np.asarray(list(frames.values()))
-    crystal_radius_traj = results_dict['com_trajectory'][:,
-                          run_config['melt_indices'].crystal_start_ind - 1:
-                          run_config['melt_indices'].crystal_end_ind - 1]
-    crystal_radius = np.zeros(len(crystal_radius_traj))
-    crystal_min_dist = np.zeros_like(crystal_radius)
-    crystal_mean_dist = np.zeros_like(crystal_radius)
-    crystal_max_dist = np.zeros_like(crystal_radius)
-    for ind, step in enumerate(crystal_radius_traj):
-        crystal_radius[ind] = np.mean(np.linalg.norm(step - step.mean(0), axis=1))
-        dmat = cdist(step, step)
-        crystal_min_dist[ind] = np.amin(dmat + np.eye(dmat.shape[-1]) * 100)
-        crystal_mean_dist[ind] = np.mean(dmat)
-        crystal_max_dist[ind] = np.amax(dmat)
-    results_dict['crystal_radius_trajectory'] = crystal_radius
-    results_dict['crystal_minimum_distance'] = crystal_min_dist
-    results_dict['crystal_mean_distance'] = crystal_mean_dist
-    results_dict['crystal_mean_distance'] = crystal_max_dist
 
 
 def read_lammps_thermo_traj(filename):
@@ -301,7 +113,50 @@ def read_lammps_com_traj(filename):
     return frames
 
 
+def read_lammps_pe_traj(filename):
+    f = open(filename, "r")
+    text = f.read()
+    lines = text.split('\n')
+    f.close()
+
+    frames = {}
+    frame_data = []  # temp kecom internal
+    mol_counter = 1
+    n_mols = 0
+    for ind, line in enumerate(lines):
+        splitline = line.split()
+        if line == '\n':
+            pass
+        elif len(splitline) == 0:
+            pass
+        elif line[0] == '#':
+            pass
+        elif len(splitline) == 2:
+            if len(splitline[1].split('.')) == 1 and mol_counter > n_mols:  # integer
+                if len(frame_data) > 0:
+                    frames[frame_num] = frame_data
+                a, b = splitline
+                frame_num = int(a)
+                n_mols = int(b)
+                frame_data = np.zeros((n_mols, 1))
+                mol_counter = 1
+            else:
+                try:
+                    mol_num, pe = np.asarray(splitline).astype(float)
+                except ValueError:
+                    if int(mol_num) == n_mols:
+                        pass
+                    else:
+                        raise ValueError
+
+                frame_data[int(mol_num) - 1] = pe
+                mol_counter += 1
+
+    return frames
+
+
 def get_melt_point(temperature, energy_traj):
+    assert False, "Redo this based on CoM deviation"
     num_points = len(energy_traj)
     normed_energy_traj = energy_traj - energy_traj.min()
     normed_energy_traj /= normed_energy_traj.max()
@@ -485,37 +340,6 @@ def make_gap_vs_tm_fig(results_df):
     gap_vs_tm_fig.update_yaxes(title="Melt Temp(K)")
 
     return gap_vs_tm_fig, results_df, melt_fit_figs
-
-
-def get_melt_progress(results_df):
-    melt_slopes = np.zeros(len(results_df))
-    melt_magnitudes = np.zeros(len(results_df))
-    for ind, row in results_df.iterrows():
-        equil_time = row['run_config']['equil_time']
-        run_time = row['run_config']['run_time']
-
-        crystal_reference_time = equil_time
-        crystal_time_index = np.argmin(np.abs(row['time step'] - crystal_reference_time))
-
-        melt_reference_time = 2 * equil_time
-        melt_time_index = np.argmin(np.abs(row['time step'] - melt_reference_time))
-
-        sampling_start_time = 5 * equil_time
-        sampling_start_index = np.argmin(np.abs(row['time step'] - sampling_start_time))
-
-        sampling_end_time = 5 * equil_time + run_time
-        sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
-
-        inter_energy = row['E_pair']
-        crystal_energy = inter_energy[crystal_time_index]
-        melt_energy = inter_energy[melt_time_index]
-        sampling_energy = inter_energy[sampling_start_index:sampling_end_index]
-
-        lr = linregress(row['time step'][sampling_start_index:sampling_end_index], sampling_energy)
-        melt_slopes[ind] = lr.slope
-        melt_magnitudes[ind] = (sampling_energy[-10:].mean() - crystal_energy) / (melt_energy - crystal_energy)
-
-    return melt_slopes, melt_magnitudes
 
 
 def compute_and_plot_melt_slopes(df, show_fig=True):
@@ -1217,7 +1041,9 @@ def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def df_row_melted(row):
-    if row['run_name'] == 'acridine_melt_interface5':
+    if (row['run_name'] == 'acridine_melt_interface5' or
+            row['run_name'] == 'acridine_interface_scan2' or
+            row['run_name'] == 'acridine_interface_scan3'):
         melt_time = 100000
     else:
         melt_time = row['run_config']['equil_time']
@@ -1225,7 +1051,7 @@ def df_row_melted(row):
     equil_time = row['run_config']['equil_time']
     equil_time_index = np.argmin(np.abs(row['time step'] - equil_time))
     melt_start_index = equil_time_index
-    melt_end_index = np.argmin(np.abs(row['time step'] - (2*equil_time + melt_time)))
+    melt_end_index = np.argmin(np.abs(row['time step'] - (2 * equil_time + melt_time)))
 
     # num_time_steps = len(row['com_trajectory'])
     # sampling_steps = row['run_config']['print_steps']
@@ -1433,29 +1259,6 @@ def extract_df_enthalpies(good_df, n_a):
     return temps, mean_enthalpy
 
 
-def relabel_defects(combined_df):
-    """split 2,7-dihydroxynaphthalene sym and anti into two different defect types
-    also, identify pure samples and relabel as such"""
-
-    dhn_inds = np.argwhere(combined_df['defect_type'] == '2,7-dihydroxynaphthalene').flatten()
-    defects_list = []
-    for ind in range(len(combined_df)):
-        if combined_df.iloc[ind]['defect_rate'] == 0:
-            defects_list.append('Pure')
-        elif ind in dhn_inds:
-            inverted_defect = combined_df.iloc[ind]['run_config']['invert_defects']
-            if inverted_defect:
-                defects_list.append('2,7-dihydroxynaphthalene_anti')
-            else:
-                defects_list.append('2,7-dihydroxynaphthalene_sym')
-        else:
-            defects_list.append(combined_df.iloc[ind]['defect_type'])
-
-    combined_df['defect_type'] = defects_list
-
-    return combined_df
-
-
 def get_run_potential(unique_temps, combined_df):
     gas_energies_dict = {}
     for ind, temp in enumerate(unique_temps):
@@ -1474,337 +1277,14 @@ def get_run_potential(unique_temps, combined_df):
     return gas_energies_dict
 
 
-def temperature_profile_fig(combined_df, r_ind, sigma_x, sigma_y, show_fig=False):
-    row = combined_df.iloc[r_ind]
+def com_mobility(com_traj: np.ndarray,
+                 trailing_length: int = 5):
+    mobility = np.zeros_like(com_traj)
+    for ind in range(trailing_length):
+        mobility[ind] = np.var(com_traj[:ind], axis=0)
 
-    if isinstance(row['thermo_trajectory'], np.ndarray):
-        local_temp_keys = ['Mol Temp', 'KE', 'Internal T']
-        num_x_bins = 30
-        #p_ind = ['x', 'y', 'z'].index(row['pressure_direction'])
-        box_len = row['min_lattice_length'] * 2
-        # bins = np.linspace(-box_len, box_len * 2,  # -box_len * 0.1, box_len*1.1,
-        #                    num_x_bins)
-        bins = np.linspace(0, box_len,  # -box_len * 0.1, box_len*1.1,
-                           num_x_bins)
-        #num_steps = len(row['com_trajectory'])
+    for ind in range(trailing_length, len(com_traj) + 1):
+        mobility[ind - trailing_length:ind] = np.var(com_traj[ind - trailing_length:ind], axis=0)
 
-        temp_profile = row['local_temperature_profile']
-        fig = make_subplots(rows=1, cols=2)
-        # sampling_time = row['run_config']['run_time']
-        sampling_start_index = -row['run_config']['print_steps']
-        prof = temp_profile[sampling_start_index:, :]
-        prof[prof == 0] = np.nan
-        fig.add_trace(
-            go.Heatmap(x=bins[:-2] - (bins[1] - bins[0]),
-                       y=row['time step'][sampling_start_index:],
-                       z=gaussian_filter(prof, sigma=[sigma_y, sigma_x])),
-            row=1, col=1
-        )
-        timepoints = np.linspace(0, len(prof) - 1, 5).astype(int)
-        for t_ind in timepoints:
-            fig.add_trace(
-                go.Scatter(x=bins[:-2] - (bins[1] - bins[0]),
-                           y=gaussian_filter(prof, sigma=[sigma_y, sigma_x])[t_ind],
-                           name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                           ),
-                row=1, col=2,
-            )
-        temp = row['temperature']
-        fig.add_shape(type='line',
-                      x0=0, x1=bins[-1],
-                      y0=temp, y1=temp,
-                      line=dict(color='black'),
-                      xref='x',
-                      yref='y',
-                      row=1, col=2,
-                      )
-        fig.update_layout(coloraxis_showscale=False,
-                          xaxis1_title='Position (A)',
-                          yaxis1_title='Time Step',
-                          xaxis2_title='Position (A)',
-                          yaxis2_title='Local T(K)',
-                          title=f'{row["structure_identifier"]} at {row["temperature"]}K')
-        if show_fig:
-            fig.show(renderer='browser')
-
-        '''
-        #alternate version of this fig
-        
-        row = combined_df.iloc[r_ind]
-        p_ind = ['x', 'y', 'z'].index(row['pressure_direction'])
-        num_mols = len(row['com_trajectory'][0, :, 0])
-        sampling_start_index = -row['run_config']['print_steps']
-        fig = go.Figure()
-        fig.add_scatter(x=row['com_trajectory'][sampling_start_index:, :, p_ind].flatten(),
-                        y=row['time step'][sampling_start_index:].repeat(num_mols),
-                        marker_color=row['thermo_trajectory'][sampling_start_index:, :, 0].flatten(),
-                        mode='markers',
-                        opacity=0.25,
-                        marker_size=10,
-                        )
-        fig.show(renderer='browser')
-        '''
-
-
-def com_deviation_fig(combined_df, r_ind, show_fig=False):
-    row = combined_df.iloc[r_ind]
-    num_time_steps = len(row['com_trajectory'])
-    sampling_steps = row['run_config']['print_steps']
-    sampling_start_index = num_time_steps - sampling_steps
-    sampling_end_index = num_time_steps
-    crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
-
-    deviation = com_dist_profile(row['com_trajectory'], crystal_inds, sampling_start_index, sampling_end_index)
-
-    fig = go.Figure()
-    fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
-    fig.update_layout(
-        xaxis_title='Time',
-        yaxis_title='Com Deviation',
-        title=f'{row["structure_identifier"]} at {row["temperature"]}K')
-    if show_fig:
-        fig.show(renderer='browser')
-
-    lr = linregress(x=row['time step'][-sampling_steps:], y=deviation)
-    return fig, deviation, lr.slope
-
-
-def com_dist_profile(com_trajectory, mol_inds, sampling_start_index, sampling_stop_index):
-    deviation = np.zeros(sampling_stop_index - sampling_start_index)
-    init_distmat = cdist(com_trajectory[sampling_start_index, mol_inds],
-                         com_trajectory[sampling_start_index, mol_inds])
-    tt = 0
-    for t_ind in range(sampling_start_index, sampling_stop_index):
-        com_distmats = cdist(com_trajectory[t_ind, mol_inds],
-                             com_trajectory[t_ind, mol_inds])
-        deviation[tt] = np.mean(np.abs(com_distmats - init_distmat))
-
-        tt += 1
-    return deviation
-
-
-def lattice_energy_figs(combined_df):
-    # compute energies and volumes
-    mean_potentials = np.zeros(len(combined_df))
-    mean_volumes = np.zeros(len(combined_df))
-    for ind, row in combined_df.iterrows():
-        steps = len(row['E_mol'])
-        num_mols = row['num_atoms'] // 23
-        mean_potentials[ind] = np.mean(row['E_mol'][-steps // 2:] + row['E_pair'][-steps // 2:]) / num_mols
-        mean_volumes[ind] = np.mean(row['Volume'][-steps // 2:]) / num_mols
-
-    combined_df['mean_potential'] = mean_potentials
-    combined_df['molar_volume'] = mean_volumes
-
-    fixed_ids = []
-    for ind, row in combined_df.iterrows():
-        if row['cluster_type'] == 'gas':
-            fixed_ids.append('acridine')
-        else:
-            fixed_ids.append(row['structure_identifier'])
-    combined_df['structure_identifier'] = fixed_ids
-
-    # for each polymorph and temperature, average solid and gas phase runs,
-    # and compute the lattice energy as the difference
-    energy_groups = (
-        combined_df.groupby(
-            ['temperature', 'cluster_type', 'structure_identifier']
-        )['mean_potential'].mean())
-    volume_groups = (
-        combined_df.groupby(
-            ['temperature', 'cluster_type', 'structure_identifier']
-        )['molar_volume'].mean())
-
-    temps = np.unique(combined_df['temperature'])
-    num_temps = len(temps)
-    polymorphs = np.unique(combined_df['structure_identifier'])
-    polymorphs = polymorphs[polymorphs != 'acridine']
-    polymorphs = polymorphs[polymorphs != 'acridine/Form8']
-    num_polymorphs = len(polymorphs)
-    N_A = 6.023 * 10 ** 23
-    a3tocm3 = 10 ** 24
-    MW = 179.21726
-    lattices_information = np.zeros((num_temps, num_polymorphs, 2))
-    for t_ind, temp in enumerate(temps):
-        # get mean gas phase energy
-        gas_phase_en = energy_groups[temp]['gas']['acridine']
-        for p_ind, polymorph in enumerate(polymorphs):
-            # record mean molar volume
-            molar_volume = volume_groups[temp]['supercell'][polymorph]
-            # cubic angstroms per mol to grams per cubic cm
-            density = (a3tocm3 * MW) / (molar_volume * N_A)
-            lattices_information[t_ind, p_ind, 1] = density
-
-            # get mean solid energy
-            solid_phase_en = energy_groups[temp]['supercell'][polymorph]
-
-            lattice_energy = 4.18 * (solid_phase_en - gas_phase_en)  # convert from kcals to kJ
-            lattices_information[t_ind, p_ind, 0] = lattice_energy
-
-    reference_energy = np.array([-97.425,
-                                 -95.3,
-                                 -94.45,
-                                 -93.175,
-                                 -95.25,
-                                 -97.65])
-    reference_density = np.array([1.2837,
-                                  1.2611,
-                                  1.2313,
-                                  1.2369,
-                                  1.2644,
-                                  1.2684])
-
-    import plotly.graph_objects as go
-
-    m_colors = ['black'] + ['red' for _ in range(num_temps)]
-    m_sizes = [40] + [20 for _ in range(num_temps)]
-    fig = go.Figure()
-    for p_ind, polymorph in enumerate(polymorphs):
-        volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
-        energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
-        fig.add_scatter(
-            x=volumes[:2],
-            y=energies[:2],
-            marker_color=m_colors[:2],
-            marker_size=m_sizes[:2],
-            name=polymorph,
-        )
-    fig.update_layout(xaxis_title='Density g/mL', yaxis_title='Potential kJ/mol')
-    fig.show(renderer='browser')
-
-    temperatures = [-10] + temps.tolist()
-
-    fig = go.Figure()
-    for p_ind, polymorph in enumerate(polymorphs):
-        volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
-        energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
-        fig.add_scatter(
-            x=temperatures,
-            y=energies,
-            marker_color=m_colors,
-            marker_size=m_sizes,
-            name=polymorph,
-        )
-    fig.update_layout(xaxis_title='Temperature K', yaxis_title='Potential kJ/mol')
-    fig.show(renderer='browser')
-
-    fig = go.Figure()
-    for p_ind, polymorph in enumerate(polymorphs):
-        volumes = [reference_density[p_ind]] + [lattices_information[t_ind, p_ind, 1] for t_ind in range(num_temps)]
-        energies = [reference_energy[p_ind]] + [lattices_information[t_ind, p_ind, 0] for t_ind in range(num_temps)]
-        fig.add_scatter(
-            x=temperatures,
-            y=volumes,
-            marker_color=m_colors,
-            marker_size=m_sizes,
-            name=polymorph,
-        )
-    fig.update_layout(xaxis_title='Temperature K', yaxis_title='Density g/mL')
-    fig.show(renderer='browser')
-
-
-def mean_temp_anomaly_fig(combined_df):
-    sigma_x = 1
-    sigma_y = 2
-    sampling_start_index = -99  # -combined_df.iloc[0]['run_config']['print_steps']
-    profile0 = combined_df.iloc[0]['local_temperature_profile']
-
-    T_clip = 50
-
-    temp_anomaly = np.zeros((len(combined_df), -sampling_start_index, profile0.shape[-1]))
-    for r_ind in range(len(combined_df)):
-        row = combined_df.iloc[r_ind]
-        temp_profile = np.copy(row['local_temperature_profile'])
-        # sampling_time = row['run_config']['run_time']
-        prof = temp_profile[sampling_start_index:, :]
-        prof[prof == 0] = np.nan
-        temp = row['temperature']
-        temp_anomaly[r_ind] = (prof[sampling_start_index:] - temp)
-    fig = make_subplots(rows=3, cols=2)
-    fig.add_trace(
-        go.Heatmap(
-            y=row['time step'][sampling_start_index:],
-            z=temp_anomaly.mean(0).clip(max=T_clip), showscale=False,
-        ),
-        row=1, col=1,
-    )
-    timepoints = np.linspace(0, (-sampling_start_index) - 1, 5).astype(int)
-    for t_ind in timepoints:
-        fig.add_trace(
-            go.Scatter(
-                y=gaussian_filter(np.nan_to_num(temp_anomaly.mean(0).clip(max=T_clip)), sigma=[sigma_x, sigma_y])[
-                    t_ind],
-                name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                legendgroup=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                showlegend=True,
-            ),
-            row=1, col=2,
-        )
-
-    temp_anomaly = np.zeros((len(combined_df), -sampling_start_index, profile0.shape[-1]))
-    for r_ind in range(len(combined_df)):
-        row = combined_df.iloc[r_ind]
-        temp_profile = np.copy(row['local_temperature_profile2'])
-        # sampling_time = row['run_config']['run_time']
-        prof = temp_profile[sampling_start_index:, :]
-        prof[prof == 0] = np.nan
-        temp = row['temperature']
-        temp_anomaly[r_ind] = (prof[sampling_start_index:] - np.nan_to_num(prof[sampling_start_index:]).mean())
-    fig.add_trace(
-        go.Heatmap(
-            y=row['time step'][sampling_start_index:],
-            z=temp_anomaly.mean(0).clip(max=T_clip), showscale=False,
-        ),
-        row=2, col=1,
-    )
-
-    timepoints = np.linspace(0, (-sampling_start_index) - 1, 5).astype(int)
-    for t_ind in timepoints:
-        fig.add_trace(
-            go.Scatter(
-                y=gaussian_filter(np.nan_to_num(temp_anomaly.mean(0).clip(max=T_clip)), sigma=[sigma_x, sigma_y])[
-                    t_ind],
-                name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                legendgroup=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                showlegend=False,
-            ),
-            row=2, col=2,
-        )
-
-    temp_anomaly = np.zeros((len(combined_df), -sampling_start_index, profile0.shape[-1]))
-    for r_ind in range(len(combined_df)):
-        row = combined_df.iloc[r_ind]
-        temp_profile = np.copy(row['local_temperature_profile3'])
-        # sampling_time = row['run_config']['run_time']
-        prof = temp_profile[sampling_start_index:, :]
-        prof[prof == 0] = np.nan
-        temp = row['temperature']
-        temp_anomaly[r_ind] = (prof[sampling_start_index:] - np.nan_to_num(prof[sampling_start_index:]).mean())
-    fig.add_trace(
-        go.Heatmap(
-            y=row['time step'][sampling_start_index:],
-            z=temp_anomaly.mean(0).clip(max=T_clip), showscale=False
-        ),
-        row=3, col=1,
-    )
-
-    timepoints = np.linspace(0, (-sampling_start_index) - 1, 5).astype(int)
-    for t_ind in timepoints:
-        fig.add_trace(
-            go.Scatter(
-                y=gaussian_filter(np.nan_to_num(temp_anomaly.mean(0).clip(max=T_clip)), sigma=[sigma_x, sigma_y])[
-                    t_ind],
-                name=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                legendgroup=f"Time={int((row['time step'][sampling_start_index:] - row['time step'][sampling_start_index])[t_ind] / 100000)}ps",
-                showlegend=False,
-            ),
-            row=3, col=2,
-        )
-    fig.update_layout(coloraxis_showscale=False,
-                      xaxis1_title='Position (A)',
-                      yaxis1_title='Time Step',
-                      title=f'Mean Temperature Profiles')
-    fig.show(renderer='browser')
-
-
+    return mobility.sum(-1)
 
