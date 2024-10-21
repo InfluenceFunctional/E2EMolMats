@@ -25,7 +25,7 @@ def generate_MD_script(config, melt_inds):
             new_text = new_text.replace('#_LANGEVIN', '')
         elif config.integrator.lower() == 'nosehoover':
             new_text = new_text.replace('#_NOSE', '')
-        elif config.integrator.lower() == 'npt':
+        elif config.integrator.lower() == 'npt' or config.integrator.lower() == 'langevin':
             new_text = new_text.replace('#_NPT', '')
             new_text = new_text.replace('#_p_dim', str(config.pressure_direction))
         if config.bulk_crystal:
