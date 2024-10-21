@@ -24,7 +24,7 @@ max_sphere_radius:
 melt_temperature: 2000
 min_inter_cluster_distance: 0
 min_lattice_length:
-- 40
+- 20
 moving_interface_num_steps: 11
 moving_interface_protocol: true
 moving_interface_step: 5
