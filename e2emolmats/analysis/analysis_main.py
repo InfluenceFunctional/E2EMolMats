@@ -43,7 +43,8 @@ acridine_melt_paths = [
 ]
 acridine_scan_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan2/',
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan3/',
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan3/', # first successful scan batch, with some refreezing
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan4/', # single test
 
 ]
 'paths for analysis of nicotinamide melt point'

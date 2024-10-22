@@ -159,17 +159,21 @@
 
 #_INTERFACE_SCAN #_NPT  fix               f3 all npt temp ${T1} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
 #_INTERFACE_SCAN #_LANGEVIN  fix               f3 all nph #_p_dim 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_SCAN #_LANGEVIN  fix				f3 all langevin ${T1} ${T2} _DAMP ${rnd}
+#_INTERFACE_SCAN #_LANGEVIN  fix				f3l all langevin ${T1} ${T2} _DAMP ${rnd}
 
 #_INTERFACE_SCAN  run               ${t_equil}
 #_INTERFACE_SCAN  unfix             f3
+#_INTERFACE_SCAN #_LANGEVIN  unfix f3l
+
 
 #_INTERFACE_SCAN #_NPT  fix               f4 all npt temp ${T2} ${T2} $(100.0*dt) #_p_dim 1.0 1.0 $(1000.0*dt)
 #_INTERFACE_SCAN #_LANGEVIN  fix               f4 all nph #_p_dim 1.0 1.0 $(1000.0*dt)
-#_INTERFACE_SCAN #_LANGEVIN  fix				f4 all langevin ${T2} ${T2} _DAMP ${rnd}
+#_INTERFACE_SCAN #_LANGEVIN  fix				f4l all langevin ${T2} ${T2} _DAMP ${rnd}
 
 #_INTERFACE_SCAN  run               ${t_step}
 #_INTERFACE_SCAN  unfix             f4
+#_INTERFACE_SCAN #_LANGEVIN  unfix f4l
+
 #_INTERFACE_SCAN  next a
 #_INTERFACE_SCAN  jump SELF loop
 #_INTERFACE_SCAN  label break
