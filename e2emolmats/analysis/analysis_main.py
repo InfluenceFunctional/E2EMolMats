@@ -43,8 +43,9 @@ acridine_melt_paths = [
 ]
 acridine_scan_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan2/',
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan3/', # first successful scan batch, with some refreezing
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan4/', # single test
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan3/', # first successful scan batch, with some refreezing
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan4/', # single test
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan5/',  # shorter test to compare new thermostat
 
 ]
 'paths for analysis of nicotinamide melt point'
@@ -113,8 +114,8 @@ if __name__ == '__main__':
     skip_molwise_thermo = False
 
     (battery_paths, melt_scan_analysis, nanocluster_analysis,
-        compute_melt_temps, latents_analysis,
-        cp_analysis, cp2_analysis, lattice_energy_analysis) = mode_settings(
+     compute_melt_temps, latents_analysis,
+     cp_analysis, cp2_analysis, lattice_energy_analysis) = mode_settings(
         MODE,
         acridine_cluster_paths,
         acridine_melt_paths,
