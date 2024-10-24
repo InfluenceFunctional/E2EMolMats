@@ -78,7 +78,7 @@ def combined_trajectory_analysis(config, combined_df, wandb):
             single_run_thermo_fig(row)
             melting_temp = ramped_melt_T_extraction(row)
             melt_temp_dict[row['structure_identifier']] = melting_temp
-
+        print(melt_temp_dict)
         aa = 1
 
     if config.nanocluster_analysis:

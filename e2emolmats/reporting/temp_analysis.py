@@ -460,6 +460,7 @@ def extract_local_profile(
 
     return value_profile.statistic.T, x_bins, y_bins
 
+
 def bulk_vs_melt_temp_fig(y_pos, nbinsx, temp_profile, temp_anomaly_profile):
     interface_ind = nbinsx // 2
     fig = make_subplots(rows=3, cols=2)
@@ -755,10 +756,6 @@ def all_pe_profiles(y_pos, nbinsx, pe_profile, pe_anomaly_profile, inds_to_scan)
 
 
 def single_run_thermo_fig(row):
-    good_keys = ['box_type', 'min_inter_cluster_distance', 'run_name', 'damping',
-                 'defect_rate', 'defect_type', 'gap_rate', 'max_sphere_radius', 'min_lattice_length',
-                 'scramble_rate', 'seed', 'structure_identifier', 'temperature']
-
     start_time_index = row['sampling_start_index']
     crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
     melt_inds = np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
@@ -794,15 +791,28 @@ def single_run_thermo_fig(row):
             marker_color='red',
             row=1, col=ind + 1
         )
-    fig.update_layout(title=str({key: row[key] for key in good_keys[0:5]})
-                            + '<br>' + str({key: row[key] for key in good_keys[5:10]})
-                            + '<br>' + str({key: row[key] for key in good_keys[10:]}),
+
+    config_string = get_config_string(row['run_config'])
+    fig.update_layout(title=config_string,
                       title_automargin=True,
                       title_pad_t=20,
                       margin_t=180)
     fig.update_layout(yaxis4_type='log')
     fig.update_xaxes(title='Time (ns)')
     fig.show(renderer='browser')
+
+
+def get_config_string(row):
+    good_keys = ['box_type', 'min_inter_cluster_distance', 'run_name', 'damping',
+                 'defect_rate', 'defect_type', 'gap_rate', 'max_sphere_radius', 'min_lattice_length',
+                 'scramble_rate', 'seed', 'structure_identifier', 'temperature', 'integrator']
+
+    config_string = (str({key: row[key] for key in good_keys[0:5]})
+                     + '<br>' + str({key: row[key] for key in good_keys[5:10]})
+                     + '<br>' + str({key: row[key] for key in good_keys[10:]})
+                     )
+
+    return config_string
 
 
 def ramped_melt_T_extraction(row):

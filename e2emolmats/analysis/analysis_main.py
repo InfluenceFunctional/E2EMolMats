@@ -109,7 +109,7 @@ acridine_lattice_energy_paths = [
 MODE = 'acridine_scan'
 
 if __name__ == '__main__':
-    redo_analysis = True
+    redo_analysis = False
     log_to_wandb = False
     skip_molwise_thermo = False
 
