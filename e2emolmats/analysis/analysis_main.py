@@ -45,8 +45,8 @@ acridine_scan_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan2/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan3/', # first successful scan batch, with some refreezing
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan4/', # single test
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan5/',  # shorter test to compare new thermostat
-
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan5/',  # shorter test to compare new thermostat
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan6/',  # different langevin dampings
 ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
