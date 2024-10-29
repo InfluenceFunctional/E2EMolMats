@@ -72,12 +72,13 @@ def combined_trajectory_analysis(config, combined_df, wandb):
                 
         then, we need to extract melt point as the temperature where melting starts
         """
-        melt_temp_dict = {}
+        polymorphs = np.unique(combined_df['structure_identifier'])
+        melt_temp_dict = {polymorphs[p_ind]: {} for p_ind in range(len(polymorphs))}
         for r_ind in range(len(combined_df)):
             row = combined_df.iloc[r_ind]
             single_run_thermo_fig(row)
             melting_temp = ramped_melt_T_extraction(row)
-            melt_temp_dict[row['structure_identifier']] = melting_temp
+            melt_temp_dict[row['structure_identifier']][row['pressure_direction']] = melting_temp
         print(melt_temp_dict)
         aa = 1
 
