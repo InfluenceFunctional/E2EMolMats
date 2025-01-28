@@ -76,10 +76,45 @@ def combined_trajectory_analysis(config, combined_df, wandb):
         melt_temp_dict = {polymorphs[p_ind]: {} for p_ind in range(len(polymorphs))}
         for r_ind in range(len(combined_df)):
             row = combined_df.iloc[r_ind]
-            single_run_thermo_fig(row)
-            melting_temp = ramped_melt_T_extraction(row)
+            #single_run_thermo_fig(row)
+            melting_temp = ramped_melt_T_extraction(row,
+                                                    mobility_threshold=1,
+                                                    melt_sigma=2,
+                                                    mobility_cutoff=0.02,
+                                                    melt_tolerance=0.5
+                                                    )
             melt_temp_dict[row['structure_identifier']][row['pressure_direction']] = melting_temp
-        print(melt_temp_dict)
+        for poly in polymorphs:
+            print(poly, melt_temp_dict[poly])
+
+        for key in melt_temp_dict.keys():
+            all_things = []
+            for direction in melt_temp_dict[key].keys():
+                all_things.append(melt_temp_dict[key][direction])
+            melt_temp_dict[key]['all'] = all_things
+            melt_temp_dict[key]['all'] = np.array(melt_temp_dict[key]['all'])
+            melt_temp_dict[key]['mean'] = np.mean(melt_temp_dict[key]['all'][np.isfinite(melt_temp_dict[key]['all'])])
+            melt_temp_dict[key]['var'] = np.var(melt_temp_dict[key]['all'])
+
+        import plotly.graph_objects as go
+        from e2emolmats.analysis.free_energy_calc import experimental_polymorphs_dict
+        exp_melts_dict = {key.replace(' ', ''): experimental_polymorphs_dict[key]['T_melt'] for key in
+                          experimental_polymorphs_dict.keys()}
+        polymorph_names = [poly[9:] for poly in polymorphs]
+
+        fig = go.Figure()
+        mean_melts = [melt_temp_dict[poly]['mean'] for poly in polymorphs]
+        var_melts = np.nan_to_num([melt_temp_dict[poly]['var'] for poly in polymorphs], nan=100)
+
+        fig.add_trace(go.Bar(x=polymorph_names, y=mean_melts,
+                             error_y=dict(type='data', array=var_melts),name='Interface Simulation', text=mean_melts))
+        fig.add_trace(go.Bar(x=list(exp_melts_dict.keys()), y=list(exp_melts_dict.values()), name='Hengyu Exp', text=list(exp_melts_dict.values())))
+        fig.update_layout(yaxis_range=[370, np.amax(mean_melts) + 10])
+        fig.update_layout(font_size=30)
+        fig.update_traces(texttemplate='%{text:.0f}')
+
+        fig.show(renderer='browser')
+
         aa = 1
 
     if config.nanocluster_analysis:
@@ -102,5 +137,3 @@ def combined_trajectory_analysis(config, combined_df, wandb):
         lattice_energy_figs(combined_df)
 
     aa = 1
-
-

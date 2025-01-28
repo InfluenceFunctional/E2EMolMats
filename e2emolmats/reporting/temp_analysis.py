@@ -815,18 +815,20 @@ def get_config_string(row):
     return config_string
 
 
-def ramped_melt_T_extraction(row):
+def ramped_melt_T_extraction(row,
+                             mobility_threshold: float = 2,
+                             melt_sigma: float = 0.5,
+                             mobility_cutoff: float = 0.025,
+                             melt_tolerance: float = 0.8):
     # new melt point extraction
     start_time_index = row['sampling_start_index']
     crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
-    mobil_cutoff = 4
-    melt_tolerance = 0.5
     time = row['time step'][start_time_index:] / 1e6
     temp = row['Temp'][start_time_index:]
-    mobility_fraction = np.mean(row['com_mobility'][start_time_index:, crystal_inds] > mobil_cutoff, axis=1)
+    mobility_fraction = np.mean(row['com_mobility'][start_time_index:, crystal_inds] > mobility_threshold, axis=1)
     mobility_slope = np.diff(mobility_fraction, prepend=np.zeros(1))
-    melting_flag = gaussian_filter1d(((mobility_slope > 0) * (mobility_fraction > 0.05)).astype(float),
-                                     sigma=melt_tolerance, mode='nearest') >= 0.95
+    melting_flag = gaussian_filter1d(((mobility_slope > 0) * (mobility_fraction > mobility_cutoff)).astype(float),
+                                     sigma=melt_sigma, mode='nearest') >= melt_tolerance
     if np.sum(melting_flag) > 0:
         melt_start_index = np.min(np.argwhere(melting_flag))
         melting_temp = np.mean(temp[melt_start_index:-5:melt_start_index + 5])

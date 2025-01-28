@@ -149,6 +149,8 @@
   velocity          all create ${T_init} ${rnd} mom yes rot yes dist gaussian
   run               ${t_run}
   write_data        cluster_${nx}x${ny}x${nz}_equi.data
+    write_restart   cluster_${nx}x${ny}x${nz}_equi.restart
+
 
 #--------------------------Optional temperature scan--------------------------#
 #_INTERFACE_SCAN  unfix f2

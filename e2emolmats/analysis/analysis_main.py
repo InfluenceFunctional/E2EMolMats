@@ -49,6 +49,9 @@ acridine_scan_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan6/',  # different langevin dampings
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan7/',  # different langevin dampings
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan8/',  # 2&4 melts
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan9/',  # 3,6,7,8,9 melts folowing run 8
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan10/',  # 4 with different params
+
 ]
 'paths for analysis of nicotinamide melt point'
 # battery_paths = [
@@ -111,7 +114,7 @@ acridine_lattice_energy_paths = [
 MODE = 'acridine_scan'
 
 if __name__ == '__main__':
-    redo_analysis = False
+    redo_analysis = True
     log_to_wandb = False
     skip_molwise_thermo = False
 
