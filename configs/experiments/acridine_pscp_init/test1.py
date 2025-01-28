@@ -33,7 +33,7 @@ batch_config = {
     'min_inter_cluster_distance': 20,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
     'machine': 'local',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'pscp_init_form2',
+    'run_name': 'acridine_pscp_init',
     'min_lattice_length': [40],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # prepare a frozen nanocrystal in a melted environment
