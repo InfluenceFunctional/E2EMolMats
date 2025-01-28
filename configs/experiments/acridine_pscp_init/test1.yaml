@@ -47,3 +47,4 @@ structure_identifier:
 submit_lammps_slurm: false
 temperature:
 - 100
+- 700
