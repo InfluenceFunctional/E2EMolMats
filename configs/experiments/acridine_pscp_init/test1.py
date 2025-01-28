@@ -37,7 +37,7 @@ batch_config = {
     'min_lattice_length': [40],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
-    'prep_melt_interface': True,  # Work in progress - split supercell in half along the fractional z direction
+    'prep_melt_interface': False,  # Work in progress - split supercell in half along the fractional z direction
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
     'equil_time': 5e5,  # equilibration time, for melt preparation steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs

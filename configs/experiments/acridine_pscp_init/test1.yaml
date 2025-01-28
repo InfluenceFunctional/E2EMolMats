@@ -26,7 +26,7 @@ min_lattice_length:
 - 40
 prep_bulk_melt: false
 prep_crystal_in_melt: false
-prep_melt_interface: true
+prep_melt_interface: false
 pressure_direction: iso
 print_steps: 200
 ramp_temperature: false
