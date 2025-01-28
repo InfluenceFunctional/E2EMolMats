@@ -50,7 +50,7 @@ def args2run_num(override_args):
 
 def load_yaml(path):
     yaml_path = Path(path)
-    assert yaml_path.exists()
+    assert yaml_path.exists(), f"{path} does not exist"
     assert yaml_path.suffix in {".yaml", ".yml"}
     with yaml_path.open("r") as f:
         target_dict = yaml.safe_load(f)
