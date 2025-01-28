@@ -12,26 +12,32 @@ defect_rate:
 - 0
 defect_type:
 - null
-equil_time: 500000.0
+equil_time: 100000.0
 gap_rate:
 - 0
-init_temperature: 200
+init_temperature: 0
 integrator: npt
-invert_defects: false
-machine: cluster
-max_sphere_radius: null
+invert_defects:
+- false
+machine: local
+max_sphere_radius:
+- 10
 melt_temperature: 2000
-min_inter_cluster_distance: 0
+min_inter_cluster_distance: 20
 min_lattice_length:
 - 40
+moving_interface_num_steps: 10
+moving_interface_protocol: false
+moving_interface_step: 5
+moving_interface_time: 500000.0
 prep_bulk_melt: false
 prep_crystal_in_melt: false
 prep_melt_interface: false
 pressure_direction: iso
 print_steps: 200
 ramp_temperature: false
-run_name: acridine_Form2_pscp_init
-run_time: 20000000.0
+run_name: pscp_init_form2
+run_time: 2000000
 scramble_rate:
 - 0
 seed:
@@ -41,4 +47,3 @@ structure_identifier:
 submit_lammps_slurm: false
 temperature:
 - 100
-- 700

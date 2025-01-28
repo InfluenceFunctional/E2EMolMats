@@ -1,45 +1,50 @@
 """run configs to loop over - will take all combinations of the below lists - grows combinatorially!!"""
 """run this script to make the corresponding .yaml file, which is used at runtime"""
-"""this test is to see if the new force field is working / general functionality"""
 import yaml
 
 batch_config = {
     # loop-overable (must be a list)
-    'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
-    'temperature': [100, 700],  # Kelvin
-    'structure_identifier': ['acridine/Form2',
-                             ],
+    'cluster_size': [[10, 10, 10]],  # size of initial bulk supercell, from which finite subsamples may be carved.
+    'temperature': [100],  # Kelvin - the temperature at which to carry out primary sampling
+    'structure_identifier': ['acridine/Form2'],
+    # ['acridine/Form2'], # ['nicotinamide/NICOAM17'], #'["nicotinamide/NICOAM16"],  # , "NICOAM17"],  # names of molecule and polymorph structures to be used as bases.
     'defect_rate': [0],
+    # fraction of molecules to be substituted with appropriately aligned defects - only works for Benzamide in Nicotinamide
     'defect_type': [None],
     # what molecule to substitute in the lattice - 'benzamide' or 'isonicotinamide' for nicotinamide, 'anthracene' or '2,7-dihydroxynaphthalene' for acridine
     'gap_rate': [0],  # fraction of molecule sites to be left vacant
     'scramble_rate': [0],  # fraction of molecules to be randomly rotated
     'seed': [1],  # integers greater than zero
     'damping': [str(100.0)],  # for LAMMPS Langevin dynamics
-    'max_sphere_radius': None,  # if carving a finite cluster from a bulk structure, the radius of the sphere
-    'invert_defects': False,
+    'max_sphere_radius': [10],  # if carving a finite cluster from a bulk structure, the radius of the sphere
+    'invert_defects': [False],
 
     # static items - DO NOT SET AS LIST
-    'run_time': 2e7,  # sampling time in femtoseconds
-    'cluster_type': 'supercell',
+    'cluster_type': 'supercell',  # 'gas' or 'supercell'
     # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
+    'run_time': int(2e6),  # sampling time in femtoseconds
     'box_type': 'p',
     # box type in LAMMPS dimensions 'p' for periodic typically used even for vacuum simulations, just with very large box
     'integrator': 'npt',  # nosehoover, npt, nvt
-    'pressure_direction': 'iso',  # iso, x, y, or z for npt pressure directionality
-    'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0-temperature
-    'init_temperature': 200,  # for ramps only
+    'pressure_direction': 'iso',  # iso, x, y, or z for npt pressure directionality. Also the interface axis in interfaces. 'iso' invalid for melts.
+    'ramp_temperature': False,  # linearly ramp temperature in main sampling run from 0 to ramp_temperature
+    'init_temperature': 0,
     'print_steps': int(2e2),  # how many timepoints to print in sampling trajectory
-    'min_inter_cluster_distance': 0,  # 40,  # sets periodic box size in cluster simulations, 0 or None if unused
+    'min_inter_cluster_distance': 20,  # 40,  # sets periodic box size in cluster simulations
     'bulk_crystal': True,  # if true, periodic structure
-    'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'acridine_Form2_pscp_init',
+    'machine': 'local',  # 'local' or 'cluster' have different associated paths
+    'run_name': 'pscp_init_form2',
     'min_lattice_length': [40],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
-    'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
-    'prep_melt_interface': False,  # Work in progress - split supercell in half along the fractional z direction
+    'prep_crystal_in_melt': False,  # prepare a frozen nanocrystal in a melted environment
+    'prep_melt_interface': False,  # split supercell in half and melt half then reequilibrate
     'prep_bulk_melt': False,  # prepare a bulk melted structure - npt equil, nvt melt, nvt cool, npt equil
-    'equil_time': 5e5,  # equilibration time, for melt preparation steps
+    'moving_interface_protocol': False,
+    # sample for run_time, then increase temperature by temp_step and hold for step_time
+    'moving_interface_num_steps': 10,
+    'moving_interface_step': 5,
+    'moving_interface_time': 5e5,
+    'equil_time': 1e5,  # equilibration time, mostly for prep_crystal_in_melt steps
     'melt_temperature': 2000,  # melt temperature of prep_crystal_in_melt runs
     'atom_style': 'full',  # 'full' or 'full2' depending on if we want symmetry information
     'submit_lammps_slurm': False,
