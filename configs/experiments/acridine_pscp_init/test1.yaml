@@ -19,7 +19,7 @@ init_temperature: 0
 integrator: npt
 invert_defects:
 - false
-machine: local
+machine: cluster
 max_sphere_radius:
 - 10
 melt_temperature: 2000
@@ -36,7 +36,7 @@ prep_melt_interface: false
 pressure_direction: iso
 print_steps: 200
 ramp_temperature: false
-run_name: pscp_init_form2
+run_name: acridine_pscp_init
 run_time: 2000000
 scramble_rate:
 - 0
