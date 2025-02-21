@@ -25,7 +25,6 @@ acridine_melt_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/', # failed
     r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan1/',
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
@@ -85,14 +84,14 @@ acridine_cluster_paths = [
 'paths for acridine latent heats of fusion'
 acridine_latent_paths = [
     # old acridine ff
-    # r'D:\crystal_datasets\acridine_latents_battery1/',
-    # r'D:\crystal_datasets\acridine_latents_battery2/',
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery1/',
+    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
 ]
 acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    # r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
     r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
 
     ##old acridine ff
@@ -111,7 +110,16 @@ acridine_lattice_energy_paths = [
 
 ]
 
-MODE = 'acridine_scan'
+MODE = 'acridine_cp2'
+"""modes
+acridine_cluster    
+acridine_melt
+acridine_scan
+acridine_latent
+acridine_cp
+acridine_cp2
+acridine_lattice_energy
+"""
 
 if __name__ == '__main__':
     redo_analysis = True
@@ -200,7 +208,8 @@ if __name__ == '__main__':
                     'always do thermo analysis'
                     thermo_results_dict, analysis_code = process_thermo_data(
                         run_config,
-                        skip_molwise_thermo
+                        skip_molwise_thermo,
+                        enforce_new_analysis=not config.latents_analysis and not config.cp2_analysis and not config.lattice_energy_analysis
                     )
                     runs_dict[run_dir] = [analysis_code, run_config]
                     if analysis_code != 'Thermo analysis succeeded':
@@ -212,10 +221,13 @@ if __name__ == '__main__':
                         wandb.log(thermo_figs_dict)
 
                     '''save results'''
+                    if 'num_atoms' in thermo_results_dict.keys():
+                        num_mols = int(thermo_results_dict['num_atoms'] / atoms_per_molecule[config.molecule])
+                    else:
+                        num_mols = thermo_results_dict['thermo_trajectory'].shape[1]
+
                     new_row = {"run_num": run_dir,
-                               'num_molecules': [thermo_results_dict['thermo_trajectory'].shape[
-                                                     1]] if 'thermo_trajectory' in thermo_results_dict.keys() else int(
-                                   thermo_results_dict['num_atoms'] / atoms_per_molecule[config.molecule]),
+                               'num_molecules': [num_mols],
                                'run_config': [run_config],
                                }
                     for key in run_config.keys():
@@ -244,7 +256,10 @@ if __name__ == '__main__':
             combined_df = results_df
         combined_df.reset_index(drop=True, inplace=True)
 
-    combined_df = relabel_defects(combined_df)
+    try:
+        combined_df = relabel_defects(combined_df)
+    except KeyError:
+        print("defect relabelling failed - watch out!!")
     combined_trajectory_analysis(config, combined_df, wandb)
 
     if config.log_to_wandb:

@@ -133,7 +133,7 @@ def make_thermo_figs(thermo_results_dict, run_config):
     return thermo_figs_dict
 
 
-def process_thermo_data(run_config, skip_molwise_thermo=False):
+def process_thermo_data(run_config, skip_molwise_thermo=False, enforce_new_analysis: bool=True):
     results_dict = {}
     try:
         f = open('screen.log', "r")
@@ -217,8 +217,11 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
 
     if not skip_molwise_thermo:
         if os.path.exists('tmp.out'):  # molecule-wise temperature analysis
-            frames = read_lammps_thermo_traj('tmp.out')
-            results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
+            try:
+                frames = read_lammps_thermo_traj('tmp.out')
+                results_dict['thermo_trajectory'] = np.asarray(list(frames.values()))
+            except ValueError:
+                return None, "Error reading thermo trajectory!"
 
         if os.path.exists('com.out'):  # molecule-wise temperature analysis
             frames = read_lammps_com_traj('com.out')
@@ -230,77 +233,80 @@ def process_thermo_data(run_config, skip_molwise_thermo=False):
             frames = read_lammps_pe_traj('pe.out')
             results_dict['pe_trajectory'] = np.asarray(list(frames.values()))
 
-        if os.path.exists('pe.out') and os.path.exists('com.out') and os.path.exists('tmp.out'):
-            # if we have all thermo outputs, process several extra outputs
+        if enforce_new_analysis:
+            if os.path.exists('pe.out') and os.path.exists('com.out') and os.path.exists('tmp.out'):
+                # if we have all thermo outputs, process several extra outputs
 
-            """
-            for property
-                pe, mobility, T1-T3
-                for location
-                    all bulk, all melt, interface bulk, interface melt, deep bulk, deep melt
-                        log 1d feature
-            """
-            props_list = ['Mol T', 'KE Com', 'Intra T', 'Mobility', 'PE']
-            all_props_traj = np.concatenate([
-                results_dict['thermo_trajectory'],
-                results_dict['com_mobility'][..., None],
-                results_dict['pe_trajectory']
-            ],
-                axis=2)
+                """
+                for property
+                    pe, mobility, T1-T3
+                    for location
+                        all bulk, all melt, interface bulk, interface melt, deep bulk, deep melt
+                            log 1d feature
+                """
+                props_list = ['Mol T', 'KE Com', 'Intra T', 'Mobility', 'PE']
+                all_props_traj = np.concatenate([
+                    results_dict['thermo_trajectory'],
+                    results_dict['com_mobility'][..., None],
+                    results_dict['pe_trajectory']
+                ],
+                    axis=2)
 
-            'Full bulk and crystal properties'
-            types_list = ['Bulk', 'Melt']
-            crystal_inds = np.arange(run_config['melt_indices'].crystal_start_ind,
-                                     run_config['melt_indices'].crystal_end_ind)
-            melt_inds = np.arange(run_config['melt_indices'].melt_start_ind,
-                                  run_config['melt_indices'].melt_end_ind)
+                'Full bulk and crystal properties'
+                types_list = ['Bulk', 'Melt']
+                crystal_inds = np.arange(run_config['melt_indices'].crystal_start_ind,
+                                         run_config['melt_indices'].crystal_end_ind)
+                melt_inds = np.arange(run_config['melt_indices'].melt_start_ind,
+                                      run_config['melt_indices'].melt_end_ind)
 
-            inds_list = [crystal_inds, melt_inds]
-            for ind1, type in enumerate(types_list):
+                inds_list = [crystal_inds, melt_inds]
+                for ind1, type in enumerate(types_list):
+                    for ind2, prop_name in enumerate(props_list):
+                        key = f"{type} {prop_name}"
+                        prop = all_props_traj[:, inds_list[ind1], ind2].mean(-1)
+                        results_dict[key] = prop
+
+                'Local property profiles'
+                nbinsx, nbinsy = 30, len(results_dict['com_trajectory']) // 2
+                interface1_ind = nbinsx // 2
+                interface2_ind = 0
+                mid_bulk_ind = nbinsx // 4
+                mid_melt_ind = nbinsx // (3 / 2)
+
+                location_inds = {
+                    'interface1': interface1_ind,
+                    'interface2': interface2_ind,
+                    'mid_bulk': mid_bulk_ind,
+                    'mid_melt': mid_melt_ind,
+                }
+
                 for ind2, prop_name in enumerate(props_list):
-                    key = f"{type} {prop_name}"
-                    prop = all_props_traj[:, inds_list[ind1], ind2].mean(-1)
-                    results_dict[key] = prop
+                    prop = all_props_traj[..., ind2]
+                    for compute_anomaly in [True, False]:
+                        if compute_anomaly:
+                            key = f"{prop_name} anomaly profile"
+                        else:
+                            key = f"{prop_name} profile"
 
-            'Local property profiles'
-            nbinsx, nbinsy = 30, len(results_dict['com_trajectory']) // 2
-            interface1_ind = nbinsx // 2
-            interface2_ind = 0
-            mid_bulk_ind = nbinsx // 4
-            mid_melt_ind = nbinsx // (3 / 2)
+                        profile, bins_x, bins_y = extract_local_profile(
+                            run_config,
+                            results_dict['time step'],
+                            prop,
+                            results_dict['com_trajectory'],
+                            nbinsx, nbinsy,
+                            compute_anomaly=compute_anomaly
+                        )
+                        results_dict[key] = profile
+                        for l_ind, (location_name, location) in enumerate(location_inds.items()):
+                            key += f' {location_name}'
+                            results_dict[key] = profile[:, int(location)]
 
-            location_inds = {
-                'interface1': interface1_ind,
-                'interface2': interface2_ind,
-                'mid_bulk': mid_bulk_ind,
-                'mid_melt': mid_melt_ind,
-            }
-
-            for ind2, prop_name in enumerate(props_list):
-                prop = all_props_traj[..., ind2]
-                for compute_anomaly in [True, False]:
-                    if compute_anomaly:
-                        key = f"{prop_name} anomaly profile"
-                    else:
-                        key = f"{prop_name} profile"
-
-                    profile, bins_x, bins_y = extract_local_profile(
-                        run_config,
-                        results_dict['time step'],
-                        prop,
-                        results_dict['com_trajectory'],
-                        nbinsx, nbinsy,
-                        compute_anomaly=compute_anomaly
-                    )
-                    results_dict[key] = profile
-                    for l_ind, (location_name, location) in enumerate(location_inds.items()):
-                        key += f' {location_name}'
-                        results_dict[key] = profile[:, int(location)]
-
-            return results_dict, 'Thermo analysis succeeded'
+                return results_dict, 'Thermo analysis succeeded'
+            else:
+                return results_dict, 'Missing thermo trajectory!'
         else:
+            return results_dict, 'Thermo analysis succeeded'
 
-            return results_dict, 'Missing thermo trajectory!'
     else:
         return results_dict, 'Thermo analysis succeeded'
 

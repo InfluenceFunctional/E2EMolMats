@@ -99,47 +99,7 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
     if molecule_name == 'acridine':  # new FF, new preprocessing step
         grace_FF_preprocessing('2.data', 'system.data')
     else:  # old GAFF, old preprocessing
-        create_bonds_modifier = CreateBondsModifier(cutoff=1.7, intra_molecule_only=True, prevent_hh_bonds=True)
-
-        pipeline.modifiers.append(create_bonds_modifier)
-        export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
-
-        print("============================")
-        print("Ltemplifying")
-        print("============================")
-
-        '''ltemplify'''
-        # ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py") # alternate method
-        os.system(f"{ltemplify_path} 3.data > 4.lt")
-
-        print("============================")
-        print("Templify to runnable")
-        print("============================")
-
-        '''make runnable'''
-        templify_to_runnable('4.lt', '3.data', '5.lt',
-                             molecule_name)
-
-        print("============================")
-        print("Running Moltemplate")
-        print("============================")
-
-        '''run moltemplate and cleanup'''  # todo change to user-config path
-        # nocheck means it will skip over missing @bond type issues
-        os.system("~/.local/bin/moltemplate.sh system.lt -nocheck")
-
-        print("============================")
-        print("Moltemplate cleanup")
-        print("============================")
-
-        os.system("~/.local/bin/cleanup_moltemplate.sh")
-
-        print("============================")
-        print("Indexing cleanup")
-        print("============================")
-
-        moltemp_final(workdir, config.atom_style, molind2name)  # final indexing cleanup
-        update_atom_style_in_settings(atom_style=config.atom_style)
+        moltemplate_processing(config, ltemplify_path, molecule_name, molind2name, pipeline, workdir)
 
     if config.submit_lammps_slurm:
         print("============================")
@@ -149,3 +109,36 @@ def prep_lammps_inputs(run_num, config_i, ltemplify_path, head_dir, crystals_pat
         # '''optionally - directly run MD''' # will not work from within a Singularity instance
         # use instead batch_sub_lmp.sh in /md_data to submit after all templates are built
         os.system("/opt/slurm/bin/sbatch sub_job.slurm")
+
+
+def moltemplate_processing(config, ltemplify_path, molecule_name, molind2name, pipeline, workdir):
+    create_bonds_modifier = CreateBondsModifier(cutoff=1.7, intra_molecule_only=True, prevent_hh_bonds=True)
+    pipeline.modifiers.append(create_bonds_modifier)
+    export_file(pipeline, '3.data', 'lammps/data', atom_style='full')
+    print("============================")
+    print("Ltemplifying")
+    print("============================")
+    '''ltemplify'''
+    # ltemplify_path = subprocess.getoutput("unset -f which; which ltemplify.py") # alternate method
+    os.system(f"{ltemplify_path} 3.data > 4.lt")
+    print("============================")
+    print("Templify to runnable")
+    print("============================")
+    '''make runnable'''
+    templify_to_runnable('4.lt', '3.data', '5.lt',
+                         molecule_name)
+    print("============================")
+    print("Running Moltemplate")
+    print("============================")
+    '''run moltemplate and cleanup'''  # todo change to user-config path
+    # nocheck means it will skip over missing @bond type issues
+    os.system("~/.local/bin/moltemplate.sh system.lt -nocheck")
+    print("============================")
+    print("Moltemplate cleanup")
+    print("============================")
+    os.system("~/.local/bin/cleanup_moltemplate.sh")
+    print("============================")
+    print("Indexing cleanup")
+    print("============================")
+    moltemp_final(workdir, config.atom_style, molind2name)  # final indexing cleanup
+    update_atom_style_in_settings(atom_style=config.atom_style)
