@@ -29,6 +29,10 @@ melt_temperature: 2000
 min_inter_cluster_distance: 20
 min_lattice_length:
 - 20
+moving_interface_num_steps: 10
+moving_interface_protocol: false
+moving_interface_step: 5
+moving_interface_time: 500000.0
 prep_bulk_melt: false
 prep_crystal_in_melt: true
 prep_melt_interface: false
