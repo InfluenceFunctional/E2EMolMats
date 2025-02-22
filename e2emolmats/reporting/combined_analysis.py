@@ -60,6 +60,7 @@ def combined_trajectory_analysis(config, combined_df, wandb):
 
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
         fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
+        aa = 1
 
     if config.melt_scan_analysis:
         """

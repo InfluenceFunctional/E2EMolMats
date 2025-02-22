@@ -75,8 +75,9 @@ def make_thermo_figs(thermo_results_dict, run_config):
     keys_to_use = []
     for key in thermo_results_dict.keys():
         if isinstance(thermo_results_dict['Temp'], np.ndarray):
-            if thermo_results_dict[key].ndim == 1:
-                keys_to_use += [key]
+            if thermo_results_dict[key] is not None:
+                if thermo_results_dict[key].ndim == 1:
+                    keys_to_use += [key]
 
     good_keys = ['box_type', 'min_inter_cluster_distance', 'run_name', 'damping',
                  'defect_rate', 'defect_type', 'gap_rate', 'max_sphere_radius', 'min_lattice_length',
@@ -110,8 +111,9 @@ def make_thermo_figs(thermo_results_dict, run_config):
 
     profile_keys = []
     for key in thermo_results_dict.keys():
-        if thermo_results_dict[key].ndim == 2 and 'profile' in key:
-            profile_keys.append(key)
+        if thermo_results_dict[key] is not None:
+            if thermo_results_dict[key].ndim == 2 and 'profile' in key:
+                profile_keys.append(key)
 
     for ind, key in enumerate(profile_keys):
         fig = go.Figure()
@@ -254,16 +256,30 @@ def process_thermo_data(run_config, skip_molwise_thermo=False, enforce_new_analy
 
                 'Full bulk and crystal properties'
                 types_list = ['Bulk', 'Melt']
-                crystal_inds = np.arange(run_config['melt_indices'].crystal_start_ind,
-                                         run_config['melt_indices'].crystal_end_ind)
-                melt_inds = np.arange(run_config['melt_indices'].melt_start_ind,
-                                      run_config['melt_indices'].melt_end_ind)
+                num_molecules = all_props_traj.shape[1]
+
+                if hasattr(run_config['melt_indices'], 'crystal_start_ind'):
+                    crystal_inds = np.arange(run_config['melt_indices'].crystal_start_ind,
+                                             run_config['melt_indices'].crystal_end_ind)
+                else:
+                    crystal_inds =  np.array([])
+                if hasattr(run_config['melt_indices'], 'melt_start_ind'):
+                    melt_inds = np.arange(run_config['melt_indices'].melt_start_ind,
+                                          run_config['melt_indices'].melt_end_ind)
+                else:
+                    melt_inds = np.array([])
+
+                if len(melt_inds) == 0 and len(crystal_inds) == 0: # neither were specified, assume crystal
+                    crystal_inds = np.arange(num_molecules)
 
                 inds_list = [crystal_inds, melt_inds]
                 for ind1, type in enumerate(types_list):
                     for ind2, prop_name in enumerate(props_list):
                         key = f"{type} {prop_name}"
-                        prop = all_props_traj[:, inds_list[ind1], ind2].mean(-1)
+                        if len(inds_list[ind1]) > 0:
+                            prop = all_props_traj[:, inds_list[ind1], ind2].mean(-1)
+                        else:
+                            prop = None
                         results_dict[key] = prop
 
                 'Local property profiles'
@@ -311,14 +327,19 @@ def process_thermo_data(run_config, skip_molwise_thermo=False, enforce_new_analy
         return results_dict, 'Thermo analysis succeeded'
 
 
-def get_melt_progress(results_df):
-    assert False, "Rewrite this using CoM mobility"
+def get_melt_progress(results_df,
+                      mobility_threshold: float = 2,
+                      melt_sigma: float = 0.5,
+                      mobility_cutoff: float = 0.025,
+                      melt_tolerance: float = 0.8
+                      ):
     melt_slopes = np.zeros(len(results_df))
     melt_magnitudes = np.zeros(len(results_df))
     for ind, row in results_df.iterrows():
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
-
+        crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
+        melt_inds =  np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
         crystal_reference_time = equil_time
         crystal_time_index = np.argmin(np.abs(row['time step'] - crystal_reference_time))
 
@@ -331,16 +352,29 @@ def get_melt_progress(results_df):
         sampling_end_time = 5 * equil_time + run_time
         sampling_end_index = np.argmin(np.abs(row['time step'] - sampling_end_time))
 
-        inter_energy = row['E_pair']
-        crystal_energy = inter_energy[crystal_time_index]
-        melt_energy = inter_energy[melt_time_index]
-        sampling_energy = inter_energy[sampling_start_index:sampling_end_index]
+        bulk_melt_metric = np.mean(row['com_mobility'][:, crystal_inds] > mobility_threshold, axis=1)  # fraction of the bulk phase which has melted  #row['E_pair']
+        melt_melt_metric = np.mean(row['com_mobility'][:, melt_inds] > mobility_threshold, axis=1)  # fraction of the bulk phase which has melted  #row['E_pair']
 
-        lr = linregress(row['time step'][sampling_start_index:sampling_end_index], sampling_energy)
+        crystal_energy = bulk_melt_metric[crystal_time_index]
+        melt_energy = melt_melt_metric[melt_time_index]
+        sampling_energy = bulk_melt_metric[sampling_start_index:sampling_end_index]
+
+        lr = linregress(row['time step'][-len(sampling_energy):], sampling_energy)  # todo issue lining up the time steps
         melt_slopes[ind] = lr.slope
         melt_magnitudes[ind] = (sampling_energy[-10:].mean() - crystal_energy) / (melt_energy - crystal_energy)
 
     return melt_slopes, melt_magnitudes
+
+'''
+    start_time_index = row['sampling_start_index']
+    crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
+    time = row['time step'][start_time_index:] / 1e6
+    temp = row['Temp'][start_time_index:]
+    mobility_fraction = np.mean(row['com_mobility'][start_time_index:, crystal_inds] > mobility_threshold, axis=1)
+    mobility_slope = np.diff(mobility_fraction, prepend=np.zeros(1))
+    melting_flag = gaussian_filter1d(((mobility_slope > 0) * (mobility_fraction > mobility_cutoff)).astype(float),
+                                     sigma=melt_sigma, mode='nearest') >= melt_tolerance
+'''
 
 
 def relabel_defects(combined_df):

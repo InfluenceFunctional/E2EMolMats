@@ -430,7 +430,11 @@ def extract_local_profile(
         compute_anomaly=False,
 ):
     box_len = run_config['min_lattice_length'] * 2
-    p_ind = ['x', 'y', 'z'].index(run_config['pressure_direction'])
+    if run_config['pressure_direction'] == 'iso':
+        p_ind = 0  # x-axis as dummy
+    else:
+        p_ind = ['x', 'y', 'z'].index(run_config['pressure_direction'])
+
     com_traj = com_traj[..., p_ind]
     com_traj -= box_len * np.floor(com_traj / box_len)
     num_mols = com_traj.shape[1]

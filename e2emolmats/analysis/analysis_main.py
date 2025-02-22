@@ -20,10 +20,13 @@ traj_thermo_keys = ['temp', 'E_pair',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface8/',
+
+    # old
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # failed
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/', # failed
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
 
     # old acridine ff
@@ -65,6 +68,8 @@ acridine_scan_paths = [
 # ]
 'paths for analysis of acridine cluster stability'
 acridine_cluster_paths = [
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_cluster1/',
+
     # old acridine ff
     # r'D:\crystal_datasets\acridine_cluster4/',
     # r'D:\crystal_datasets\acridine_cluster5/',
@@ -88,11 +93,15 @@ acridine_latent_paths = [
     r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
 ]
 acridine_cp_paths = [
+    # old - Daisuke
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp3',
+
+    # old runs
+    #r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
+    # r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
 
     ##old acridine ff
     # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp1',
@@ -110,7 +119,7 @@ acridine_lattice_energy_paths = [
 
 ]
 
-MODE = 'acridine_cp2'
+MODE = 'acridine_cluster'
 """modes
 acridine_cluster    
 acridine_melt
@@ -209,7 +218,7 @@ if __name__ == '__main__':
                     thermo_results_dict, analysis_code = process_thermo_data(
                         run_config,
                         skip_molwise_thermo,
-                        enforce_new_analysis=not config.latents_analysis and not config.cp2_analysis and not config.lattice_energy_analysis
+                        enforce_new_analysis=not config.latents_analysis and not config.lattice_energy_analysis # and not config.cp2_analysis
                     )
                     runs_dict[run_dir] = [analysis_code, run_config]
                     if analysis_code != 'Thermo analysis succeeded':
