@@ -21,7 +21,7 @@ batch_config = {
     'invert_defects': [False],
 
     # static items - DO NOT SET AS LIST
-    'run_time': 1e6,  # sampling time in femtoseconds
+    'run_time': [5e5, 2e6],  # sampling time in femtoseconds
     'cluster_type': 'supercell',
     # type of structure to simulate. "supercell" a nxnxn bulk crystal supercell. "spherical" a finite cluster in vacuum.
     'box_type': 'p',
@@ -34,8 +34,8 @@ batch_config = {
     'min_inter_cluster_distance': 20,  # sets periodic box size in cluster simulations, 0 or None if unused
     'bulk_crystal': True,  # if true, periodic structu:wqre
     'machine': 'cluster',  # 'local' or 'cluster' have different associated paths
-    'run_name': 'acridine_cp3',
-    'min_lattice_length': [20],
+    'run_name': 'acridine_cp4',
+    'min_lattice_length': [15, 30],
     # for periodic bulk simulations. Supercell a x b x c a,b,c will be set to approximately at least this edge length.
     'prep_crystal_in_melt': False,  # Work in progress - prepare a frozen nanocrystal in a melted environment
     'prep_melt_interface': False,  # Work in progress - split supercell in half along the fractional z direction
