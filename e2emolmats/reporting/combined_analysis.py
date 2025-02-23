@@ -45,21 +45,21 @@ def combined_trajectory_analysis(config, combined_df, wandb):
 
         # temperature directional profile
         dev_slopes = []
-        if True:  # False:
-            mean_temp_anomaly_fig(combined_df)
+        #if False:
+        #mean_temp_anomaly_fig(combined_df)
 
-            for r_ind in range(len(combined_df)):
-                temperature_profile_fig(combined_df, r_ind, sigma_x=1, sigma_y=2, show_fig=True)
-                fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
-                dev_slopes.append(com_dev_slope)
+        for r_ind in range(len(combined_df)):
+            #temperature_profile_fig(combined_df, r_ind, sigma_x=1, sigma_y=2, show_fig=True)
+            fig, deviation, com_dev_slope = com_deviation_fig(combined_df, r_ind, show_fig=False)
+            dev_slopes.append(com_dev_slope)
 
         combined_df['com_deviation_slope'] = dev_slopes
 
         fig, melt_estimate_dict, _ = compute_and_plot_melt_slopes(combined_df)
-        fig, melt_estimate_dict2 = compute_and_plot_melt_slopes_com(combined_df)
+        #fig, melt_estimate_dict2 = compute_and_plot_melt_slopes_com(combined_df)
 
         fig2 = plot_melt_points(melt_estimate_dict, POLYMORPH_MELT_POINTS[config.molecule])
-        fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
+        #fig3 = plot_melt_points(melt_estimate_dict2, POLYMORPH_MELT_POINTS[config.molecule])
         aa = 1
 
     if config.melt_scan_analysis:

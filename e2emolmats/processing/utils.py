@@ -329,9 +329,6 @@ def process_thermo_data(run_config, skip_molwise_thermo=False, enforce_new_analy
 
 def get_melt_progress(results_df,
                       mobility_threshold: float = 2,
-                      melt_sigma: float = 0.5,
-                      mobility_cutoff: float = 0.025,
-                      melt_tolerance: float = 0.8
                       ):
     melt_slopes = np.zeros(len(results_df))
     melt_magnitudes = np.zeros(len(results_df))
@@ -339,7 +336,7 @@ def get_melt_progress(results_df,
         equil_time = row['run_config']['equil_time']
         run_time = row['run_config']['run_time']
         crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
-        melt_inds =  np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
+        melt_inds = np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
         crystal_reference_time = equil_time
         crystal_time_index = np.argmin(np.abs(row['time step'] - crystal_reference_time))
 

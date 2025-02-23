@@ -20,7 +20,8 @@ traj_thermo_keys = ['temp', 'E_pair',
 
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface8/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface8/', # dev run
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface9/', # convergence tests
 
     # old
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
@@ -119,7 +120,7 @@ acridine_lattice_energy_paths = [
 
 ]
 
-MODE = 'acridine_cluster'
+MODE = 'acridine_melt'
 """modes
 acridine_cluster    
 acridine_melt
@@ -131,7 +132,7 @@ acridine_lattice_energy
 """
 
 if __name__ == '__main__':
-    redo_analysis = True
+    redo_analysis = False
     log_to_wandb = False
     skip_molwise_thermo = False
 
