@@ -869,6 +869,8 @@ def make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defe
                     (temperature == temp) * (np.array(polymorphs) == polymorph) * (
                             np.array(defects) == defect_rate) * (np.array(defect_types) == defect_type))[0]
                 stab = np.array(stability)[good_inds]
+
+
                 finite_inds = np.isfinite(stab)
                 stab = stab[finite_inds]
                 size = np.array(crystal_size)[good_inds]

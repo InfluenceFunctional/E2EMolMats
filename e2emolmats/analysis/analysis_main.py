@@ -69,7 +69,8 @@ acridine_scan_paths = [
 # ]
 'paths for analysis of acridine cluster stability'
 acridine_cluster_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_cluster1/',
+    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_cluster1/',  # dev run
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_cluster2/',  # convergence run
 
     # old acridine ff
     # r'D:\crystal_datasets\acridine_cluster4/',
@@ -98,7 +99,8 @@ acridine_cp_paths = [
     'D:\crystal_datasets\daisuke_cp_runs'
 ]
 acridine_cp2_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp3',
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp3', # dev run
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp4', # convergence test
 
     # old runs
     #r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
@@ -120,7 +122,7 @@ acridine_lattice_energy_paths = [
 
 ]
 
-MODE = 'acridine_melt'
+MODE = 'acridine_cluster'
 """modes
 acridine_cluster    
 acridine_melt
