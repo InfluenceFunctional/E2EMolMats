@@ -45,7 +45,11 @@ seed:
 - 2
 structure_identifier:
 - acridine/Form3
-- acridine/Form4acridine/Form6acridine/Form7acridine/Form8acridine/Form9
+- acridine/Form4
+- acridine/Form6
+- acridine/Form7
+- acridine/Form8
+- acridine/Form9
 submit_lammps_slurm: false
 temperature:
 - 330
