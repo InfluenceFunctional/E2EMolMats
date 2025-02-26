@@ -10,11 +10,11 @@ batch_config = {
     # size of initial bulk supercell, from which finite subsamples may be carved. Should generally be *very large*
     'temperature': [330, 340, 350, 360, 370, 380, 390, 400, 410, 420, 430],  # Kelvin
     'structure_identifier': ['acridine/Form3',
-                             'acridine/Form4'
-                             'acridine/Form6'
-                             'acridine/Form7'
-                             'acridine/Form8'
-                             'acridine/Form9'
+                             'acridine/Form4',
+                             'acridine/Form6',
+                             'acridine/Form7',
+                             'acridine/Form8',
+                             'acridine/Form9',
                              ],
     'defect_rate': [0],
     'defect_type': [None], #, '2,7-dihydroxynaphthalene'],
