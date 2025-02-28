@@ -1187,6 +1187,8 @@ def cp_and_latent_analysis(combined_df):
             x=T[solid_inds], y=H[solid_inds],
             mode='markers', showlegend=False,
             marker_color=colors[ident],
+            name=key + ' ' + str(fit2),
+            legendgroup=key + ' ' + str(fit2),
         )
 
         fit2 = np.polyfit(T[solid_inds], H[solid_inds], 2)
@@ -1195,7 +1197,9 @@ def cp_and_latent_analysis(combined_df):
 
         fig.add_scattergl(
             x=xspace, y=solid_fit(xspace),
-            mode='lines', showlegend=True, name=key + ' ' + str(fit2),
+            mode='lines', showlegend=True,
+            name=key + ' ' + str(fit2),
+            legendgroup=key + ' ' + str(fit2),
             marker_color=colors[ident],
 
         )

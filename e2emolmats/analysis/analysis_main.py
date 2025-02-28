@@ -21,7 +21,8 @@ traj_thermo_keys = ['temp', 'E_pair',
 'paths for analysis of acridine melt point'
 acridine_melt_paths = [
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface8/', # dev run
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface9/', # convergence tests
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface9/',  # convergence tests
+    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface10/',  # more convergence tests
 
     # old
     #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
@@ -101,7 +102,7 @@ acridine_cp_paths = [
 acridine_cp2_paths = [
     # r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp3',  # dev run
     r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp4',  # convergence test
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp5',  # production runs
+    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp5',  # production re-runs
 
     # old runs
     #r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
@@ -123,7 +124,7 @@ acridine_lattice_energy_paths = [
 
 ]
 
-MODE = 'acridine_cp2'
+MODE = 'acridine_melt'
 """modes
 acridine_cluster    
 acridine_melt
@@ -135,7 +136,7 @@ acridine_lattice_energy
 """
 
 if __name__ == '__main__':
-    redo_analysis = False
+    redo_analysis = True
     log_to_wandb = False
     skip_molwise_thermo = False
 
