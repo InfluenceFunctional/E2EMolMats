@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.colors as pc
 from plotly.colors import n_colors
 
-from e2emolmats.reporting.temp_analysis import com_dist_profile
+from e2emolmats.reporting.temp_analysis import com_msd_profile, msd_melt_analysis
 
 
 def extract_trajectory_properties(hit_minimization, lines, results_dict, skip):
@@ -365,7 +365,7 @@ def compute_and_plot_melt_slopes(df, show_fig=True):
     melt_temps = {defect_type: {} for defect_type in defect_types}
     melt_temps2 = {defect_type: {} for defect_type in defect_types}
     fig = make_subplots(rows=num_defects, cols=2,
-                        subplot_titles=['Normed Intermolecular Energy', 'Intermolecular Energy Slope'])
+                        subplot_titles=['Melt Progress', 'Melting Slope'])
     for polymorph in polymorphs:
         for d_ind, defect_type in enumerate(defect_types):
             row = d_ind + 1
@@ -734,19 +734,20 @@ def crystal_stability_analysis(combined_df):
                                                               stability_array,
                                                               undercool_func)
 
-    relative_fig = make_subplots(rows=n_defect_types - 1, cols=1)
-    row = 1
-    for defect_type_index in range(n_defect_types):
-        if defect_type_index != pure_index:
-            for defect_rate_index in range(n_defects):
-                relative_fig.add_bar(x=present_polymorphs,
-                                     y=relative_undercooled_sizes[defect_type_index, defect_rate_index, :],
-                                     name=f'Defect {present_defect_types[defect_type_index]} Frac={present_defect_rates[defect_rate_index]:.3f}',
-                                     row=row, col=1)
-            row += 1
-    relative_fig.update_yaxes(title='Mean Deviation from Trend')
-    relative_fig.update_xaxes(title='Polymorph')
-    relative_fig.show(renderer='browser')
+    if n_defect_types > 1:
+        relative_fig = make_subplots(rows=n_defect_types - 1, cols=1)
+        row = 1
+        for defect_type_index in range(n_defect_types):
+            if defect_type_index != pure_index:
+                for defect_rate_index in range(n_defects):
+                    relative_fig.add_bar(x=present_polymorphs,
+                                         y=relative_undercooled_sizes[defect_type_index, defect_rate_index, :],
+                                         name=f'Defect {present_defect_types[defect_type_index]} Frac={present_defect_rates[defect_rate_index]:.3f}',
+                                         row=row, col=1)
+                row += 1
+        relative_fig.update_yaxes(title='Mean Deviation from Trend')
+        relative_fig.update_xaxes(title='Polymorph')
+        relative_fig.show(renderer='browser')
 
     colors = get_colorscale(
         'mygbm')  #n_colors('rgb(0,0,255)', 'rgb(255,0,0)', len(present_polymorphs), colortype='rgb')
@@ -852,8 +853,17 @@ def get_undercooling_function(calculated_melt_temps, present_defect_types, prese
     return crange, pure_index, undercool_func
 
 
-def make_critical_nucleus_size_fig(crystal_size, defect_type, defect_types, defects, n_columns, n_rows, polymorphs,
-                                   present_defect_rates, present_polymorphs, stability, temperature):
+def make_critical_nucleus_size_fig(crystal_size,
+                                   defect_type,
+                                   defect_types,
+                                   defects,
+                                   n_columns,
+                                   n_rows,
+                                   polymorphs,
+                                   present_defect_rates,
+                                   present_polymorphs,
+                                   stability,
+                                   temperature):
     fig = make_subplots(rows=n_rows, cols=n_columns, subplot_titles=present_polymorphs, horizontal_spacing=0.035,
                         vertical_spacing=0.08)
     prediction_df = []
@@ -948,7 +958,7 @@ def latent_heat_analysis(combined_df):
         failed_melts = []
         for run_ind, row in good_df.iterrows():
             if run_ind in melted_inds:
-                if not df_row_melted(row):
+                if not run_initial_melt_succeeded(row):
                     failed_melts.append(run_ind)
 
         if len(failed_melts) > 0:
@@ -1048,19 +1058,18 @@ def confirm_melt(combined_df: pd.DataFrame) -> pd.DataFrame:
     'the overall volume should increase when it melts - we can check for this'
     melt_succeeded = np.zeros(len(combined_df), dtype=np.bool_)
     for row_ind, row in combined_df.iterrows():
-        success = df_row_melted(row)
-        melt_succeeded[row_ind] = success
+        melt_succeeded[row_ind] = run_initial_melt_succeeded(row)
 
     combined_df['Melt Succeeded'] = melt_succeeded
     return combined_df
 
 
-def df_row_melted(row):
+def run_initial_melt_succeeded(row):
     if (row['run_name'] == 'acridine_melt_interface5' or
             row['run_name'] == 'acridine_interface_scan2' or
             row['run_name'] == 'acridine_interface_scan3'):
         melt_time = 100000
-    else:
+    else:  # todo these are old - deprecate for future use
         melt_time = row['run_config']['equil_time']
 
     equil_time = row['run_config']['equil_time']
@@ -1073,9 +1082,9 @@ def df_row_melted(row):
     # sampling_start_index = num_time_steps - sampling_steps
     if row['melt_indices'] is not None:
         melt_inds = np.arange(row['melt_indices'].melt_start_ind, row['melt_indices'].melt_end_ind)
-
-        deviation = com_dist_profile(row['com_trajectory'], melt_inds, melt_start_index, melt_end_index)
-        if deviation[-1] > 5:
+        msd_profile = com_msd_profile(row['com_trajectory'], melt_inds, melt_start_index, melt_end_index)
+        fraction_melted, molwise_melt = msd_melt_analysis(msd_profile)
+        if fraction_melted > 0.7:
             melted = True
         else:
             melted = False
@@ -1181,7 +1190,12 @@ def cp_and_latent_analysis(combined_df):
         H = subdict['Enthalpies']
         melt_T = melts_dict[key]
 
-        solid_inds = np.argwhere((T < melt_T)).flatten()
+        solid_inds = np.arange(len(T))#np.argwhere((T < melt_T)).flatten()
+
+
+        fit2 = np.polyfit(T[solid_inds], H[solid_inds], 2)
+        solid_fit = np.poly1d(fit2)
+        xspace = np.linspace(T[solid_inds].min(), T[solid_inds].max(), 101)
 
         fig.add_scattergl(
             x=T[solid_inds], y=H[solid_inds],
@@ -1190,10 +1204,6 @@ def cp_and_latent_analysis(combined_df):
             name=key + ' ' + str(fit2),
             legendgroup=key + ' ' + str(fit2),
         )
-
-        fit2 = np.polyfit(T[solid_inds], H[solid_inds], 2)
-        solid_fit = np.poly1d(fit2)
-        xspace = np.linspace(T[solid_inds].min(), T[solid_inds].max(), 101)
 
         fig.add_scattergl(
             x=xspace, y=solid_fit(xspace),
@@ -1224,7 +1234,7 @@ def cp_and_latent_analysis(combined_df):
     fig.add_trace(
         go.Bar(x=list(latents_dict2.keys()), y=list(latents_dict2.values()), name='Latent Heat Estimate'))
     fig.add_trace(
-        go.Bar(x=list(exp_melts_dict.keys()), y=list(exp_melts_dict.values()), name='Latent Heat (exp)'))
+        go.Bar(x=list(exp_melts_dict.keys()), y=list(exp_melts_dict.values()), name='Latent Heat (Hengyu)'))
     fig.add_trace(go.Bar(x=['Reference 383K', 'Reference2 383K'], y=[20.682, 18.58], name='Reference'))
     fig.update_layout(yaxis_title='Latent Heat of Fusion (kJ/mol)')
     fig.show(renderer='browser')

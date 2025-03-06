@@ -11,33 +11,7 @@ import numpy as np
 
 def combined_trajectory_analysis(config, combined_df, wandb):
     if config.compute_melt_temps:
-        #
-        # import plotly.graph_objects as go
-        # from scipy.ndimage import gaussian_filter1d
-        #
-        # fig = go.Figure()
-        #
-        # good_inds = np.argwhere((combined_df['structure_identifier'] == 'acridine/Form2') *
-        #                         (combined_df['temperature'] == 350)).flatten()
-        #
-        # for indyind, ind in enumerate(good_inds):
-        #     fig.add_trace(
-        #         go.Scattergl(x=combined_df['time step'][ind] / 1e6,
-        #                      y=gaussian_filter1d(combined_df['E_pair'][ind] / combined_df['num_molecules'][ind], 5),
-        #                      marker_color='blue', name='Form2',
-        #                      showlegend=indyind == 0))
-        #
-        # good_inds = np.argwhere((combined_df['structure_identifier'] == 'acridine/Form4') *
-        #                         (combined_df['temperature'] == 350)).flatten()
-        #
-        # for indyind, ind in enumerate(good_inds):
-        #     fig.add_trace(
-        #         go.Scattergl(x=combined_df['time step'][ind] / 1e6,
-        #                      y=gaussian_filter1d(combined_df['E_pair'][ind] / combined_df['num_molecules'][ind], 5),
-        #                      marker_color='red', name='Form4',
-        #                      showlegend=indyind == 0))
-        #
-        # fig.show(renderer='browser')
+
         combined_df = confirm_melt(combined_df)  # TODO note for run 5 the equil time was hardcoded!
         print(f"{np.sum(combined_df['Melt Succeeded'] != True)} failed to melt!")
         combined_df.drop(index=np.argwhere(combined_df['Melt Succeeded'] != True).flatten(), inplace=True)
@@ -45,8 +19,6 @@ def combined_trajectory_analysis(config, combined_df, wandb):
 
         # temperature directional profile
         dev_slopes = []
-        #if False:
-        #mean_temp_anomaly_fig(combined_df)
 
         for r_ind in range(len(combined_df)):
             #temperature_profile_fig(combined_df, r_ind, sigma_x=1, sigma_y=2, show_fig=True)

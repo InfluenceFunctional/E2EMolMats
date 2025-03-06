@@ -87,8 +87,8 @@ def com_deviation_fig(combined_df, r_ind, show_fig=False):
     sampling_end_index = num_time_steps
     crystal_inds = np.arange(row['melt_indices'].crystal_start_ind, row['melt_indices'].crystal_end_ind)
 
-    deviation = com_dist_profile(row['com_trajectory'], crystal_inds, sampling_start_index, sampling_end_index)
-
+    deviation = com_msd_profile(row['com_trajectory'], crystal_inds, sampling_start_index, sampling_end_index)
+    deviation = np.mean(deviation > 5, axis=1)
     fig = go.Figure()
     fig.add_scatter(x=row['time step'][-sampling_steps + 6:], y=deviation[6:])
     fig.update_layout(
@@ -102,18 +102,73 @@ def com_deviation_fig(combined_df, r_ind, show_fig=False):
     return fig, deviation, lr.slope
 
 
-def com_dist_profile(com_trajectory, mol_inds, sampling_start_index, sampling_stop_index):
-    deviation = np.zeros(sampling_stop_index - sampling_start_index)
-    init_distmat = cdist(com_trajectory[sampling_start_index, mol_inds],
-                         com_trajectory[sampling_start_index, mol_inds])
+def com_msd_profile(com_trajectory, mol_inds, sampling_start_index, sampling_stop_index):
+    msd = np.zeros((sampling_stop_index - sampling_start_index, len(mol_inds)))
+
     tt = 0
     for t_ind in range(sampling_start_index, sampling_stop_index):
-        com_distmats = cdist(com_trajectory[t_ind, mol_inds],
-                             com_trajectory[t_ind, mol_inds])
-        deviation[tt] = np.mean(np.abs(com_distmats - init_distmat))
-
+        msd[tt] = np.linalg.norm(com_trajectory[sampling_start_index, mol_inds] - com_trajectory[t_ind, mol_inds],
+                                 axis=1) ** 2
         tt += 1
-    return deviation
+
+    return msd
+
+
+def msd_melt_analysis(msd,
+                      lattice_cutoff: float = 5,
+                      mobility_cutoff: float = 10):
+    num_molecules = msd.shape[1]
+    variation = np.diff(msd, axis=0)
+    lattice_broken = msd > lattice_cutoff
+
+    mobilities = np.zeros(num_molecules)
+    for ind in range(num_molecules):
+        mobilities[ind] = np.std(variation[lattice_broken[:-1, ind], ind])
+
+    stayed_mobile = mobilities > mobility_cutoff
+
+    molwise_confident_melt = stayed_mobile * lattice_broken.any(0)
+    fraction_confident_melt = np.sum(molwise_confident_melt) / num_molecules
+
+    return fraction_confident_melt, molwise_confident_melt
+
+
+#
+# def local_neighborhood_melt(com_trajectory: np.ndarray,
+#                             mol_inds: np.ndarray,
+#                             sampling_start_index:int,
+#                             sampling_stop_index:int,
+#                             target_neighborhood_size: int = 15):
+#     # todo this has to be periodized or subsampled to be meaningful
+#     assert sampling_stop_index > sampling_start_index, "Sampling stop index must be greater than sampling start index"
+#     sampling_time = sampling_stop_index - sampling_start_index
+#     deviation = np.zeros(sampling_time)
+#     init_distmat = cdist(com_trajectory[sampling_start_index, mol_inds],
+#                          com_trajectory[sampling_start_index, mol_inds])
+#
+#     assert com_trajectory.shape[1] > target_neighborhood_size, "Target neighborhood size must be greater than the com_trajectory dimension"
+#     neighborhood_cutoff = 5
+#     converged = False
+#     iters = 0
+#     while not converged and iters < 100:
+#         contact_bools = init_distmat < neighborhood_cutoff
+#         num_contacts = np.sum(contact_bools, axis=1)
+#         if np.mean(num_contacts) >= target_neighborhood_size:
+#             converged = True
+#         else:
+#             neighborhood_cutoff += 1
+#     if not converged:
+#         assert False, "neighborhood analysis did not converge"
+#
+#     local_contact_bools = init_distmat
+#     tt = 0
+#     for t_ind in range(sampling_start_index, sampling_stop_index):
+#         com_distmats = cdist(com_trajectory[t_ind, mol_inds],
+#                              com_trajectory[t_ind, mol_inds])
+#         deviation[tt] = np.mean(np.abs(com_distmats - init_distmat))
+#
+#         tt += 1
+#     return deviation
 
 
 def lattice_energy_figs(combined_df):

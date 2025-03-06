@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 from plotly import graph_objects as go
-from plotly.subplots import make_subplots
 from scipy.ndimage import gaussian_filter1d
 from scipy.stats import linregress
 
@@ -356,7 +355,7 @@ def get_melt_progress(results_df,
         melt_energy = melt_melt_metric[melt_time_index]
         sampling_energy = bulk_melt_metric[sampling_start_index:sampling_end_index]
 
-        lr = linregress(row['time step'][-len(sampling_energy):], sampling_energy)  # todo issue lining up the time steps
+        lr = linregress(row['time step'][-len(sampling_energy):], sampling_energy)
         melt_slopes[ind] = lr.slope
         melt_magnitudes[ind] = (sampling_energy[-10:].mean() - crystal_energy) / (melt_energy - crystal_energy)
 

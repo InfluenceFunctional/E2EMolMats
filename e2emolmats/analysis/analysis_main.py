@@ -3,127 +3,19 @@
 import glob
 import os
 
-import numpy as np
 import pandas as pd
 import wandb
 
-from e2emolmats.analysis.utils import atoms_per_molecule
+from e2emolmats.analysis.results_paths import acridine_melt_paths, acridine_scan_paths, acridine_cluster_paths, \
+    acridine_latent_paths, acridine_cp_paths, acridine_cp2_paths, acridine_lattice_energy_paths
+from e2emolmats.analysis.utils import process_run
 from e2emolmats.common.utils import dict2namespace
 from e2emolmats.reporting.combined_analysis import combined_trajectory_analysis
-from e2emolmats.processing.utils import mode_settings, make_thermo_figs, process_thermo_data, get_melt_progress, \
+from e2emolmats.processing.utils import mode_settings, get_melt_progress, \
     relabel_defects
 from e2emolmats.reporting.utils import runs_summary_table
 
-traj_thermo_keys = ['temp', 'E_pair',
-                    'E_mol', 'E_tot', 'PotEng',
-                    'Press', 'Volume']
-
-'paths for analysis of acridine melt point'
-acridine_melt_paths = [
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface8/', # dev run
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface9/',  # convergence tests
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface10/',  # more convergence tests
-
-    # old
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface1/',
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface2/', # failed
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface3/', # failed
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface5/',
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_melt_interface6/', # something really weird happened here
-
-    # old acridine ff
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface14/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface15/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_1/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_2/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_3/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface16_4/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface17_1/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface17_3/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface17_4/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_melt_interface18/',
-    #r'D:\crystal_datasets\acridine_melt_interface19/', # anthracene
-    #r'D:\crystal_datasets\acridine_melt_interface20/'  # 2,7-DHN
-]
-acridine_scan_paths = [
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan2/',
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan3/', # first successful scan batch, with some refreezing
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan4/', # single test
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan5/',  # shorter test to compare new thermostat
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan6/',  # different langevin dampings
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan7/',  # different langevin dampings
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan8/',  # 2&4 melts
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan9/',  # 3,6,7,8,9 melts folowing run 8
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_interface_scan10/',  # 4 with different params
-
-]
-'paths for analysis of nicotinamide melt point'
-# battery_paths = [
-#     r'D:\crystal_datasets\nic_melt_interface1/',
-#     r'D:\crystal_datasets\nic_melt_interface2/',
-#     r'D:\crystal_datasets\nic_melt_interface3/'
-# ]
-'paths for analysis of nicotinamide cluster stability'
-# battery_paths = [
-#     r'D:\crystal_datasets\nic_cluster1/',
-#     r'D:\crystal_datasets\nic_cluster2/'
-# ]
-'paths for analysis of acridine cluster stability'
-acridine_cluster_paths = [
-    #r'D:\crystal_datasets\acridine_w_new_ff/acridine_cluster1/',  # dev run
-    r'D:\crystal_datasets\acridine_w_new_ff/acridine_cluster2/',  # convergence run
-
-    # old acridine ff
-    # r'D:\crystal_datasets\acridine_cluster4/',
-    # r'D:\crystal_datasets\acridine_cluster5/',
-    # r'D:\crystal_datasets\acridine_cluster6/',
-    # r'D:\crystal_datasets\acridine_cluster7/',
-    # r'D:\crystal_datasets\acridine_cluster8/',
-    # r'D:\crystal_datasets\acridine_cluster9/',
-    # r'D:\crystal_datasets\acridine_cluster10/',
-    # r'D:\crystal_datasets\acridine_cluster11/',
-    # r'D:\crystal_datasets\acridine_cluster12/',
-    # r'D:\crystal_datasets\acridine_cluster13/',  # form 9 melt fix
-    # r'D:\crystal_datasets\acridine_cluster14/',  # long runs
-    # r'D:\crystal_datasets\acridine_cluster15/',  # init 27DHN runs
-    # r'D:\crystal_datasets\acridine_cluster15_retest/',  # trying to rerun 15, where many runs failed
-
-]
-'paths for acridine latent heats of fusion'
-acridine_latent_paths = [
-    # old acridine ff
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery1/',
-    r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
-]
-acridine_cp_paths = [
-    # old - Daisuke
-    'D:\crystal_datasets\daisuke_cp_runs'
-]
-acridine_cp2_paths = [
-    # r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp3',  # dev run
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp4',  # convergence test
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp5',  # production re-runs
-
-    # old runs
-    #r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp1',
-    # r'D:\crystal_datasets\acridine_w_new_ff\acridine_cp2',
-
-    ##old acridine ff
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp1',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp2',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_cp3',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery1/',
-    # r'D:\crystal_datasets\acridine_w_old_ff/acridine_latents_battery2/',
-]
-
-acridine_lattice_energy_paths = [
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy1',  # gas phases
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy2',  # solids
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy3',  # gas phases
-    r'D:\crystal_datasets\acridine_w_new_ff\acridine_lattice_energy4',  # gas phases
-
-]
-
+traj_thermo_keys = ['temp', 'E_pair', 'E_mol', 'E_tot', 'PotEng', 'Press', 'Volume']
 MODE = 'acridine_melt'
 """modes
 acridine_cluster    
@@ -136,7 +28,7 @@ acridine_lattice_energy
 """
 
 if __name__ == '__main__':
-    redo_analysis = True
+    redo_analysis = False
     log_to_wandb = False
     skip_molwise_thermo = False
 
@@ -154,7 +46,7 @@ if __name__ == '__main__':
     )
 
     config_i = {
-        'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',
+        'molecule': 'nicotinamide' if 'nic' in battery_paths[0] else 'acridine',  # todo clarify this, maybe a standalone config?
         'battery_paths': battery_paths,
         'redo_analysis': redo_analysis,
         'run_name': 'test_analysis',
@@ -176,7 +68,7 @@ if __name__ == '__main__':
         wandb.run.name = config.run_name
         wandb.run.save()
 
-    combined_df = pd.DataFrame()
+    combined_df = pd.DataFrame()  # dataframe containing information from a batch of MD runs
     runs_dict = {}
     for battery_path in battery_paths:
         'process and collect results battery-wise'
@@ -199,58 +91,8 @@ if __name__ == '__main__':
                 continue
 
             if os.path.exists('log.lammps'):
-                skip_dir = False
-            else:
-                skip_dir = True
-
-            if not skip_dir:
                 if (run_dir not in results_df["run_num"].values) or config.redo_analysis:  #
-                    print(f'Processing {run_dir}')
-                    if 'daisuke' in os.getcwd():
-                        dir_split = run_dir.split('\\')
-                        seed = int(dir_split[0].split('seed')[-1])
-                        temp = int(dir_split[1].split('T')[-1])
-                        polymorph = dir_split[-1]
-                        run_config = {
-                            'seed': [seed],
-                            'temperature': [temp],
-                            'polymorph': [polymorph],
-                        }
-                    else:
-                        run_config = np.load('run_config.npy', allow_pickle=True).item()
-
-                    'always do thermo analysis'
-                    thermo_results_dict, analysis_code = process_thermo_data(
-                        run_config,
-                        skip_molwise_thermo,
-                        enforce_new_analysis=not config.latents_analysis and not config.lattice_energy_analysis # and not config.cp2_analysis
-                    )
-                    runs_dict[run_dir] = [analysis_code, run_config]
-                    if analysis_code != 'Thermo analysis succeeded':
-                        print(f'Processing {run_dir} failed ' + analysis_code)
-                        continue  # if processing failed, skip this run
-
-                    thermo_figs_dict = make_thermo_figs(thermo_results_dict, run_config)
-                    if config.log_to_wandb:
-                        wandb.log(thermo_figs_dict)
-
-                    '''save results'''
-                    if 'num_atoms' in thermo_results_dict.keys():
-                        num_mols = int(thermo_results_dict['num_atoms'] / atoms_per_molecule[config.molecule])
-                    else:
-                        num_mols = thermo_results_dict['thermo_trajectory'].shape[1]
-
-                    new_row = {"run_num": run_dir,
-                               'num_molecules': [num_mols],
-                               'run_config': [run_config],
-                               }
-                    for key in run_config.keys():
-                        new_row.update({key: [run_config[key]]})
-                    for key in thermo_results_dict.keys():
-                        new_row.update({key: [thermo_results_dict[key]]})
-                    new_row.update({'time step': [thermo_results_dict['time step']]})
-                    results_df = pd.concat([results_df, pd.DataFrame.from_dict(new_row)])
-                    results_df.to_pickle(battery_full_path + '/results_df')
+                    results_df = process_run(results_df, run_dir, skip_molwise_thermo, config, runs_dict, battery_full_path)
 
         # visualize something with runs dict, maybe as a table
         # only for unfinished runs or when reprocessing
